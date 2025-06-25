@@ -1,0 +1,199 @@
+[download_desc]
+other = "今すぐ Istio %s をダウンロード"
+
+[discuss_istio_io_desc]
+other = "Istio ディスカッションボードに参加して、議論やトラブルシューティングのサポートを受けましょう"
+
+[twitter_desc]
+other = "最新ニュースを入手するには Twitter をフォローしてください"
+
+[bluesky_desc]
+other = "最新ニュースを入手するには Bluesky をフォローしてください"
+
+[mastodon_desc]
+other = "最新ニュースを入手するには Mastodon をフォローしてください"
+
+[linkedin_desc]
+other = "最新ニュースを入手するには LinkedIn をフォローしてください"
+
+[stackoverflow_desc]
+other = "Stack Overflow では、Istio のデプロイ、設定、利用に関する質問や厳選された回答を見つけることができます"
+
+[for_everyone]
+other = "すべての人のために"
+
+[for_developers]
+other = "開発者向け"
+
+[github_desc]
+other = "GitHub は Istio コードの開発が行われる場所です"
+
+[team_drive_desc]
+other = "Istio の技術設計ドキュメントを見たい場合は、チームドライブにアクセスしてください"
+
+[working_group_desc]
+other = "Istio プロジェクトに貢献したい場合は、ワーキンググループへの参加を検討してください"
+
+[slack_desc]
+other = "Slack で Istio コミュニティとインタラクティブに議論しましょう"
+
+[report_site_bugs]
+other = "サイトのバグを報告"
+
+[edit_on_github]
+other = "このページを GitHub で編集"
+
+[light_theme]
+other = "ライトテーマ"
+
+[dark_theme]
+other = "ダークテーマ"
+
+[other_versions_of_site]
+other = "このサイトの他のバージョン"
+
+[current_release]
+other = "現在のリリース"
+
+[next_release]
+other = "次のリリース"
+
+[archived_releases]
+other = "過去のリリース"
+
+[options_menu]
+other = "オプションと設定"
+
+[search]
+other = "このサイトを検索"
+
+[search_label]
+other = "検索"
+
+[search_cancel]
+other = "検索をキャンセル"
+
+[footer_istio]
+other = "Istio"
+
+[footer_version]
+other = "バージョン"
+
+[footer_istio_preliminary]
+other = "プレビュー"
+
+[footer_istio_archive]
+other = "アーカイブ"
+
+[footer_archived_on]
+other = "%s にアーカイブされました"
+
+[footer_last_modified]
+other = "ページ最終更新日: %s"
+
+[footer_date_format]
+other = "2006年1月2日"
+
+[footer_privacy_policy]
+other = "プライバシーポリシー"
+
+[footer_terms_and_conditions]
+other = "利用規約"
+
+[footer_trademarks]
+other = "商標"
+
+[page_publish_date_format]
+other = "2006年1月2日"
+
+[page_last_update_format]
+other = "（%s に更新）"
+
+[page_word_count]
+other = "%d 単語"
+
+[page_reading_time]
+other = "%v 分で読めます"
+
+[relnote_update_advice]
+other = "%s をダウンロードする前に、最新のバグ修正とパフォーマンス改善を含む新しいパッチリリースがあることをご確認ください。"
+
+[relnote_update_button]
+other = "ISTIO %s について学ぶ"
+
+[relnote_update_notice]
+other = "更新通知"
+
+[relnote_change_notes_title]
+other = "変更ノート"
+
+[relnote_change_notes_detail]
+other = "変更点の詳細リストを取得します。"
+
+[relnote_before_you_upgrade_title]
+other = "アップグレード前に"
+
+[relnote_before_you_upgrade_detail]
+other = "アップグレード前に知っておくべきことと準備すること。"
+
+[relnote_download_title]
+other = "ダウンロード"
+
+[relnote_download_detail]
+other = "このリリースをダウンロードしてインストールします。"
+
+[relnote_docs_title]
+other = "ドキュメント"
+
+[relnote_docs_detail]
+other = "このリリースのドキュメントを参照してください。"
+
+[relnote_helm_changes_title]
+other = "HELM の変更"
+
+[relnote_helm_changes_detail]
+other = "Helm インストールオプションの変更点について学びます。"
+
+[relnote_source_changes_title]
+other = "ソースの変更"
+
+[relnote_source_changes_detail]
+other = "ソースコードの全変更点を確認します。"
+
+[page_attribution]
+other = "作成者 "
+
+[button_copy]
+other = "クリップボードにコピー"
+
+[button_print]
+other = "印刷"
+
+[button_download]
+other = "ダウンロード"
+
+[button_top]
+other = "トップに戻る"
+
+[button_sidenav]
+other = "ナビゲーションバーを切り替え"
+
+[partner_component_notice]
+other = "このコンポーネントは Istio パートナーによって作成・管理されています。サポートに関するご質問はパートナーに直接お問い合わせください。"
+
+[partner_component_partner]
+other = "パートナー"
+
+[partner_component_contact]
+other = "連絡先"
+
+[partner_component_support_site]
+other = "サポートサイト"
+
+[partner_component_source_code]
+other = "ソースコード"
+
+[partner_component_latest_release]
+other = "最新リリース"
+
+[partner_component_helm_chart] 
