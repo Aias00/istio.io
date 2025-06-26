@@ -1,22 +1,21 @@
 ---
-title: 执行鉴权政策
-description: 在 Ambient 网格中执行四层和七层鉴权策略。
+title: 認証ポリシーの実行
+description: Ambient メッシュで四層と七層の認証ポリシーを実行します。
 weight: 4
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-将应用程序添加到 Ambient 网格后，您可以使用四层鉴权策略保护应用程序访问。
+アプリケーションを Ambient メッシュに追加したら、四層認証ポリシーを使用してアプリケーションへのアクセスを保護できます。
 
-此功能允许您根据自动发布给网格中所有工作负载的客户端工作负载身份来控制对服务的访问。
+この機能では、グリッド内のすべてのワークロードによって自動的に発行されたクライアントワークロードの ID に基づいて、サービスへのアクセスを制御できます。
 
-## 执行四层鉴权策略 {#enforce-layer-4-authorization-policy}
+## 四層認証ポリシーを実行 {#enforce-layer-4-authorization-policy}
 
-让我们创建一个[鉴权策略](/zh/docs/reference/config/security/authorization-policy/)，
-以限制哪些服务可以与 `productpage` 服务进行通信。
-该策略应用于带有 `app: productpage` 标签的 Pod，
-并且仅允许来自服务帐户 `cluster.local/ns/default/sa/bookinfo-gateway-istio`
-的调用。这是您在上一步中部署的 Bookinfo 网关所使用的服务帐户。
+[認証ポリシー](/zh/docs/reference/config/security/authorization-policy/)を作成して、どのサービスが `productpage` サービスと通信できるかを制限します。
+このポリシーは、`app: productpage` ラベルが付けられた Pod に適用され、
+サービスアカウント `cluster.local/ns/default/sa/bookinfo-gateway-istio` からの呼び出しだけを許可します。
+これは、前のステップでデプロイした Bookinfo ゲートウェイで使用されるサービスアカウントです。
 
 {{< text syntax=bash snip_id=deploy_l4_policy >}}
 $ kubectl apply -f - <<EOF
@@ -38,27 +37,26 @@ spec:
 EOF
 {{< /text >}}
 
-如果您在浏览器中打开 Bookinfo 应用程序（`http://localhost:8080/productpage`），
-如之前一样，您将看到产品页面。但是，如果您尝试从不同的服务帐户访问 `productpage` 服务，则会看到错误。
+ブラウザで Bookinfo アプリケーション（`http://localhost:8080/productpage`）を開くと、
+前と同様に、製品ページが表示されます。しかし、異なるサービスアカウントから `productpage` サービスにアクセスしようとすると、エラーが表示されます。
 
-让我们尝试从集群中的不同客户端访问 Bookinfo 应用程序：
+クラスター内の異なるクライアントから Bookinfo アプリケーションにアクセスしてみましょう：
 
 {{< text syntax=bash snip_id=deploy_curl >}}
 $ kubectl apply -f @samples/curl/curl.yaml@
 {{< /text >}}
 
-由于 `curl` Pod 使用不同的服务账户，它无法访问 `productpage` 服务：
+`curl` Pod は異なるサービスアカウントを使用しているため、`productpage` サービスにアクセスできません：
 
 {{< text bash >}}
 $ kubectl exec deploy/curl -- curl -s "http://productpage:9080/productpage"
 command terminated with exit code 56
 {{< /text >}}
 
-## 执行七层鉴权策略 {#enforce-layer-7-authorization-policy}
+## 七層認証ポリシーを実行 {#enforce-layer-7-authorization-policy}
 
-要实施七层策略，您首先需要为命名空间部署一个
-{{< gloss "waypoint" >}}waypoint 代理{{< /gloss >}}。
-此代理将处理进入命名空间的所有七层流量。
+七層ポリシーを実行するには、まず、{{< gloss "waypoint" >}}waypoint プロキシ{{< /gloss >}}を名前空間にデプロイする必要があります。
+このプロキシは、名前空間に入るすべての七層トラフィックを処理します。
 
 {{< text syntax=bash snip_id=deploy_waypoint >}}
 $ istioctl waypoint apply --enroll-namespace --wait
@@ -67,7 +65,7 @@ $ istioctl waypoint apply --enroll-namespace --wait
 ✅ namespace default labeled with "istio.io/use-waypoint: waypoint"
 {{< /text >}}
 
-您可以查看 waypoint 代理并确保其具有 `Programmed=True` 状态：
+waypoint プロキシを確認し、`Programmed=True` の状態であることを確認できます：
 
 {{< text bash >}}
 $ kubectl get gtw waypoint
@@ -75,8 +73,9 @@ NAME       CLASS            ADDRESS       PROGRAMMED   AGE
 waypoint   istio-waypoint   10.96.58.95   True         42s
 {{< /text >}}
 
-添加 [L7 鉴权策略](/zh/docs/ambient/usage/l7-features/)将明确允许
-`curl` 服务向 `productpage` 服务发送 `GET` 请求，但不能执行其他操作：
+[L7 認証ポリシー](/zh/docs/ambient/usage/l7-features/)を追加して、
+`curl` サービスが `productpage` サービスに `GET` リクエストを送信できるようにし、
+他の操作はできないようにします：
 
 {{< text syntax=bash snip_id=deploy_l7_policy >}}
 $ kubectl apply -f - <<EOF
@@ -102,11 +101,11 @@ spec:
 EOF
 {{< /text >}}
 
-请注意，`targetRefs` 字段使用于指定 waypoint 代理授权策略的目标服务。
-规则部分与以前类似，但这次您添加了 `to` 部分来指定允许的操作。
+`targetRefs` フィールドは、waypoint プロキシ認証ポリシーの対象サービスを指定するために使用されます。
+ルール部分は以前と同様ですが、今回は `to` 部分を追加して許可される操作を指定します。
 
-还记得我们的 L4 策略指示 ztunnel 仅允许来自网关的连接吗？
-我们现在需要更新它以允许来自 waypoint 的连接。
+前のステップで、L4 ポリシーは ztunnel がゲートウェイからの接続のみを許可するように指示しました。
+今回は、waypoint からの接続も許可するように更新する必要があります。
 
 {{< text syntax=bash snip_id=update_l4_policy >}}
 $ kubectl apply -f - <<EOF
@@ -130,32 +129,31 @@ EOF
 {{< /text >}}
 
 {{< tip >}}
-要了解如何启用更多 Istio 功能，
-请阅读[七层功能用户指南](/zh/docs/ambient/usage/l7-features/)。
+より多くの Istio 機能を有効にする方法については、[七層機能ユーザーガイド](/zh/docs/ambient/usage/l7-features/)を参照してください。
 {{< /tip >}}
 
-确认新的 waypoint 代理正在执行更新后的鉴权策略：
+更新された認証ポリシーが新しい waypoint プロキシによって実行されていることを確認します：
 
 {{< text bash >}}
-$ # 由于您没有使用 GET 操作，因此此操作会失败并出现 RBAC 错误
+$ # GET 操作を使用していないため、この操作は失敗し、RBAC エラーが表示されます
 $ kubectl exec deploy/curl -- curl -s "http://productpage:9080/productpage" -X DELETE
 RBAC: access denied
 {{< /text >}}
 
 {{< text bash >}}
-$ # 由于 reviews-v1 服务的身份不被允许，因此此操作失败并出现 RBAC 错误
+$ # reviews-v1 サービスの ID が許可されていないため、この操作は失敗し、RBAC エラーが表示されます
 $ kubectl exec deploy/reviews-v1 -- curl -s http://productpage:9080/productpage
 RBAC: access denied
 {{< /text >}}
 
 {{< text bash >}}
-$ # 这是有效的，因为您明确允许来自 curl Pod 的 GET 请求
+$ # これは有効です。なぜなら、curl Pod からの GET リクエストを明示的に許可したからです
 $ kubectl exec deploy/curl -- curl -s http://productpage:9080/productpage | grep -o "<title>.*</title>"
 <title>Simple Bookstore App</title>
 {{< /text >}}
 
 ## 下一步 {#next-steps}
 
-使用 waypoint 代理后，您现在可以在命名空间中执行七层策略。除了鉴权策略之外，
-[您还可以使用 waypoint 代理在服务之间拆分流量](../manage-traffic/)。
-这在进行金丝雀部署或 A/B 测试时非常有用。
+waypoint プロキシを使用すると、今や名前空間で七層ポリシーを実行できます。認証ポリシーに加えて、
+[waypoint プロキシを使用してサービス間でトラフィックを分割することもできます](../manage-traffic/)。
+これは、キャニスター部署や A/B テストを行う際に非常に便利です。

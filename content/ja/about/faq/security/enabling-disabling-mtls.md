@@ -1,8 +1,7 @@
 ---
-title: 在 Istio 安装完成之后，我应该如何开启/关闭双向 TLS？
+title: Istio のインストール後、双方向 TLS を有効または無効にするにはどうすればよいですか？
 weight: 10
 ---
 
-您可以随时使用[认证策略](/zh/docs/concepts/security/#authentication-policies)和
-[目标规则](/zh/docs/concepts/traffic-management/#destination-rules)来为您的服务设置双向
-TLS 认证。请参阅[任务](/zh/docs/tasks/security/authentication/authn-policy)以获取更多细节。
+[認証ポリシー](/ja/docs/concepts/security/#authentication-policies)と[ターゲット ルール](/ja/docs/concepts/traffic-management/#destination-rules)を使用して、双方向 TLS 認証をサービスに設定できます。
+[タスク](/ja/docs/tasks/security/authentication/authn-policy)を参照して、詳細を確認してください。

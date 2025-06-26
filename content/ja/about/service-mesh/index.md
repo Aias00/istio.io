@@ -1,100 +1,98 @@
 ---
-title: Istio 服务网格
-description: 服务网格。
-subtitle: Istio 解决了开发人员和运维人员在分布式或微服务架构中面临的挑战。无论您是从头开始构建、将现有应用程序迁移到云原生，还是保护现有资产，Istio 都可以提供帮助。
+title: Istio サービス メッシュ
+description: サービス メッシュ。
+subtitle: Istio は、開発者とオペレーターが分散型またはマイクロサービス アーキテクチャで直面する課題を解決します。Istio は、新規から既存のアプリケーションをクラウドネイティブに移行する場合、または既存の資産を保護する場合にも役立ちます。
 weight: 34
 skip_toc: true
 skip_byline: true
 skip_pagenav: true
 aliases:
-    - /zh/service-mesh.html
-    - /zh/docs/concepts/what-is-istio/overview
-    - /zh/docs/concepts/what-is-istio/goals
-    - /zh/about/intro
-    - /zh/docs/concepts/what-is-istio/
-    - /zh/latest/docs/concepts/what-is-istio/
+    - /ja/service-mesh.html
+    - /ja/docs/concepts/what-is-istio/overview
+    - /ja/docs/concepts/what-is-istio/goals
+    - /ja/about/intro
+    - /ja/docs/concepts/what-is-istio/
+    - /ja/latest/docs/concepts/what-is-istio/
 doc_type: about
 ---
 
 {{< centered_block >}}
-{{< figure src="/zh/about/service-mesh/service-mesh.svg" alt="服务网格" title="通过使用应用程序代理，Istio 让您可以在网络中编程应用程序感知的流量管理、令人难以置信的可观察性和强大的安全功能。" >}}
+{{< figure src="/ja/about/service-mesh/service-mesh.svg" alt="サービス メッシュ" title="アプリケーション プロキシを使用することで、Istio を使用して、ネットワーク内のアプリケーション感知型のトラフィック管理、驚くべき可観測性、および強力なセキュリティ機能をプログラムできます。" >}}
 {{< /centered_block >}}
 
 {{< centered_block >}}
 
-[comment]: <> (下面的标题仅在此处，因为 lint 要求第一个标题是 <h2>，而稍后我们需要 <h1>。)
+[comment]: <> (この下のタイトルは、lint が最初のタイトルを <h2> と要求するため、後で <h1> が必要です。)
 
-## Istio 介绍 {#what-is-Istio}
+## Istio の紹介 {#what-is-Istio}
 
-**服务网格**是一个基础设施层，它为应用程序提供零信任安全、可观察性和高级流量管理等功能，
-而无需更改代码。**Istio** 是最受欢迎、最强大、最值得信赖的服务网格。
-Istio 由 Google、IBM 和 Lyft 于 2016 年创立，是云原生计算基金会的一个毕业项目，
-与 Kubernetes 和 Prometheus 等项目并列。
+**サービス メッシュ**は、アプリケーションに対して、コードを変更することなく、ゼロトラスト セキュリティ、可観測性、および高度なトラフィック管理機能を提供するインフラストラクチャ レイヤーです。
+**Istio** は、最も人気のある、最も強力な、最も信頼できるサービス メッシュです。
+Istio は、Google、IBM、Lyft によって 2016 年に設立され、クラウドネイティブ コンピューティング ファウンデーションの卒業プロジェクトで、Kubernetes や Prometheus などのプロジェクトと並んでいます。
 
-Istio 可确保云原生和分布式系统具有弹性，帮助现代企业在保持连接和保护的同时跨不同平台维护其工作负载。
-它[启用安全和治理控制](/zh/docs/concepts/observability/)，包括 mTLS 加密、策略管理和访问控制、
-[支持网络功能](/zh/docs/concepts/traffic-management/)，例如金丝雀部署、A/B 测试、负载平衡、故障恢复，
-并[增加对整个资产流量的可观察性](/zh/docs/concepts/observability/)。
+Istio は、クラウドネイティブ システムと分散型システムを弾力性を持たせ、現代企業が異なるプラットフォームをまたいで、接続を維持し、資産を保護しながら、ワークロードを維持するのに役立ちます。
+[セキュリティとガバナンスの制御を有効にする](/ja/docs/concepts/observability/)、mTLS 暗号化、ポリシー管理、アクセス制御、
+[ネットワーク機能をサポートする](/ja/docs/concepts/traffic-management/)、例えば、金絲雀デプロイ、A/B テスト、負荷分散、障害復旧、
+および[資産全体のトラフィックの可観測性を増やす](/ja/docs/concepts/observability/)。
 
-Istio 并不局限于单个集群、网络或运行时的边界——在 Kubernetes 或 VM、多云、混合或本地上运行的服务都可以包含在单个网格中。
+Istio は、単一のクラスター、ネットワーク、または実行時の境界に限定されません。Kubernetes または VM、クラウド、ハイブリッド、またはオンプレミスで実行されるサービスは、単一のメッシュに含まれる場合があります。
 
-Istio 经过精心设计，具有可扩展性，并受到贡献者和合作伙伴的[广泛生态系统](/zh/about/ecosystem)的支持，
-它为各种用例提供​​打包的集成和分发。您可以独立安装 Istio，也可以选择由提供基于 Istio 的解决方案的商业供应商提供的托管支持。
+Istio は、拡張性があり、貢献者とパートナーの[広範なエコシステム](/ja/about/ecosystem)によってサポートされています。
+Istio は、さまざまなユースケースに対して、パッケージ化された統合と配布を提供します。Istio は、独立してインストールすることも、Istio ベースのソリューションを提供する商用サプライヤーによるホスティング サポートを選択することもできます。
 
 <div class="cta-container">
-    <a class="btn" href="/zh/docs/overview/">了解有关 Istio 的更多信息</a>
+    <a class="btn" href="/ja/docs/overview/">Istio についてもっと詳しく知る</a>
 </div>
 
 {{< /centered_block >}}
 
 <br/><br/>
 
-# 特性 {#features}
+# 機能 {#features}
 
-{{< feature_block header="默认安全" image="security.svg" >}}
-Istio 提供基于工作负载身份、双向 TLS 和强大策略控制的市场领先零信任解决方案。
-Istio 在开源中实现了 [BeyondProd](https://cloud.google.com/security/beyondprod/) 的价值，同时避免了供应商锁定或 SPOF。
+{{< feature_block header="デフォルトのセキュリティ" image="security.svg" >}}
+Istio は、ワークロード ID、双方向 TLS、および強力なポリシー制御に基づく、市場で最も優れたゼロトラスト ソリューションを提供します。
+Istio は、[BeyondProd](https://cloud.google.com/security/beyondprod/) の価値をオープンソースで実現し、サプライヤーのロックインや SPOF を回避します。
 
-<a class="btn" href="/zh/docs/concepts/security/">了解安全性</a>
+<a class="btn" href="/ja/docs/concepts/security/">セキュリティについて詳しく知る</a>
 {{< /feature_block>}}
 
-{{< feature_block header="提高可观察性" image="observability.svg" >}}
-Istio 在服务网格内生成可观测数据，从而实现对服务行为的可观察性。
-它与 Grafana 和 Prometheus 等 APM 系统集成，为操作员提供有洞察力的指标，以排除故障、维护和优化应用程序。
-
-<a class="btn" href="/zh/docs/concepts/observability/">了解可观察性</a>
+{{< feature_block header="可観測性の向上" image="observability.svg" >}}
+Istio は、サービス メッシュ内で可観測データを生成し、サービスの動作を可観測性にするのに役立ちます。
+Grafana や Prometheus などの APM システムと統合され、運用者に洞察的な指標を提供し、障害の排除、メンテナンス、およびアプリケ
 {{< /feature_block>}}
 
-{{< feature_block header="管理流量" image="management.svg" >}}
-Istio 简化了流量路由和服务级别配置，允许轻松控制服务之间的流量以及设置 A/B 测试、金丝雀部署和基于百分比流量分割的分阶段推出等任务。
+{{< feature_block header="トラフィック管理" image="management.svg" >}}
+Istio は、トラフィック ルーティングとサービス レベルの設定を簡素化し、A/B テスト、金絲雀デプロイ、およびパーセンテージ トラフィック分割に基づく段階的なデプロイメントなどのタスクを容易に制御できます。
 
-<a class="btn" href="/zh/docs/concepts/traffic-management/">了解流量管理</a>
+<a class="btn" href="/ja/docs/concepts/traffic-management/">トラフィック管理について詳しく知る</a>
 {{< /feature_block>}}
 
 <br/><br/>
 
-# 为什么选择 Istio？ {#why-istio}
+# なぜ Istio を選択するのですか？ {#why-istio}
 
-{{< feature_block header="多种部署模式" image="deployment-modes.svg" >}}
-Istio 提供两种数据平面模式供用户选择。使用新的 Ambient 模式部署可简化应用程序的运行生命周期，或使用传统的 Sidecar 进行复杂配置。
+{{< feature_block header="複数のデプロイ モード" image="deployment-modes.svg" >}}
+Istio は、ユーザーが選択できる 2 つのデータ プレーン モードを提供します。新しい Ambient モードを使用してアプリケーションのライフサイクルを簡素化するか、従来の Sidecar を使用して複雑な設定を行います。
 
-<a class="btn" href="/zh/docs/overview/dataplane-modes/">了解数据平面模式</a>
+<a class="btn" href="/ja/docs/overview/dataplane-modes/">データ プレーン モードについて詳しく知る</a>
 {{< /feature_block>}}
 
-{{< feature_block header="由 Envoy 提供支持" image="envoy.svg" >}}
-Istio 建立在适用于云原生应用的行业标准网关代理之上，具有高性能和可扩展性。使用 WebAssembly 添加自定义流量功能，或集成第三方策略系统。
+{{< feature_block header="Envoy によるサポート" image="envoy.svg" >}}
+Istio は、サービス メッシュの業界標準のゲートウェイ プロキシである Envoy に基づいて構築されており、高性能と拡張性を備えています。
+WebAssembly を使用してカスタム トラフィック機能を追加するか、またはサードパーティのポリシー システムを統合します。
 
-<a class="btn" href="/zh/docs/overview/why-choose-istio/#envoy">了解 Istio 和 Envoy</a>
+<a class="btn" href="/ja/docs/overview/why-choose-istio/#envoy">Istio と Envoy について詳しく知る</a>
 {{< /feature_block>}}
 
-{{< feature_block header="真正的社区项目" image="community-project.svg" >}}
-Istio 专为现代工作负载而设计，由云原生领域的庞大创新者社区打造。
+{{< feature_block header="本当のコミュニティ プロジェクト" image="community-project.svg" >}}
+Istio は、現代のワークロードを設計し、クラウドネイティブ 分野の巨大な革新者コミュニティによって構築されています。
 
-<a class="btn" href="/zh/docs/overview/why-choose-istio/#community">了解 Istio 的贡献者</a>
+<a class="btn" href="/ja/docs/overview/why-choose-istio/#community">Istio の貢献者について詳しく知る</a>
 {{< /feature_block>}}
 
-{{< feature_block header="稳定的二进制版本" image="stable-releases.svg" >}}
-自信地在生产工作负载中部署 Istio。所有版本均可完全免费使用。
+{{< feature_block header="安定したバイナリ バージョン" image="stable-releases.svg" >}}
+自信に生産環境のワークロードに Istio をデプロイします。すべてのバージョンは完全に無料で使用できます。
 
-<a class="btn" href="/zh/docs/overview/why-choose-istio/#packages">了解 Istio 的打包方式</a>
+<a class="btn" href="/ja/docs/overview/why-choose-istio/#packages">Istio のパッケージング方式について詳しく知る</a>
 {{< /feature_block>}}

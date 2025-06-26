@@ -1,6 +1,6 @@
 ---
-title: Prometheus 适配器能在非 Kubernetes 环境下使用吗？
+title: Prometheus アダプターは非 Kubernetes 環境で使用できますか？
 weight: 60
 ---
 
-您可以使用 docker-compose 来安装 Prometheus。
+docker-compose を使用して Prometheus をインストールできます。

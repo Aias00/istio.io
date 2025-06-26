@@ -1,5 +1,5 @@
 ---
 ---
 {{< tip >}}
-鼓励用户过渡到 [Telemetry API](/zh/docs/tasks/observability/telemetry/) 跟踪配置。
+[Telemetry API](/ja/docs/tasks/observability/telemetry/) を使用したトレース設定に移行することをお勧めします。
 {{</ tip >}}

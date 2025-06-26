@@ -1,6 +1,6 @@
 ---
-title: Istio 不工作了应该怎么做？
+title: Istio が動作しない場合はどうすればよいですか？
 weight: 90
 ---
 
-查看[操作指南](/zh/docs/ops/)寻找解决方案或者通过[错误报告](/zh/docs/releases/bugs/)页面提交错误信息。
+[操作ガイド](/ja/docs/ops/)を参照して、解決策を見つけるか、[バグ レポート](/ja/docs/releases/bugs/)ページにエラー情報を送信してください。

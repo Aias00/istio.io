@@ -1,12 +1,12 @@
 ---
-title: 文档在哪里？
+title: ドキュメントはどこにありますか？
 weight: 80
 ---
 
-在 [istio.io](https://istio.io) 查看[文档](/zh/docs/)。
-文档包括[概念概述](/zh/docs/concepts/)、
-[任务指南](/zh/docs/tasks/)、
-[指南](/zh/docs/examples/)、
-和[完整的参考文档](/zh/docs/reference/)。
+[istio.io](https://istio.io) の[ドキュメント](/ja/docs/)を参照してください。
+ドキュメントには[概念概要](/ja/docs/concepts/)、
+[タスクガイド](/ja/docs/tasks/)、
+[ガイド](/ja/docs/examples/)、
+および[完全なリファレンス ドキュメント](/ja/docs/reference/)が含まれています。
 
-详细的开发人员级别文档保留在我们的 [Wiki](https://github.com/istio/istio/wiki) 中。
+開発者向けの詳細なドキュメントは [Wiki](https://github.com/istio/istio/wiki) に保存されています。

@@ -1,38 +1,37 @@
 ---
-title: 清理
-description: 删除 Istio 和相关资源。
+title: クリーンアップ
+description: Istio と関連リソースを削除します。
 weight: 6
 owner: istio/wg-networking-maintainers
 test: yes
 next: /docs/ambient/install
 ---
 
-如果您不再需要 Istio 和相关资源，可以按照本节中的步骤删除它们。
+Istio と関連リソースが不要になった場合、本節の手順に従って削除できます。
 
-## 删除 waypoint 代理 {#remove-waypoint-proxies}
+## waypoint プロキシを削除 {#remove-waypoint-proxies}
 
-要删除所有 waypoint 代理，请运行以下命令：
+すべての waypoint プロキシを削除するには、以下のコマンドを実行してください：
 
 {{< text bash >}}
 $ kubectl label namespace default istio.io/use-waypoint-
 $ istioctl waypoint delete --all
 {{< /text >}}
 
-## 从 Ambient 数据平面中删除命名空间 {#remove-the-namespace-from-the-ambient-data-plane}
+## Ambient データプレーンから名前空間を削除 {#remove-the-namespace-from-the-ambient-data-plane}
 
-删除 Istio 时，指示 Istio 自动将 `default`
-命名空间中的应用程序包含到 Ambient 网格的标签不会被删除。
-使用以下命令将其删除：
+Istio を削除すると、`default` 名前空間のアプリケーションが Ambient メッシュに含まれるラベルは削除されません。
+以下のコマンドを使用して削除します：
 
 {{< text bash >}}
 $ kubectl label namespace default istio.io/dataplane-mode-
 {{< /text >}}
 
-在卸载 Istio 之前，您必须从 Ambient 数据平面中删除工作负载。
+Istio をアンインストールする前に、Ambient データプレーンからワークロードを削除する必要があります。
 
-## 删除示例应用程序 {#remove-the-sample-application}
+## サンプルアプリケーションを削除 {#remove-the-sample-application}
 
-要删除 Bookinfo 示例应用程序和 `curl` 部署，请运行以下命令：
+Bookinfo サンプルアプリケーションと `curl` デプロイメントを削除するには、以下のコマンドを実行してください：
 
 {{< text bash >}}
 $ kubectl delete httproute reviews
@@ -44,15 +43,15 @@ $ kubectl delete -f @samples/bookinfo/gateway-api/bookinfo-gateway.yaml@
 
 {{< /text >}}
 
-## 卸载 Istio {#uninstall-istio}
+## Istio をアンインストール {#uninstall-istio}
 
-要卸载 Istio：
+Istio をアンインストールするには：
 
 {{< text syntax=bash snip_id=none >}}
 $ istioctl uninstall -y --purge
 $ kubectl delete namespace istio-system
 {{< /text >}}
 
-## 删除 Kubernetes Gateway API CRD {#remove-the-kubernetes-gateway-api-crds}
+## Kubernetes Gateway API CRD を削除 {#remove-the-kubernetes-gateway-api-crds}
 
 {{< boilerplate gateway-api-remove-crds >}}

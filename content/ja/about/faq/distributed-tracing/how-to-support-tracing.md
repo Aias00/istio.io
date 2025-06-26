@@ -1,18 +1,19 @@
 ---
-title: 使用 Istio 进行分布式追踪需要什么？
+title: Istio で分散トレースをサポートするには何が必要ですか？
 weight: 10
 ---
 
-Istio 支持在服务网格内报告工作负载之间的追踪跨度（Trace spans）。
-然而，为了将各种追踪 Span 整合在一起以获得完整的流量图，应用程序必须在传入和传出请求之间传播追踪上下文信息。
+Istio は、サービスメッシュ内でトレース範囲（Trace spans）を報告することをサポートしています。
+しかし、異なるトレース範囲を統合して完全なトラフィック マップを取得するには、アプリケーションがトレース コンテキスト情報を受信および送信する必要があります。
 
-具体来说，Istio 依靠应用程序来转发 Envoy 生成的请求 ID 和标准标头。这些标头包括：
+具体的には、Istio はアプリケーションに Envoy が生成したリクエスト ID と標準ヘッダーを転送することを依存しています。
+これらのヘッダーには次のものが含まれます：
 
 - `x-request-id`
 - `traceparent`
 - `tracestate`
 
-Zipkin 用户必须确保他们[传播 B3 链路追踪标头](https://github.com/openzipkin/b3-propagation)。
+Zipkin ユーザーは、[B3 トレースヘッダーを伝播](/zh/docs/tasks/observability/distributed-tracing/overview/#trace-context-propagation)することを確認する必要があります。
 
 - `x-b3-traceid`
 - `x-b3-spanId`
@@ -21,5 +22,5 @@ Zipkin 用户必须确保他们[传播 B3 链路追踪标头](https://github.com
 - `x-b3-flags`
 - `b3`
 
-标头传播可通过客户端库完成，例如 [OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/)。
-它也可手动完成，如[分布式链路追踪任务](/zh/docs/tasks/observability/distributed-tracing/overview/#trace-context-propagation)中所述。
+ヘッダーの伝播は、[OpenTelemetry](https://opentelemetry.io/docs/concepts/context-propagation/) などのクライアント ライブラリを使用して行うことができます。
+また、[分散トレースのタスク](/zh/docs/tasks/observability/distributed-tracing/overview/#trace-context-propagation)で説明されているように、手動で行うこともできます。

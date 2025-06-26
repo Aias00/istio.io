@@ -1,9 +1,9 @@
 ---
-title: Ambient 模式常见问题
-linktitle: Ambient 模式
-description: Ambient 模式问答。
+title: Ambient モードのよくある質問
+linktitle: Ambient モード
+description: Ambient モードのよくある質問。
 weight: 30
 layout: faq
 aliases:
-  - /zh/help/faq/ambient-mode
+  - /ja/help/faq/ambient-mode
 ---

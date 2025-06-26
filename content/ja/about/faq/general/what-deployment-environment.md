@@ -1,7 +1,7 @@
 ---
-title: 目前支持哪些部署环境？
+title: 現在サポートされているデプロイ環境は何ですか？
 weight: 60
 ---
 
-Istio 被设计和构建为平台无关的。对于 {{< istio_version >}} 版本，
-Istio 支持运行容器编排的平台环境，比如 Kubernetes（{{< supported_kubernetes_versions >}}）。
+Istio はプラットフォームに依存しないように設計されています。
+{{< istio_version >}} バージョンでは、Kubernetes（{{< supported_kubernetes_versions >}}）などのコンテナ オーケストレーション プラットフォームをサポートしています。

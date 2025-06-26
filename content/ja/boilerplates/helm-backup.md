@@ -1,13 +1,12 @@
 ---
 ---
-在您的集群中升级 Istio 之前，我们建议您创建自定义配置的备份，
-并在必要时从备份中恢复它：
+Istio をアップグレードする前に、カスタム設定のバックアップを作成し、必要に応じてそのバックアップから復元することをお勧めします：
 
 {{< text bash >}}
 $ kubectl get istio-io --all-namespaces -oyaml > "$HOME"/istio_resource_backup.yaml
 {{< /text >}}
 
-您可以像下面这样恢复您的自定义配置：
+カスタム設定を復元するには、以下のようにします：
 
 {{< text bash >}}
 $ kubectl apply -f "$HOME"/istio_resource_backup.yaml

@@ -9,4 +9,4 @@ type: case-studies
 sidebar_none: true
 ---
 
-[comment]: <> (要将自己添加为 Istio 用户，请参见 https://github.com/istio/community/blob/master/CONTRIBUTING.md#tell-the-world-youre-using-istio.)
+[comment]: <> (Istio ユーザーとして自分を追加するには、https://github.com/istio/community/blob/master/CONTRIBUTING.md#tell-the-world-youre-using-istio を参照してください。)

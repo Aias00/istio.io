@@ -1,7 +1,7 @@
 ---
-title: 可以通过 REST 接口访问 Istio 指标吗？
+title: Istio 指標に REST インターフェースを使用してアクセスできますか？
 weight: 0
 ---
 
-您可以使用 [Prometheus](/zh/docs/tasks/observability/metrics/querying-metrics/) 收集有关 Istio 的遥测数据。
-然后，使用 [Prometheus 的 HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/) 来查询该数据。
+[Prometheus](/ja/docs/tasks/observability/metrics/querying-metrics/) を使用して、Istio のテレメトリ データを収集できます。
+その後、[Prometheus の HTTP API](https://prometheus.io/docs/prometheus/latest/querying/api/) を使用して、そのデータを照会できます。

@@ -1,11 +1,10 @@
 ---
-title: 如何验证流量是否使用双向 TLS 加密？
+title: トラフィックが双方向 TLS 暗号化を使用しているかどうかを確認するにはどうすればよいですか？
 weight: 25
 ---
 
-如果您使用 `values.global.proxy.privileged=true` 参数安装 Istio，
-您可以使用 `tcpdump` 来确定加密状态。同样在 Kubernetes 1.23 及以后的版本中，
-作为将 Istio 安装为特权用户的另一种选择，您可以使用 `kubectl debug`
-在[临时容器（Ephemeral Container）](https://kubernetes.io/zh-cn/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container)
-中运行 `tcpdump`。有关说明，请参见
-[Istio 双向 TLS 迁移](/zh/docs/tasks/security/authentication/mtls-migration)。
+`values.global.proxy.privileged=true` パラメーターを使用して Istio をインストールした場合、
+`tcpdump` を使用して暗号化状態を確認できます。同様に、Kubernetes 1.23 以降のバージョンでは、
+Istio を特権ユーザーとしてインストールする別の選択肢として、`kubectl debug`
+を使用して、[一時コンテナ（Ephemeral Container）](https://kubernetes.io/ja/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container)
+で `tcpdump` を実行できます。[Istio 双方向 TLS 移行](/ja/docs/tasks/security/authentication/mtls-migration)を参照してください。

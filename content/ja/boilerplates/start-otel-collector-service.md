@@ -1,14 +1,14 @@
 ---
 ---
-为 OpenTelemetry Collector 创建命名空间：
+OpenTelemetry Collector の名前空間を作成します：
 
 {{< text bash >}}
 $ kubectl apply -f @samples/open-telemetry/otel.yaml@ -n istio-system
 $ kubectl create namespace observability
 {{< /text >}}
 
-部署 OpenTelemetry Collector。
-您可以使用[此示例配置]({{< github_blob >}}/samples/open-telemetry/otel.yaml)作为起点。
+OpenTelemetry Collector をデプロイします。
+[このサンプル設定]({{< github_blob >}}/samples/open-telemetry/otel.yaml)を起点として使用できます。
 
 {{< text bash >}}
 $ kubectl apply -f @samples/open-telemetry/otel.yaml@ -n observability

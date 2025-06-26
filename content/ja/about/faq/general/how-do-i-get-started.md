@@ -1,12 +1,12 @@
 ---
-title: 我如何开始使用 Istio？
+title: Istio の使用を開始するにはどうすればよいですか？
 weight: 30
 ---
 
-我们建议您按照[入门](/zh/docs/setup/getting-started/)上的说明进行操作，
-Istio 的主要示例应用程序 [Bookinfo 应用](/zh/docs/examples/bookinfo/)示范了安装配置。
-您可以使用此设置来[浏览各种 Istio 指南](/zh/docs/setup/getting-started/#next-steps)，
-该指南中的案例包括了智能路由、策略执行、安全、遥测等。
+[Istio の使用を開始する](/ja/docs/setup/getting-started/)に従ってください。
+Istio の主要なサンプルアプリケーション [Bookinfo アプリケーション](/ja/docs/examples/bookinfo/)は、インストール設定を示しています。
+この設定を使用して、[さまざまな Istio ガイド](/ja/docs/setup/getting-started/#next-steps)を参照できます。
+これらのガイドには、スマートルーティング、ポリシー実行、セキュリティ、テレメトリなどのケースが含まれています。
 
-要在现有 Kubernetes 上部署和使用 Istio，
-请参阅我们的[安装说明](/zh/docs/ops/deployment/deployment-models/)文档。
+既存の Kubernetes に Istio をデプロイして使用するには、
+[インストール手順](/ja/docs/ops/deployment/deployment-models/)を参照してください。

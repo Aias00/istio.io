@@ -1,6 +1,6 @@
 ---
 ---
-等待所有的 Istio CRD 创建完成：
+すべての Istio CRD の作成が完了するのを待ちます：
 
 {{< text bash >}}
 $ kubectl -n istio-system wait --for=condition=complete job --all

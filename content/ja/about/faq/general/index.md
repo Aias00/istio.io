@@ -1,9 +1,9 @@
 ---
-title: 常见问题
-linktitle: 常见问题
-description: 常见问题。
+title: よくある質問
+linktitle: よくある質問
+description: よくある質問。
 weight: 10
 layout: faq
 aliases:
-  - /zh/help/faq/general
+  - /ja/help/faq/general
 ---

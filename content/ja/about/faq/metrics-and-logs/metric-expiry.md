@@ -1,22 +1,23 @@
 ---
-title: 如何管理短期指标？
+title: 短期指標を管理するにはどうすればよいですか？
 weight: 20
 ---
 
-短期指标可能会阻碍 Prometheus 的性能，因为它们通常是标签基数的重要来源。
-基数是标签唯一值数量的度量。要管理短期指标对 Prometheus 的影响，
-您必须首先确定高基数指标和标签。Prometheus 在其 `/status` 页面上提供基数信息。
-可以通过 [PromQL](https://www.robustperception.io/which-are-my-biggest-metrics)
-检索其他信息。有几种方法可以减少 Istio 指标的基数：
+短期指標は Prometheus のパフォーマンスを妨げる可能性があります。
+これらは通常、ラベルの基数の重要なソースです。
+基数はラベルの一意の値の数を測定する指標です。
+短期指標が Prometheus に与える影響を管理するには、まず高基数指標とラベルを特定する必要があります。
+Prometheus は `/status` ページで基数情報を提供します。
+[PromQL](https://www.robustperception.io/which-are-my-biggest-metrics) を使用して、他の情報を取得できます。
+Istio 指標の基数を削減する方法はいくつかあります：
 
-* 禁用主机报头回退。
-  `destination_service` 标签是高基数的一个潜在来源。
-  如果 Istio 代理无法从其他请求元数据中确定目标服务，则 `destination_service` 的值默认出现在主机报头中。
-  如果客户端使用各种主机报头，这可能会导致 `destination_service` 产生的大量值。
-  在这种情况下，请按照[指标自定义](/zh/docs/tasks/observability/metrics/customize-metrics/)指南禁用主机报头回退网格范围。
-  要禁用特定工作负载或命名空间的主机头回退，您需要复制统计 `EnvoyFilter` 配置，更新它以禁用主机报头回退，并应用一个更具体的选择器。
-  [这个问题](https://github.com/istio/istio/issues/25963#issuecomment-666037411)有更多关于如何实现这一点的细节。
-* 从集合中删除不必要的标签。如果不需要具有高基数的标签，您可以使用 `tags_to_remove`
-  通过[指标自定义](/zh/docs/tasks/observability/metrics/customize-metrics/)将其从指标集合中删除。
-* 通过联合或分类规范化标签值。如果需要标签提供的信息，
-  您可以使用 [Prometheus 联邦](/zh/docs/ops/best-practices/observability/#using-prometheus-for-production-scale-monitoring)或[请求分类](/zh/docs/tasks/observability/metrics/classify-metrics/)来规范化标签。
+* ホスト ヘッダーのフォールバックを無効にします。
+  `destination_service` ラベルは高基数の潜在的なソースです。
+  Istio プロキシが他のリクエスト メタデータからターゲット サービスを特定できない場合、`destination_service` の値はデフォルトでホスト ヘッダーに表示されます。
+  クライアントがさまざまなホスト ヘッダーを使用する場合、これは `destination_service` の値が大量に生成される可能性があることを意味します。
+  この場合、[指標のカスタマイズ](/ja/docs/tasks/observability/metrics/customize-metrics/)ガイドに従って、ホスト ヘッダーのフォールバックを無効にしてください。
+  特定のワークロードまたは名前空間のホスト ヘッダーのフォールバックを無効にするには、`EnvoyFilter` 設定をコピーし、ホスト ヘッダーのフォールバックを無効にし、より具体的なセレクターを適用する必要があります。
+  [この問題](https://github.com/istio/istio/issues/25963#issuecomment-666037411)には、これを実現する方法の詳細が含まれています。
+* 不要なラベルをセットから削除します。高基数のラベルが不要な場合、`tags_to_remove` を使用して指標セットから削除できます。
+* ラベル値を正規化するには、[Prometheus フェデレーション](/ja/docs/ops/best-practices/observability/#using-prometheus-for-production-scale-monitoring)または[リクエストの分類](/ja/docs/tasks/observability/metrics/classify-metrics/)を使用します。
+  ラベルによって提供される情報が必要な場合、[Prometheus フェデレーション](/ja/docs/ops/best-practices/observability/#using-prometheus-for-production-scale-monitoring)または[リクエストの分類](/ja/docs/tasks/observability/metrics/classify-metrics/)を使用します。

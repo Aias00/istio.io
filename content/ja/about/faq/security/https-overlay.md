@@ -1,6 +1,6 @@
 ---
-title: 我可以为 HTTPS 服务安装 Istio Sidecar 吗？
+title: HTTPS サービスに Istio Sidecar をインストールできますか？
 weight: 170
 ---
 
-可以，并且启用或禁用双向 TLS 都可以。
+はい、双方向 TLS を有効または無効にすることができます。

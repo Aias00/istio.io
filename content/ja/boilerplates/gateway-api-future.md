@@ -1,4 +1,4 @@
 ---
 ---
-Istio 支持 Kubernetes [Gateway API](/zh/blog/2024/gateway-mesh-ga/)，
-并计划将其作为未来流量管理的默认 API。
+Istio は Kubernetes [Gateway API](/ja/blog/2024/gateway-mesh-ga/) をサポートし、
+将来のトラフィック管理のデフォルト API として計画しています。

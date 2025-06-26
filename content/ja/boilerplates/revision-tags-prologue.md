@@ -1,11 +1,11 @@
 ---
 ---
-现在，修订版、标记和命名空间之间更新后的映射关系如下所示：
+リビジョン、ラベル、および名前空間間の結果のマッピングは次のとおりです：
 
 {{< image width="90%"
 link="/zh/docs/setup/upgrade/canary/revision-tags-after.svg"
-caption="命名空间标签没有变化，但现在所有命名空间都指向 {{< istio_full_version_revision >}}"
+caption="名前空間ラベルは変更されていないが、現在すべての名前空間が {{< istio_full_version_revision >}} を指しています"
 >}}
 
-当在带有 `prod-stable` 标签的命名空间中重新启动注入工作负载，将导致这些工作负载使用 `{{< istio_full_version_revision >}}` 控制平面。
-请注意，将工作负载迁移到新版本时不需要重新标记命名空间。
+`prod-stable` ラベル付き名前空間で注入ワークロードを再起動すると、これらのワークロードが `{{< istio_full_version_revision >}}` コントロールプレーンを使用するようになります。
+名前空間の再ラベル付けは必要ありません。

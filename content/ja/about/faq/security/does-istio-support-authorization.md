@@ -1,7 +1,7 @@
 ---
-title: Istio 是否支持授权？
+title: Istio は認可をサポートしていますか？
 weight: 110
 ---
 
-支持。Istio 对网格中的 HTTP 服务和普通 TCP 服务提供授权特性支持，
-[了解更多](/zh/docs/concepts/security/#authorization)。
+はい。Istio はメッシュ内の HTTP サービスと通常の TCP サービスに対して認可機能を提供します。
+[詳細はこちら](/ja/docs/concepts/security/#authorization)。

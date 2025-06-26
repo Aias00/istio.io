@@ -1,21 +1,20 @@
 ---
-title: 为什么我的 CORS（跨源资源共享）配置不起作用？
+title: なぜ CORS（クロスオリジンリソース共有）設定が機能しないのですか？
 weight: 40
 ---
 
-当应用了 [CORS（跨源资源共享）配置](/zh/docs/reference/config/networking/virtual-service/#CorsPolicy)后，
-您可能会发现看似什么也没发生，并想知道哪里出了问题。
-CORS 是一个经常被误解的 HTTP 概念，在配置时经常会导致混淆。
+[CORS（クロスオリジンリソース共有）設定](/ja/docs/reference/config/networking/virtual-service/#CorsPolicy)を適用した後、
+何も起こっていないように見えることがあり、どこが問題なのかわからないかもしれません。
+CORS は、設定時によく誤解される HTTP の概念です。
 
-要弄明白这个问题，有必要退后一步，看看
-[CORS 是什么](https://developer.mozilla.org/zh/docs/Web/HTTP/CORS)，
-以及何时应该使用它。默认情况下，浏览器对脚本发起的 "cross origin" 请求有限制。
-例如，这可以防止网站 `attack.example.com` 向 `bank.example.com` 发出 JavaScript 请求，
-从而窃取用户的敏感信息。
+この問題を理解するには、後退して、
+[CORS とは何か](https://developer.mozilla.org/ja/docs/Web/HTTP/CORS)、
+そしていつ使用すべきかを見てみる必要があります。デフォルトでは、ブラウザはスクリプトからの "cross origin" リクエストに制限を課します。
+例えば、これは、ユーザーの機密情報を盗み取るために、ウェブサイト `attack.example.com` が `bank.example.com` に JavaScript リクエストを送信することを防ぎます。
 
-为了允许这个请求，`bank.example.com` 必须允许 `attack.example.com` 执行跨域请求，
-这就是 CORS 的作用所在。如果我们想在一个启用了 Istio 的集群内提供 `bank.example.com`
-服务，我们可以通过配置一个 `corsPolicy` 来允许这样做：
+このリクエストを許可するには、`bank.example.com` が `attack.example.com` がクロスオリジンリクエストを実行することを許可する必要があります。
+これが CORS の役割です。もし、Istio が有効なクラスター内で `bank.example.com` サービスを提供したい場合、
+`corsPolicy` を設定することで、これを許可することができます：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
@@ -32,12 +31,13 @@ spec:
 ...
 {{< /text >}}
 
-在这种情况下，我们明确地允许一个单一的起源；通配符通常用于不敏感的页面。
+この場合、単一の起源を明示的に許可します。通配符は、不敏感なページに通常使用されます。
 
-一旦我们这样做了，一个常见的错误就是发送一个请求，比如
-`curl bank.example.com -H "Origin: https://attack.example.com"`，
-然后期望这个请求被拒绝。
-但是，curl 和许多其他客户端不会看到被拒绝的请求，因为 CORS 是一个浏览器约束。
-CORS 配置只是在响应中添加 `Access-Control-*` 头；如果响应不令人满意，
-则由客户端（浏览器）来拒绝请求。在浏览器中，
-这是通过[预检请求](https://developer.mozilla.org/zh/docs/Web/HTTP/CORS#preflighted_requests)来完成的。
+これを行った後、一般的なエラーは、
+`curl bank.example.com -H "Origin: https://attack.example.com"` のようなリクエストを送信し、
+このリクエストが拒否されることを期待することです。
+しかし、curl や他の多くのクライアントは、CORS がブラウザの制約であるため、拒否されたリクエストを見ることはありません。
+CORS 設定は、単に `Access-Control-*` ヘッダーを追加するだけです。
+もし、レスポンスが不満足であれば、クライアント（ブラウザ）がリクエストを拒否します。
+ブラウザでは、これは[事前リクエスト](https://developer.mozilla.org/ja/docs/Web/HTTP/CORS#preflighted_requests)によって行われます。
+これは[事前リクエスト](https://developer.mozilla.org/ja/docs/Web/HTTP/CORS#preflighted_requests)によって行われます。

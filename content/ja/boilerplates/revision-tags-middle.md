@@ -1,13 +1,13 @@
 ---
 ---
-修订、标签和命名空间之间的结果映射如下所示：
+リビジョン、ラベル、および名前空間間の結果のマッピングは次のとおりです：
 
 {{< image width="90%"
 link="/zh/docs/setup/upgrade/canary/revision-tags-before.svg"
-caption="两个命名空间指向了 prod-stable 而一个指向了 prod-canary"
+caption="2 つの名前空間が prod-stable を指し、1 つが prod-canary を指しています"
 >}}
 
-除了标记的命名空间之外，集群管理员还可以通过以下 `istioctl tag list` 命令查看此映射：
+ラベル付き名前空間以外のクラスター管理者は、以下の `istioctl tag list` コマンドを使用してこのマッピングを確認できます：
 
 {{< text bash >}}
 $ istioctl tag list
@@ -17,6 +17,5 @@ prod-canary {{< istio_full_version_revision >}}   ...
 prod-stable {{< istio_previous_version_revision >}}-1   ...
 {{< /text >}}
 
-当集群管理员对标记为 `prod-canary` 的控制面、命名空间的稳定性感到满意后，
-`istio.io/rev=prod-stable` 可以通过修改 `prod-stable` 修订标记来更新，
-以指向更新的 `{{< istio_full_version_revision >}}` 修订版本。
+クラスター管理者が `prod-canary` とラベル付けされたコントロールプレーンの名前空間の安定性に満足したら、
+`istio.io/rev=prod-stable` を更新して、新しい `{{< istio_full_version_revision >}}` リビジョンを指すようにすることができます。

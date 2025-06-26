@@ -1,7 +1,7 @@
 ---
 ---
 {{< tip >}}
-如有必要，凭据可以包含一个[证书吊销列表 (CRL)](https://datatracker.ietf.org/doc/html/rfc5280)，
-使用 `ca.crl` 作为键名。如果是这样，请在上述示例中添加另一个参数来提供
-CRL：`--from-file=ca.crl=/some/path/to/your-crl.pem`。
+必要に応じて、証明書失効リスト (CRL) を含めることができます。
+これは、[証明書失効リスト (CRL)](https://datatracker.ietf.org/doc/html/rfc5280) として使用され、`ca.crl` というキー名で提供されます。
+その場合、上記の例に別のパラメータを追加して CRL を提供します：`--from-file=ca.crl=/some/path/to/your-crl.pem`。
 {{< /tip >}}

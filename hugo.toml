@@ -275,6 +275,91 @@ disableAliases = true
     title = "文档"
     url = "/zh/docs/"
     weight = 5
+  
+
+  # i18n for Japanese
+  [[languages.ja.menu.main]]
+    identifier = "about"
+    name = "Istio について"
+    title = "Istio について"
+    weight = 1
+
+    [[languages.ja.menu.main]]
+      identifier = "service-mesh"
+      name = "サービスメッシュ"
+      title = "サービスメッシュ"
+      url = "/ja/about/service-mesh"
+      parent = "about"
+      weight = 1
+
+    [[languages.ja.menu.main]]
+      identifier = "solutions"
+      name = "ソリューション"
+      title = "ソリューション"
+      url = "/ja/about/solutions"
+      parent = "about"
+      weight = 2
+
+    [[languages.ja.menu.main]]
+      identifier = "case-studies"
+      name = "ケーススタディ"
+      title = "ケーススタディ"
+      url = "/ja/about/case-studies"
+      parent = "about"
+      weight = 3
+
+    [[languages.ja.menu.main]]
+      identifier = "ecosystem"
+      name = "エコシステム"
+      title = "エコシステム"
+      url = "/ja/about/ecosystem"
+      parent = "about"
+      weight = 4
+
+    [[languages.ja.menu.main]]
+      identifier = "deployment"
+      name = "デプロイメント"
+      title = "デプロイメント"
+      url = "/ja/about/deployment"
+      parent = "about"
+      weight = 5
+
+    [[languages.ja.menu.main]]
+      identifier = "faq"
+      name = "よくある質問"
+      title = "よくある質問"
+      url = "/ja/about/faq"
+      parent = "about"
+      weight = 6
+
+  [[languages.ja.menu.main]]
+    identifier = "blog"
+    name = "ブログ"
+    title = "Istio ブログ"
+    url = "/ja/blog/"
+    weight = 2
+
+  [[languages.ja.menu.main]]
+    identifier = "news"
+    name = "ニュース"
+    title = "ニュース"
+    url = "/ja/news/"
+    weight = 3
+
+  [[languages.ja.menu.main]]
+    identifier = "get-involved"
+    name = "参加する"
+    title = "参加する"
+    url = "/ja/get-involved/"
+    weight = 4
+
+  [[languages.ja.menu.main]]
+    identifier = "docs"
+    name = "ドキュメント"
+    title = "ドキュメント"
+    url = "/ja/docs/"
+    weight = 5
+
 
   # i18n Ukrainian
   [[languages.uk.menu.main]]

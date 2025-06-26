@@ -1,7 +1,5 @@
 ---
 ---
-本指南中使用的 Helm Chart 与通过 [Istioctl](/zh/docs/setup/install/istioctl/)
-安装 Istio 时使用的图表相同，但 `gateway` Chart 除外。
+本ガイドで使用される Helm Chart は、[Istioctl](/ja/docs/setup/install/istioctl/) を使用して Istio をインストールする際に使用される Chart と同じですが、`gateway` Chart は除きます。
 
-Istioctl 使用的 [Gateway Chart]({{< github_tree >}}/manifests/charts/gateways/istio-ingress)
-与本指南中描述的 [Gateway Chart]({{< github_tree >}}/manifests/charts/gateway) 不同
+Istioctl が使用する [Gateway Chart]({{< github_tree >}}/manifests/charts/gateways/istio-ingress) は、本ガイドで説明されている [Gateway Chart]({{< github_tree >}}/manifests/charts/gateway) とは異なります。

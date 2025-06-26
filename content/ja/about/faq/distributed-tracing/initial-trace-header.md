@@ -1,7 +1,7 @@
 ---
-title: 初始链路头由谁来生成？
+title: 最初のトレースヘッダーは誰が生成しますか？
 weight: 15
 ---
 
-如果请求中未提供初始[标头](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#x-request-id)，
-则 Istio 网关或 Sidecar 代理 (Envoy) 会生成初始[标头](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#x-request-id)。
+リクエストに最初の[ヘッダー](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#x-request-id)が提供されていない場合、
+Istio ゲートウェイまたはサイドカー プロキシ (Envoy) が最初の[ヘッダー](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/headers#x-request-id)を生成します。

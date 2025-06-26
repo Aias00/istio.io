@@ -1,9 +1,9 @@
 ---
-title: 流量管理的常见问题
-linktitle: 流量管理
-description: 流量管理的常见问题。
+title: トラフィック管理の一般的な問題
+linktitle: トラフィック管理
+description: トラフィック管理の一般的な問題。
 weight: 50
 layout: faq
 aliases:
-  - /zh/help/faq/traffic-management
+  - /ja/help/faq/traffic-management
 ---

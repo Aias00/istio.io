@@ -1,9 +1,9 @@
 ---
-title: 解决方案
-description: 解决方案。
-subtitle: 了解如何使用 Istio 成功实现安全性、可观测性和流量管理。
+title: ソリューション
+description: ソリューション。
+subtitle: Istio を使用して、安全性、可観測性、およびトラフィック管理を成功させる方法を理解します。
 aliases:
-    - /zh/solutions
+    - /ja/solutions
 doc_type: about
 type: solutions
 sidebar_none: true

@@ -1,14 +1,12 @@
 ---
-title: 我可以不配置任何路由规则，使用 Ingress 的标准配置吗？
+title: ルート ルールを設定せずに Ingress の標準設定を使用できますか？
 weight: 40
 ---
 
-简单的 `Ingress` 规范开箱即用，通过 `Host`、`TLS` 以及基本 `Path`
-精确匹配就可以使用，无需配置路由规则。请注意 `Path` 在使用 `Ingress`
-资源时不应该有任何 `.` 字符。
+簡単な `Ingress` 設定は、`Host`、`TLS`、および基本的な `Path` の正確な一致を使用するだけで、ルート ルールを設定する必要はありません。
+`Path` には、`Ingress` リソースでは `.` 文字を使用しないでください。
 
-比如，下面 `Ingress` 的资源匹配 `Host` 为 `example.com` 以及 `URL` 为
-`/helloworld` 的请求。
+例えば、以下の `Ingress` リソースは、`Host` が `example.com` で、`URL` が `/helloworld` のリクエストに一致します。
 
 {{< text bash >}}
 $ kubectl create -f - <<EOF
@@ -33,8 +31,7 @@ spec:
 EOF
 {{< /text >}}
 
-然而，这下面的规则将不工作，因为它们在 `Path` 中使用了正则表达式，并且添加了
-`ingress.kubernetes.io` 注解。
+しかし、以下のルールは機能しません。なぜなら、`Path` に正規表現が使用されており、`ingress.kubernetes.io` 注釈が追加されているためです。
 
 {{< text bash >}}
 $ kubectl create -f - <<EOF
@@ -44,7 +41,7 @@ metadata:
   name: this-will-not-work
   annotations:
     kubernetes.io/ingress.class: istio
-    # 除入口类之外的其他入口注解将不被接受
+    # 除入口クラス以外の他の入口注釈は受け入れられません
     ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:

@@ -1,58 +1,59 @@
 ---
-title: 我应该使用哪种方式安装 Istio？
+title: Istio をインストールするにはどうすればよいですか？
 weight: 10
 ---
 
-除了简单地[入门](/zh//docs/setup/getting-started)评估版安装之外，
-还有其它几种不同的方式安装 Istio，您应该根据您的生产要求来选择安装方式。
-下面列出了每种安装方式的优缺点：
+[はじめに](/ja/docs/setup/getting-started)の簡単なインストール以外にも、
+Istio をインストールする方法は他にもいくつかあります。
+あなたの生産要件に応じて、どのインストール方法を選択するかを決定してください。
+以下に、各インストール方法の長所と短所を示します。
 
-1. [使用 istioctl 安装](/zh/docs/setup/install/istioctl/)
+1. [istioctl を使用してインストール](/ja/docs/setup/install/istioctl/)
 
-    具有高安全性的简单、合格的安装和管理方法，这也是社区推荐的安装方法。
+    高いセキュリティ性を持つシンプルで確実なインストールと管理方法であり、これはコミュニティで推奨されるインストール方法です。
 
-    优点：
+    長所：
 
-    - 完整的配置和运行状态的验证。
-    - 使用提供了扩展的配置、自定义选项的 `IstioOperator` API。
+    - 完全な設定と実行状態の検証。
+    - `IstioOperator` API を使用した拡張設定とカスタマイズオプション。
 
-    缺点：
+    短所：
 
-    - 需要维护多个 Istio 次要版本的二进制文件。
-    - `istioctl` 命令可能根据您的运行环境自动设置相关值，从而能够在不同的
-      Kubernetes 环境中进行不同的安装。
+    - 複数の Istio サブバージョンのバイナリを維持する必要があります。
+    - `istioctl` コマンドは、実行環境に応じて自動的に関連する値を設定する可能性があり、
+      異なる Kubernetes 環境で異なるインストールを行うことができます。
 
-1. [使用 Helm 进行安装](/zh/docs/setup/install/helm/)
+1. [Helm を使用してインストール](/ja/docs/setup/install/helm/)
 
-    允许轻松与基于 Helm 的工作流程集成并在升级期间自动进行资源修剪。
+    Helm ベースのワークフローとの統合が容易で、アップグレード時に自動的にリソースをクリーンアップできます。
 
-    优点：
+    長所：
 
-    - 使用行业标准工具的熟悉方法。
-    - Helm 原生发布和升级管理。
+    - 業界標準のツールを使用する慣れた方法。
+    - Helm のネイティブリリースとアップグレード管理。
 
-    缺点：
+    短所：
 
-    - 与 `istioctl install` 相比，检查和验证更少。
-    - 某些管理任务需要更多步骤并且复杂性更高。
+    - `istioctl install` と比較して、検証と検証が少なくなります。
+    - 一部の管理タスクにはより多くの手順が必要で、複雑さが高くなります。
 
-1. 应用生成的 Kubernetes 清单
+1. アプリケーションが生成した Kubernetes クラスター
 
-    - [使用 `istioctl` 生成 Kubernetes 清单](/zh/docs/setup/install/istioctl/#generate-a-manifest-before-installation)
-    - [使用 `helm` 生成 Kubernetes 清单](/zh/docs/setup/install/helm/#generate-a-manifest-before-installation)
+    - [istioctl を使用して Kubernetes クラスターを生成](/ja/docs/setup/install/istioctl/#generate-a-manifest-before-installation)
+    - [Helm を使用して Kubernetes クラスターを生成](/ja/docs/setup/install/helm/#generate-a-manifest-before-installation)
 
-    此方法适用于需要严格审核或扩充输出清单，或存在第三方工具限制的情况。
+    この方法は、厳密な監査または出力クラスターの拡張が必要な場合、またはサードパーティ ツールの制限がある場合に適しています。
 
-    优点：
+    長所：
 
-    - 更容易与未使用 `helm` 或 `istioctl` 的工具集成。
-    - 除了 `kubectl` 之外，不需要其他安装工具。
+    - `helm` または `istioctl` を使用しないツールとの統合が容易です。
+    - `kubectl` 以外の追加のインストール ツールは必要ありません。
 
-    缺点：
+    短所：
 
-    - 不执行上述任一方法支持的安装时检查、环境检测或验证。
-    - 不支持安装管理或升级功能。
-    - 用户体验不够精简。
-    - 安装过程中的错误报告不够完善。
+    - 上記のいずれの方法もサポートしていないため、インストール時の検証、環境検出、または検証が行われません。
+    - インストール管理またはアップグレード機能はサポートされていません。
+    - ユーザー エクスペリエンスが不十分です。
+    - インストール プロセス中のエラー レポートが不十分です。
 
-这些安装方式的安装向导在 [Istio 安装页面](/zh/docs/setup/install)中。
+これらのインストール方法のインストール ガイドは、[Istio インストール ページ](/ja/docs/setup/install)にあります。

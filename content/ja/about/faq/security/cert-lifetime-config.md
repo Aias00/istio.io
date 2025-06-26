@@ -1,12 +1,11 @@
 ---
-title: 如何配置 Istio 证书的生命周期？
+title: Istio 証明書の有効期間を設定するにはどうすればよいですか？
 weight: 70
 ---
 
-对于在 Kubernetes 中运行的工作负载，其 Istio 证书的生命周期默认为 24 小时。
+Kubernetes で実行されているワークロードの Istio 証明書の有効期間は、デフォルトで 24 時間です。
 
-可以通过自定义[代理配置](/zh/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig)的
-`proxyMetadata` 字段来覆盖此配置。例如：
+[プロキシ設定](/ja/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig)の `proxyMetadata` フィールドをカスタマイズすることで、この設定をオーバーライドできます。例：
 
 {{< text yaml >}}
 proxyMetadata:
@@ -14,5 +13,5 @@ proxyMetadata:
 {{< /text >}}
 
 {{< tip >}}
-超过 90 天的值将不被接受。
+90 日を超える値は受け入れられません。
 {{< /tip >}}

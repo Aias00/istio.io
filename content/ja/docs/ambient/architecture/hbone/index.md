@@ -1,50 +1,52 @@
 ---
 title: HBONE
-description: 了解 Istio 的安全隧道协议。
+description: Istio の安全なトンネルプロトコルについて理解します。
 weight: 2
 owner: istio/wg-networking-maintainers
 test: no
 ---
 
-**HBONE**（HTTP Based Overlay Network Encapsulation，基于 HTTP 的覆盖网络封装）
-是 Istio 组件之间使用的安全隧道协议。
-HBONE 是 Istio 特定的术语。它是一种通过单个 mTLS 加密网络连接（加密隧道）
-透明地多路复用与许多不同应用程序连接相关的 TCP 流的机制。
+**HBONE**（HTTP Based Overlay Network Encapsulation，HTTP ベースのオーバーレイネットワークカプセル化）
+は Istio コンポーネント間で使用される安全なトンネルプロトコルです。
+HBONE は Istio 固有の用語です。
+HBONE は、単一の mTLS 暗号化ネットワーク接続（暗号化トンネル）を使用して、
+異なるアプリケーション接続に関連する TCP ストリームを透過的に多重化するメカニズムです。
 
-在 Istio 当前的实现中，HBONE 协议包含三个开放标准：
+Istio の現在の実装では、HBONE プロトコルには 3 つのオープンスタンダードが含まれています：
 
 - [HTTP/2](https://httpwg.org/specs/rfc7540.html)
 - [HTTP CONNECT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/CONNECT)
 - [双向 TLS（mTLS）](https://datatracker.ietf.org/doc/html/rfc8446)
 
-HTTP CONNECT 用于建立隧道连接，mTLS 用于保护和加密该连接，
-HTTP/2 用于在单个安全和加密隧道上复用应用程序连接流，并传送其他流级元数据。
+HTTP CONNECT はトンネル接続を確立するために使用され、mTLS は接続を保護および暗号化するために使用され、
+HTTP/2 は単一の安全かつ暗号化されたトンネル上でアプリケーション接続ストリームを多重化し、
+他のストリームレベルのメタデータを伝送するために使用されます。
 
-## 安全和租户 {#security-and-tenancy}
+## セキュリティとテナンシー {#security-and-tenancy}
 
-根据 mTLS 规范的强制要求，每个底层隧道连接必须具有唯一的来源身份和唯一的目标身份，
-并且必须使用这些身份为该连接进行加密。
+mTLS 仕様の強制要件により、各下位トンネル接続は一意の送信元アイデンティティと一意の送信先アイデンティティを持ち、
+それらのアイデンティティを使用して接続を暗号化する必要があります。
 
-这意味着通过 HBONE 协议到相同目标身份的应用程序连接将在相同的共享、
-加密的和安全的底层 HTTP/2 连接上进行多路复用 - 实际上，
-每个唯一的源和目标都必须获得自己专用的安全隧道连接，
-甚至如果该底层专用连接正在处理多个应用程序级连接。
+これは、HBONE プロトコルを使用して同じ送信先アイデンティティに対するアプリケーション接続が、
+暗号化された安全な下位 HTTP/2 接続上で多重化されます - 実際には、
+各一意の送信元と送信先は、自己専用の安全なトンネル接続を取得する必要があります。
+その下位専用接続が複数のアプリケーションレベルの接続を処理している場合でも同様です。
 
-## 实现细节 {#implementation-details}
+## 実装の詳細 {#implementation-details}
 
-根据 Istio 约定，ztunnel 和其他理解 HBONE 协议的代理在 TCP 端口 15008 上公开侦听器。
+Istio の約束により、ztunnel と HBONE プロトコルを理解する他のプロキシは TCP ポート 15008 でリスナーを公開します。
 
-由于 HBONE 只是 HTTP/2、HTTP CONNECT 和 mTLS 的组合，
-因此在启用 HBONE 的代理之间流动的 HBONE 隧道数据包如下图所示：
+HBONE は HTTP/2、HTTP CONNECT、および mTLS の組み合わせにすぎないため、
+HBONE トンネルデータパケットは以下のようになります：
 
 {{< image width="100%"
 link="hbone-packet.svg"
-caption="HBONE L3 数据包格式"
+caption="HBONE L3 パケット形式"
 >}}
 
-HBONE 隧道的一个重要特性是可以透明地代理原始应用程序请求，
-而无需以任何方式改变底层应用程序流量流。
-这意味着有关连接的元数据可以传送到目标代理，而无需更改应用程序请求 - 例如，
-无需将 Istio 特定的标头附加到应用程序流量中。
+HBONE トンネルの重要な特性は、アプリケーションリクエストを透過的にプロキシすることです。
+これは、アプリケーショントラフィックフローを変更することなく、
+接続に関するメタデータをターゲットプロキシに伝送できることを意味します。
+例えば、Istio 固有のヘッダーをアプリケーショントラフィックに追加する必要はありません。
 
-随着 Ambient 模式和标准的发展，未来将研究 HBONE 和 HTTP 隧道（例如 UDP）的其他用例。
+Ambient モードと標準の発展に伴い、HBONE と HTTP トンネル（例えば UDP）の他のユースケースについても将来検討されます。

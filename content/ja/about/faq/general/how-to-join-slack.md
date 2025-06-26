@@ -1,6 +1,6 @@
 ---
-title: 如何加入 Istio Slack 工作区？
+title: Istio Slack ワークスペースに参加するにはどうすればよいですか？
 weight: 180
 ---
 
-如果您想与我们社区的成员进行实时互动，可以加入 [Istio Slack 工作区](https://slack.istio.io)。
+[Istio Slack ワークスペース](https://slack.istio.io)に参加して、コミュニティのメンバーとリアルタイムでやり取りしたい場合は、参加してください。

@@ -1,18 +1,19 @@
 ---
-title: 基于 Envoy 的跟踪如何工作？
+title: Envoy ベースのトレースの動作方法
 weight: 11
 ---
 
-在基于 Envoy 的跟踪集成中，Envoy（Sidecar 代理）代表所代理的应用程序将跟踪信息直接发送到后端服务。
+Envoy ベースのトレース統合では、Envoy（サイドカー プロキシ）は、所代理のアプリケーションから直接トレース情報を後端サービスに送信します。
 
 Envoy：
 
-- 在请求代理时为请求生成请求 ID 和跟踪标头（例如 `X-B3-TraceId`）
-- 根据请求和响应元数据（即响应时间）为每个请求生成跟踪范围
-- 将生成的跟踪范围发送到跟踪后端
-- 将跟踪头转发到代理的应用程序
+- リクエストを代理する際に、リクエスト ID とトレースヘッダー（例：`X-B3-TraceId`）を生成
+- リクエストとレスポンスのメタデータ（即レスポンス時間）に基づいて、各リクエストのトレース範囲を生成
+- 生成されたトレース範囲をトレース後端に送信
+- トレースヘッダーを代理のアプリケーションに転送
 
-Istio 支持 [OpenTelemetry](/zh/docs/tasks/observability/distributed-tracing/opentelemetry/)
-和兼容的后端，包括 [Jaeger](/zh/docs/tasks/observability/distributed-tracing/jaeger/)。
-其他支持的平台包括 [Zipkin](/zh/docs/tasks/observability/distributed-tracing/zipkin/)
-和 [Apache SkyWalking](/zh/docs/tasks/observability/distributed-tracing/skywalking/)。
+Istio は [OpenTelemetry](/zh/docs/tasks/observability/distributed-tracing/opentelemetry/)
+と互換性のあるバックエンドをサポートしています。
+[Jaeger](/zh/docs/tasks/observability/distributed-tracing/jaeger/) もサポートしています。
+他のサポートされているプラットフォームには [Zipkin](/zh/docs/tasks/observability/distributed-tracing/zipkin/)
+と [Apache SkyWalking](/zh/docs/tasks/observability/distributed-tracing/skywalking/) があります。

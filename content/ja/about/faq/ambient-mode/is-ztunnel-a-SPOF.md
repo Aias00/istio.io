@@ -1,9 +1,9 @@
 ---
-title: ztunnel 存在单点故障吗？
+title: ztunnel は単一障害点（SPOF）ですか？
 weight: 25
 ---
 
-Istio 的 ztunnel 不会将单点故障（SPOF）引入 Kubernetes 集群。
-ztunnel 的故障仅限于单个节点，该节点被视为集群中的易出错组件。
-它的行为与每个集群上运行的其他节点关键基础设施（如 Linux 内核、容器运行时等）相同。
-在设计合理的系统中，节点中断不会导致集群中断。[了解更多](https://blog.howardjohn.info/posts/ambient-spof/)。
+Istio の ztunnel は、Kubernetes クラスターに単一障害点（SPOF）を導入しません。
+ztunnel の障害は、クラスター内の障害が発生しやすいコンポーネントとして扱われる単一のノードに限定されます。
+その動作は、各クラスター上で実行される他のノードの重要なインフラストラクチャ（Linux カーネル、コンテナランタイムなど）と同じです。
+合理的に設計されたシステムでは、ノードの中断はクラスターの中断を引き起こしません。[詳細はこちら](https://blog.howardjohn.info/posts/ambient-spof/)。

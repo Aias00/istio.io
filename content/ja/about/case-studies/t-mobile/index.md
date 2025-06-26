@@ -1,7 +1,7 @@
 ---
 title: "T-Mobile"
 linkTitle: "T-Mobile"
-quote: "拥有可以立即被用户采用的通用可观测性工具会产生多大的影响，我再怎么强调也不为过。"
+quote: "ユーザーがすぐに採用できる汎用の可観測性ツールがもたらす影響は、言うまでもないほど大きいです。"
 author:
     name: "Joe Searcy"
     image: "/img/authors/joe-searcy.jpg"
@@ -18,12 +18,14 @@ type: 案例研究
 weight: 60
 ---
 
-这是一个关于奋斗、权衡和胜利的故事。正如您所知，Istio 是一个关键任务软件，用于保护和连接跨平台的微服务。
-然而，成功地引入、实施或采用它可能会令人畏缩。
+これは、闘争、妥協、および勝利の物語です。
+Istio は、クロスプラットフォームのマイクロサービスを保護および接続するための重要なソフトウェアであることはご存知の通りです。
+しかし、それを導入、実装、または採用することは、畏れられるかもしれません。
 
-在 [IstioCon 2021 的演讲中](https://events.istio.io/istiocon-2021/sessions/adopting-istio-across-100-clusters-at-t-mobile/)，
-Joe Searcy 深入探讨了 T-Mobile 在 100 多个集群中采用 Istio 的过程，以支持跨多个团队的欺诈检测、计费、销售和 API 等微服务。
+[IstioCon 2021 の講演で](https://events.istio.io/istiocon-2021/sessions/adopting-istio-across-100-clusters-at-t-mobile/)、
+Joe Searcy は、T-Mobile が 100 以上のクラスターで Istio を採用するプロセスについて詳しく説明しました。
+これは、複数のチームの詐欺検知、課金、販売、および API などのマイクロサービスをサポートするためです。
 
 <iframe width="696" height="392" src="https://www.youtube-nocookie.com/embed/gzrWEP87mKg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-[下载幻灯片](https://events.istio.io/istiocon-2021/slides/c2s-GoodBadMesh-JoeSearcy.pdf)
+[スライドをダウンロード](https://events.istio.io/istiocon-2021/slides/c2s-GoodBadMesh-JoeSearcy.pdf)

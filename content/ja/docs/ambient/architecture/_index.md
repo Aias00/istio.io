@@ -1,10 +1,10 @@
 ---
-title: 架构
-description: 深入探讨 Ambient 模式的架构。
+title: アーキテクチャ
+description: Ambient モードのアーキテクチャについて深く探る。
 weight: 20
 aliases:
-  - /zh/docs/ops/ambient/architecture
-  - /zh/latest/docs/ops/ambient/architecture
+  - /ja/docs/ops/ambient/architecture
+  - /ja/latest/docs/ops/ambient/architecture
 owner: istio/wg-networking-maintainers
 test: table-of-contents
 ---

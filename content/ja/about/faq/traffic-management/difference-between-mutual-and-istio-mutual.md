@@ -1,9 +1,9 @@
 ---
-title: MUTUAL 和 ISTIO_MUTUAL TLS 模式有什么区别?
+title: MUTUAL と ISTIO_MUTUAL TLS モードの違いは何ですか？
 weight: 30
 ---
 
-两个 `DestinationRule` 设置都会发送双向的 TLS 流量。
-使用 `ISTIO_MUTUAL` 时，将会自动使用 Istio 证书。
-对于 `MUTUAL`，必须配置密钥、证书和可信任的 CA。
-允许与非 non-Istio 应用启动双向的 TLS。
+2 つの `DestinationRule` 設定は、双方向 TLS トラフィックを送信します。
+`ISTIO_MUTUAL` を使用する場合、Istio 証明書が自動的に使用されます。
+`MUTUAL` を使用する場合、キー、証明書、および信頼できる CA を設定する必要があります。
+非 Istio アプリケーションとの双方向 TLS を許可します。

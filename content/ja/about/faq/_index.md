@@ -1,14 +1,14 @@
 ---
 title: FAQ
-description: 关于 Istio 的常见问题。
-subtitle: 在您搜索有关 Istio 和服务网格技术的信息时，我们希望此常见问题解答对您有所帮助
+description: Istio に関する一般的な問題。
+subtitle: Istio やサービス メッシュ技術に関する情報を検索する際に、この FAQ がお役に立てば幸いです。
 weight: 1
 layout: faq-landing
 aliases: 
-  - /zh/docs/welcome/faq.html
-  - /zh/docs/reference/faq.html
-  - /zh/help/faq/
-  - /zh/faq.html
+  - /ja/docs/welcome/faq.html
+  - /ja/docs/reference/faq.html
+  - /ja/help/faq/
+  - /ja/faq.html
 skip_toc: false
 skip_byline: true
 skip_pagenav: true

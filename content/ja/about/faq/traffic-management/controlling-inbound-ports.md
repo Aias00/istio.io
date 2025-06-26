@@ -1,8 +1,9 @@
 ---
-title: Sidecar 代理在哪些端口上截获入站流量？
+title: Sidecar プロキシはどのポートで入站トラフィックをキャプチャしますか？
 weight: 20
 ---
 
-Istio 默认截获所有端口的入站流量，
-您可以通过 `traffic.sidecar.istio.io/includeInboundPorts` Pod 注解指定一组端口来截获流量，或通过 `traffic.sidecar.istio.io/excludeOutboundPorts`
-指定一组端口来放行流量，以更改这种默认行为。
+Istio はデフォルトですべてのポートの入站トラフィックをキャプチャします。
+`traffic.sidecar.istio.io/includeInboundPorts` Pod 注釈を使用して、キャプチャするポートのグループを指定するか、
+`traffic.sidecar.istio.io/excludeOutboundPorts` を使用して、キャプチャを除外するポートのグループを指定することで、
+このデフォルトの動作を変更できます。

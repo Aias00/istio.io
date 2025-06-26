@@ -1,39 +1,39 @@
 ---
-title: 怎样查看 Istio 的请求都发生了什么？
+title: Istio のリクエストがどのように流れるかを確認するにはどうすればよいですか？
 weight: 80
 ---
 
-您可以启用[链路追踪](/zh/docs/tasks/observability/distributed-tracing/)
-以确定 Istio 中的请求是怎样流动的。
+[分散トレース](/ja/docs/tasks/observability/distributed-tracing/)を有効にすることで、
+Istio 内のリクエストの流れを確認できます。
 
-另外，您还可以使用如下命令以了解网格中的更多状态信息：
+また、以下のコマンドを使用して、メッシュ内のより多くの状態情報を確認することもできます：
 
-* [`istioctl proxy-config`](/zh/docs/reference/commands/istioctl/#istioctl-proxy-config)：
-  获取 Kubernetes 运行期间的代理配置信息：
+* [`istioctl proxy-config`](/ja/docs/reference/commands/istioctl/#istioctl-proxy-config)：
+  Kubernetes の実行中のプロキシ設定情報を取得します：
 
     {{< text plain >}}
-    # 在指定的 Pod 中 Envoy 实例的启动（bootstrap）配置信息。
+    # 指定された Pod 内の Envoy インスタンスの起動（bootstrap）設定情報。
     $ istioctl proxy-config bootstrap productpage-v1-bb8d5cbc7-k7qbm
 
-    # 在指定的 Pod 中 Envoy 实例的集群（cluster）配置信息。
+    # 指定された Pod 内の Envoy インスタンスのクラスタ（cluster）設定情報。
     $ istioctl proxy-config cluster productpage-v1-bb8d5cbc7-k7qbm
 
-    # 在指定的 Pod 中 Envoy 实例的监听器（listener）配置信息。
+    # 指定された Pod 内の Envoy インスタンスのリスナー（listener）設定情報。
     $ istioctl proxy-config listener productpage-v1-bb8d5cbc7-k7qbm
 
-    # 在指定的 Pod 中 Envoy 实例的路由（route）配置信息。
+    # 指定された Pod 内の Envoy インスタンスのルーティング（route）設定情報。
     $ istioctl proxy-config route productpage-v1-bb8d5cbc7-k7qbm
 
-    # 在指定的 Pod 中 Envoy 实例的端点（endpoint）配置信息。
+    # 指定された Pod 内の Envoy インスタンスのエンドポイント（endpoint）設定情報。
     $ istioctl proxy-config endpoints productpage-v1-bb8d5cbc7-k7qbm
 
-    # 查看更多 proxy-config 的用法可用如下命令
+    # proxy-config の使用方法の詳細については、以下のコマンドを使用してください。
     $ istioctl proxy-config --help
     {{< /text >}}
 
-* `kubectl get`：通过路由配置获取网格中不同资源的信息：
+* `kubectl get`：ルーティング設定に基づいて、メッシュ内の異なるリソースの情報を取得します：
 
     {{< text plain >}}
-    # 列出所有的 VirtualService
+    # すべての VirtualService を一覧表示します。
     $ kubectl get virtualservices
     {{< /text >}}

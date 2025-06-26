@@ -1,16 +1,15 @@
 ---
-title: 我可以使用 Prometheus 配合 Istio 抓取应用程序指标吗？
+title: Prometheus と Istio を使用してアプリケーション指標を取得できますか？
 weight: 90
 ---
 
-是的。[Prometheus](https://prometheus.io/) 是一款开源监控系统和时间序列数据库。
-您可以将 Prometheus 与 Istio 结合使用来记录跟踪 Istio 和服务网格内应用程序运行状况的指标。
-您可以使用 [Grafana](/zh/docs/ops/integrations/grafana/) 和
-[Kiali](/zh/docs/tasks/observability/kiali/) 等工具对指标进行可视化。
-请参阅 [Prometheus 配置](/zh/docs/ops/integrations/prometheus/#Configuration)以了解如何启用指标收集。
+はい。[Prometheus](https://prometheus.io/) はオープンソースの監視システムと時系列データベースです。
+Prometheus と Istio を組み合わせて、Istio とメッシュ内のアプリケーションの状態を記録し、追跡することができます。
+[Grafana](/ja/docs/ops/integrations/grafana/) や [Kiali](/ja/docs/tasks/observability/kiali/) などのツールを使用して、指標を可視化できます。
+[Prometheus の設定](/ja/docs/ops/integrations/prometheus/#Configuration)を参照して、指標の収集を有効にする方法を確認してください。
 
-一些注意事项：
+いくつかの注意事項：
 
-- 如果 Prometheus Pod 在 istiod Pod 生成所需证书并将其分发给 Prometheus 之前启动，
-  则 Prometheus pod 需要重启以便收集双向 TLS 保护的目标信息。
-- 如果您的应用程序在专用端口上公开了 Prometheus 指标，则应将该端口添加到 Service 和 Deployment 规范中。
+- Prometheus Pod が istiod Pod によって生成された証明書を取得し、Prometheus に配布する前に起動した場合、
+  Prometheus pod を再起動して、双方向 TLS 保護の対象情報を収集する必要があります。
+- アプリケーションが専用ポートで Prometheus 指標を公開している場合、そのポートを Service と Deployment の仕様に追加する必要があります。

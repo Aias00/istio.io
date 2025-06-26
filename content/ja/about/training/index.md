@@ -1,7 +1,7 @@
 ---
-title: 培训与认证
-description: 专业 Istio 培训和认证提供商列表。
-subtitle: 众多提供商可以为您提供专业的 Istio 培训和认证。
+title: トレーニングと認証
+description: プロの Istio トレーニングと認証提供者のリスト。
+subtitle: プロの Istio トレーニングと認証を提供する提供者は多数います。
 weight: 34
 skip_toc: true
 skip_byline: true
@@ -9,14 +9,14 @@ skip_pagenav: true
 doc_type: about
 ---
 
-[comment]: <> (要添加 Istio 认证或培训，请参阅 https://github.com/istio/community/blob/master/CONTRIBUTING.md#promote-your-company-on-istioio。）)
+[comment]: <> (Istio 認証またはトレーニングを追加するには、https://github.com/istio/community/blob/master/CONTRIBUTING.md#promote-your-company-on-istioio を参照してください。）)
 
 {{< tabset category-name="ecosystem-type" class="tabset--ecosystem" forget-tab=true >}}
 
 {{< tab
-    name="培训"
+    name="トレーニング"
     category-value="Training"
-    description="通过精心制作的专业课程了解 Istio 服务网格如何增强您的平台。"
+    description="プロのトレーニング コースを通じて、Istio サービス メッシュがプラットフォームをどのように強化するかを理解します。"
 >}}
 
 {{< interactive_panels items="training" >}}
@@ -24,9 +24,9 @@ doc_type: about
 {{< /tab >}}
 
 {{< tab
-    name="认证"
+    name="認証"
     category-value="Certification"
-    description="以下是一些可用于验证您的 Istio 技能的知名认证考试。"
+    description="以下は、Istio のスキルを検証するために使用できる有名な認証試験の一部です。"
 >}}
 
 {{< interactive_panels items="certification" >}}

@@ -1,6 +1,6 @@
 ---
-title: Istio 的路线图是什么？
+title: Istio のルートマップは何ですか？
 weight: 140
 ---
 
-查看我们的[功能状态页面](/zh/docs/releases/feature-stages/)和[新闻](/zh/news)获取最新动态。
+[機能状態ページ](/ja/docs/releases/feature-stages/)と[ニュース](/ja/news)を参照して、最新の情報を入手してください。

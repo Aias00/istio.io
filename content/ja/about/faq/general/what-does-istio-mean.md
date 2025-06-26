@@ -1,6 +1,6 @@
 ---
-title: “Istio” 这个词是什么意思？
+title: “Istio” とは何ですか？
 weight: 160
 ---
 
-它是希腊语中的 “sail（帆）”。
+Istio はギリシャ語の “sail（帆）” という意味です。

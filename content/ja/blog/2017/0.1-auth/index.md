@@ -1,88 +1,89 @@
 ---
-title: 使用 Istio 增强端到端安全
-description: Istio Auth 0.1 公告。
+title: Istio Auth 0.1 のリリース
+description: Istio Auth 0.1 のリリース。
 publishdate: 2017-05-25
-subtitle: 默认保护服务间通信
+subtitle: エンド ツー エンドのセキュリティを強化するために Istio を使用する方法を説明します。
 attribution: The Istio Team
 aliases:
-    - /zh/blog/0.1-auth.html
-    - /zh/blog/istio-auth-for-microservices.html
+    - /ja/blog/0.1-auth.html
+    - /ja/blog/istio-auth-for-microservices.html
 target_release: 0.1
 ---
 
-传统的网络安全方式无法解决部署在动态变化环境下分布式应用的安全威胁。这里，我们将描述 Istio Auth 如何帮助企业将其安全从边界保护转变为内部所有服务间通信保护。使用 Istio Auth 开发人员和运维人员可以在不改动程序代码的情况下，对于敏感数据进行保护，防止未经授权的内部人员访问。
+従来のネットワーク セキュリティ アプローチは、動的な環境でデプロイされた分散型アプリケーションのセキュリティ 脅威を解決できません。ここでは、Istio Auth が企業のセキュリティを境界保護から内部のすべてのサービス間通信保護に変える方法を説明します。Istio Auth を使用すると、開発者と運用者は、コードを変更せずに、機密データを保護し、未承認の内部ユーザーがアクセスできないようにすることができます。
 
-Istio Auth 是更广泛的 [Istio 平台](/zh)的安全组件。它结合了 Google 生产环境中保护数百万微服务安全的经验。
+Istio Auth は、[Istio プラットフォーム](/ja)のセキュリティ コンポーネントです。Google の実稼働環境で数百万のマイクロサービスを保護する経験を活用しています。
 
-## 背景知识{#background}
+## 背景知識{#background}
 
-现代应用程序体系结构越来越多地基于共享服务，共享服务部署在云平台上，可被方便地进行动态部署和扩容。传统的网络边界安全性（例如防火墙）控制力度太粗，会导致部分非预期的客户端访问。使用盗取合法客户端的认证令牌进行重放攻击，就是一种常见的安全风险。对于持有敏感数据公司而言，内部威胁是一个需要关注的主要风险。其他网络安全方法（如 IP 白名单）通过静态方式定义，难以大规模管理，不适合动态变化的生产环境。
+現代のアプリケーション アーキテクチャは、共有サービスに基づいており、共有サービスはクラウド プラットフォームにデプロイされ、動的にデプロイおよび拡張できます。従来のネットワーク バウンダリ セキュリティ（例えば、ファイアウォール）は、予期しないクライアント アクセスを引き起こす可能性があります。正当なクライアントの認証トークンを盗用してリプレイ 攻撃を行うことは、一般的なセキュリティ リスクです。機密データを持つ企業にとって、内部脅威は重要なリスクです。他のセキュリティ メソッド（例えば、IP ホワイトリスト）は静的に定義されており、動的に変化する生産環境には適していません。
 
-因此，安全管理员需要一种工具，其可以能够默认开启并且始终保护生产环境中服务间的所有通信。
+したがって、セキュリティ管理者は、デフォルトで有効にし、生産環境のサービス間のすべての通信を保護するツールが必要です。
 
-## 解决方案：增强的服务身份和验证{#solution-strong-service-identity-and-authentication}
+## ソリューション：強力なサービス ID と認証{#solution-strong-service-identity-and-authentication}
 
-多年来，Google 通过研发架构和技术，帮助其生产环境中数百万个微服务抵御了外部攻击和内部威胁。关键安全原则包括信任端而不是网络，基于服务身份和级别授权的双向强身份验证。Istio Auth 基于相同的原则。
+Google は、外部攻撃と内部脅威から数百万のマイクロサービスを保護するために、長年にわたって研究開発を行い、アーキテクチャと技術を開発してきました。重要なセキュリティ プリンシパルには、ネットワークよりも端末を信頼し、サービス ID とレベル ベースの認可を使用した双方向の強力な ID 認証が含まれます。Istio Auth は同じ原則に基づいています。
 
-Istio Auth 服务 0.1 版本在 Kubernetes 上运行，并提供以下功能：
+Istio Auth サービス 0.1 バージョンは、Kubernetes 上で実行され、次の機能を提供します：
 
-* 服务间强身份认证
+* サービス間の強力な ID 認証
 
-* 访问控制以限制可以访问服务（及其数据）的身份
+* サービス（およびそのデータ）にアクセスできる ID を制限するアクセス制御
 
-* 传输中的数据自动加密
+* 転送中のデータの自動暗号化
 
-* 密钥和证书的大规模管理
+* キーと証明書の大規模管理
 
-Istio Auth 基于双向 TLS 和 X.509 等行业标准。此外，Google 还积极参与一个开放的，社区驱动的 [SPIFFE](https://spiffe.io/) 服务安全框架。随着 [SPIFFE](https://spiffe.io/) 规范的成熟，我们打算让 Istio 安全验证参考并实现。
+Istio Auth は、双方向 TLS と X.509 などの業界標準に基づいています。さらに、Google は、オープンでコミュニティ主導の [SPIFFE](https://spiffe.io/) サービス セキュリティ フレームワークに積極的に参加しています。[SPIFFE](https://spiffe.io/) 規格が成熟するにつれて、Istio のセキュリティ検証を参照し、実装することを目的としています。
 
-下图描述了 Kubernetes 上 Istio Auth 服务的体系结构。
+下図は、Kubernetes 上の Istio Auth サービスのアーキテクチャを示しています。
 
 {{< image link="istio_auth_overview.svg" caption="Istio Auth 概览" >}}
 
-上图说明了三个关键的安全功能：
+上図は、3 つの重要なセキュリティ機能を示しています：
 
-### 强身份认证{#strong-identity}
+### 強力な ID 認証{#strong-identity}
 
-Istio Auth 使用了 [Kubernetes 服务帐户](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/) 来识别服务运行的身份。
-身份用于建立信任和定义服务级别访问策略。身份在服务部署时分配，并在 X.509 证书的 SAN（主题备用名称）字段中进行编码。使用服务帐户作为身份具有以下优点：
+Istio Auth は、[Kubernetes サービス アカウント](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-service-account/) を使用して、サービスの実行 ID を識別します。
+ID は、信頼を確立し、サービス レベルのアクセス ポリシーを定義するために使用されます。ID は、サービスのデプロイ時に割り当てられ、
+X.509 証明書の SAN（サブジェクト代替名）フィールドにエンコードされます。サービス アカウントを ID として使用する利点は次のとおりです：
 
-* 管理员可以使用 Kubernetes 1.6 中引入的 [RBAC](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/rbac/) 功能配置谁有权访问服务帐户
+* 管理者は、Kubernetes 1.6 で導入された [RBAC](https://kubernetes.io/ja/docs/reference/access-authn-authz/rbac/) 機能を使用して、誰がサービス アカウントにアクセスできるかを構成できます
 
-* 灵活地识别人类用户，服务或一组服务
+* 人間のユーザー、サービス、またはサービスのグループを柔軟に識別します
 
-* 稳定地支持服务身份的动态配置和工作负载自动扩展
+* サービス ID の動的な構成とワークロードの自動拡張を安定してサポートします
 
-### 通信安全{#communication-security}
+### 通信セキュリティ{#communication-security}
 
-服务间通信基于高性能客户端和服务器端 {{<gloss envoy>}}Envoy{{</gloss>}} 代理的传输隧道。代理之间的通信使用双向 TLS 来进行保护。使用双向 TLS 的好处是服务身份不会被替换为从源窃取或重放攻击的令牌。Istio Auth 还引入了安全命名的概念，以防止服务器欺骗攻击 - 客户端代理验证允许验证特定服务的授权的服务帐户。
+サービス間の通信は、高性能なクライアントとサーバー エンドの {{<gloss envoy>}}Envoy{{</gloss>}} プロキシを介したトンネル転送に基づいています。プロキシ間の通信は、双方向 TLS を使用して保護されます。双方向 TLS の利点は、サービス ID がソースから盗まれたトークンに置き換えられることがないことです。Istio Auth は、サーバーの詐欺攻撃を防止するために、安全な名前付けの概念を導入しています。つまり、クライアント プロキシは、特定のサービスの認可されたサービス アカウントを検証することを許可します。
 
-### 密钥管理和分配{#key-management-and-distribution}
+### キー管理と配布{#key-management-and-distribution}
 
-Istio Auth 为每个集群提供 CA（证书颁发机构），并可对密钥和证书自动管理。这种情况下，Istio Auth 具备以下功能 ：
+Istio Auth は、各クラスターに CA（証明書発行機関）を提供し、キーと証明書を自動的に管理できます。この場合、Istio Auth は次の機能を備えています：
 
-* 为每个服务帐户生成密钥和证书对。
+* 各サービス アカウントに対してキーと証明書のペアを生成します。
 
-* 使用 [Kubernetes Secrets](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/) 将密钥和证书分发到相应的 pod。
+* 使用 [Kubernetes Secrets](https://kubernetes.io/ja/docs/concepts/configuration/secret/) 将キーと証明書を対応する pod に配布します。
 
-* 定期轮换密钥和证书。
+* キーと証明書を定期的に更新します。
 
-* 必要时（未来）撤销特定密钥和证书对。
+* 必要に応じて（将来）特定のキーと証明書のペアを取り消します。
 
-下图说明了 Kubernetes 上的端到端 Istio Auth 工作流程：
+下図は、Kubernetes 上の Istio Auth のエンド ツー エンドのワークフローを示しています：
 
-{{< image link="istio_auth_workflow.svg" caption="Istio Auth 工作流程" >}}
+{{< image link="istio_auth_workflow.svg" caption="Istio Auth ワークフロー" >}}
 
-Istio Auth 是更广泛的容器安全中的一部分。Red Hat 是 Kubernetes 开发的合作伙伴，定义了 [10 层](https://www.redhat.com/en/resources/container-security-openshift-cloud-devops-whitepaper)容器安全。Istio 和 Istio Auth 解决了其中两个层：”网络隔离” 和 “API 和服务端点管理”。随着集群联邦在 Kubernetes 和其他平台上的发展，我们的目的是让 Istio 对跨越多个联邦集群的服务间通信提供保护。
+Istio Auth は、より広範なコンテナ セキュリティの一部です。Red Hat は、Kubernetes の開発パートナーであり、[10 層](https://www.redhat.com/ja/resources/container-security-openshift-cloud-devops-whitepaper)コンテナ セキュリティを定義しています。Istio と Istio Auth は、そのうちの 2 つの層（「ネットワーク セキュリティ」と「API とサービス エンドポイント管理」）を解決しています。クラスター フェデレーションが Kubernetes および他のプラットフォームで発展するにつれて、Istio は、複数のフェデレーション クラスターをまたいでのサービス間通信を保護することを目的としています。
 
-## Istio Auth 的优点{#benefits-of-Istio-authentication}
+## Istio Auth の利点{#benefits-of-Istio-authentication}
 
-**深度防御**：当与 Kubernetes（或基础架构）网络策略结合使用时，用户可以获得更多的安全信心，因为他们知道 Pod 或服务间的通信在网络层和应用层上都得到保护。
+**深度防御**：Kubernetes（または基盤インフラストラクチャ）ネットワーク ポリシーと組み合わせると、ユーザーは、Pod またはサービス間の通信がネットワーク層とアプリケーション層の両方で保護されていることを知ることで、より多くのセキュリティ コンフィデンスを得ることができます。
 
-**默认安全**：当与 Istio 的代理和集中策略引擎一起使用时，可在极少或不更改应用的情况下部署并配置 Istio Auth 。因此，管理员和操作员可以确保默认开启服务通信保护，并且可以跨协议和运行时一致地实施这些策略。
+**デフォルトのセキュリティ**：Istio のプロキシと集中型ポリシー エンジンと組み合わせると、アプリケーションをほとんど変更せずに、Istio Auth をデプロイして構成できます。したがって、管理者と運用者は、サービス コミュニケーションの保護をデフォルトで有効にし、これらのポリシーをクロス プロトコルとランタイムで一貫して実施できます。
 
-**强大的服务认证**：Istio Auth 使用双向 TLS 保护服务通信，以确保服务身份不会是其他来源窃取或重放攻击的令牌。这可确保只能从经过严格身份验证和授权的客户端才能够访问具有敏感数据的服务。
+**強力なサービス認証**：Istio Auth は、サービス コミュニケーションを保護するために双方向 TLS を使用し、サービス ID が他のソースから盗まれたトークンに置き換えられることがないことを確保します。これにより、厳密に認証および認可されたクライアントのみが、機密データを持つサービスにアクセスできることが保証されます。
 
-## 加入我们{#join-us-in-this-journey}
+## 参加してください{#join-us-in-this-journey}
 
-Istio Auth 是提供完整安全功能的第一步，安全功能可以用于抵御外部攻击和内部威胁，保护服务的敏感数据。虽然初始版本仅在 Kubernetes 上运行，但我们的目标是使其能够在不同的生产环境中保护服务通信。我们鼓励更多的社区[加入我们]({{< github_tree >}}/security)，为不同的应用技术栈和运行平台上轻松地提供强大的服务安全保障。
+Istio Auth は、完全なセキュリティ機能を提供する最初のステップです。この機能は、外部攻撃と内部脅威からサービスの機密データを保護するために使用できます。初期バージョンは、Kubernetes 上でのみ実行されますが、異なる生産環境でサービス コミュニケーションを保護することを目的としています。より多くのコミュニティ[参加してください]({{< github_tree >}}/security)、異なるアプリケーション テクノロジー スタックと実行プラットフォームで、強力なサービス セキュリティを簡単に提供します。

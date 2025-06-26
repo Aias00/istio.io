@@ -1,6 +1,6 @@
 ---
-title: "提高 Kubernetes 的部署和管理效率"
-opening_paragraph: "Kubernetes 这类微服务会带来流量和管理方面的挑战。Istio 旨在实现快速、高效的部署和管理。查看在 Kubernetes 实现的一个示例中如何达成此目标。"
+title: "Kubernetes のデプロイメントと管理の効率化"
+opening_paragraph: "Kubernetes 上のマイクロサービスは、トラフィックと管理の課題を生み出します。Istio は、迅速かつ効率的なデプロイメントと管理を可能にするように設計されています。その実現方法を、Kubernetes の実装例でご覧ください。"
 image: "increasing-efficiency.svg"
 skip_toc: true
 doc_type: article
@@ -8,5 +8,5 @@ sidebar_force: sidebar_solution
 type: solutions
 ---
 
-我们正在努力发布解决方案指南，以帮助您了解使用 Istio 可以做什么。
-在此之前，请查阅[流量管理](/zh/docs/tasks/traffic-management/)文档。
+ソリューション ガイドを公開するために取り組んでいます。これにより、Istio の使用方法を理解できます。
+これまでの間、[トラフィック管理](/ja/docs/tasks/traffic-management/)のドキュメントを参照してください。

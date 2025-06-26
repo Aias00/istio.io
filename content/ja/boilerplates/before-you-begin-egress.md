@@ -1,33 +1,33 @@
 ---
 ---
-## 开始之前{#before-you-begin}
+## 開始する前に{#before-you-begin}
 
-*   按照[安装指南](/zh/docs/setup/)中的说明安装 Istio。
+*   [インストールガイド](/ja/docs/setup/)の説明に従って Istio をインストールします。
 
     {{< tip >}}
-    如果您安装 `demo` 的[安装配置](/zh/docs/setup/additional-setup/config-profiles/)，
-    则将启用 Egress Gateway 和访问日志。
+    もし `demo` の[インストール設定](/ja/docs/setup/additional-setup/config-profiles/)を使用している場合、
+    Egress Gateway とアクセスログが有効になります。
     {{< /tip >}}
 
-*   将 [curl]({{< github_tree >}}/samples/curl) 示例应用程序部署为发送请求的测试源。
-    如果您启用了[自动 Sidecar 注入](/zh/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection)，
-    运行以下命令部署示例应用程序：
+*   [curl]({{< github_tree >}}/samples/curl) サンプルアプリケーションをデプロイして、リクエストを送信するテストソースとして使用します。
+    もし[自動 Sidecar インジェクション](/ja/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection)を有効にしている場合、
+    以下のコマンドを実行してサンプルアプリケーションをデプロイします：
 
     {{< text bash >}}
     $ kubectl apply -f @samples/curl/curl.yaml@
     {{< /text >}}
 
-    否则，在使用以下命令部署 `curl` 应用程序之前，手动注入 Sidecar：
+    そうでない場合、`curl` アプリケーションをデプロイする前に、手動で Sidecar をインジェクトします：
 
     {{< text bash >}}
     $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
     {{< /text >}}
 
     {{< tip >}}
-    您可以使用任何安装了 `curl` 的 Pod 作为测试源。
+    任意の `curl` がインストールされた Pod をテストソースとして使用できます。
     {{< /tip >}}
 
-*   为了发送请求，您需要创建 `SOURCE_POD` 环境变量来存储源 Pod 的名称：
+*   リクエストを送信するには、`SOURCE_POD` 環境変数を作成して、ソース Pod の名前を保存する必要があります：
 
     {{< text bash >}}
     $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})

@@ -1,13 +1,14 @@
 ---
-title: 我该如何参与贡献？
+title: コントリビューションについてンについて
 weight: 70
 ---
 
-Istio 社区欢迎任何形式的贡献。我们期待社区的反馈，补充和错误报告。
+Istio コミュニティは、すべての形式のコントリビューションを歓迎します。
+コミュニティのフィードバック、補足、およびエラー レポートを期待しています。
 
-代码托管在 [GitHub](https://github.com/istio) 中，
-请阅读[贡献指南](https://github.com/istio/community/blob/master/CONTRIBUTING.md)学习如何为社区做出贡献。
+コードは [GitHub](https://github.com/istio) にあります。
+[貢献ガイド](/ja/docs/contribute/contribute-overview/)を読んで、コミュニティに貢献する方法を学んでください。
 
-除了代码之外，还有[其他为 Istio 社区做出贡献的方式](/zh/get-involved/)，
-包括我们的[讨论论坛](https://discuss.istio.io)，[Slack](https://istio.slack.com)
-和 [Stack Overflow](https://stackoverflow.com/questions/tagged/istio)。
+コード以外にも、[Istio コミュニティに貢献する方法](/ja/get-involved/)があります。
+[ディスカッション フォーラム](https://discuss.istio.io)、[Slack](https://istio.slack.com)、
+および [Stack Overflow](https://stackoverflow.com/questions/tagged/istio) をご覧ください。
