@@ -1,187 +1,177 @@
 ---
-title: 使用 Telemetry API 配置链路追踪
-description: 如何使用 Telemetry API 配置链路追踪。
+title: Telemetry API でトレースを設定する
+description: Telemetry API を使ってトレースを設定する方法。
 weight: 2
-keywords: [telemetry,tracing]
+keywords: [telemetry, tracing]
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-Istio 提供了配置链路追踪选项的功能，例如采样率和向报告的 Span 添加自定义标签。
-此任务向您展示如何使用 Telemetry API 自定义链路追踪选项。
+Istio では、サンプリングレートやレポートされる Span へのカスタムタグ追加など、トレースオプションの設定機能が提供されています。
+このタスクでは、Telemetry API を使ってトレースオプションをカスタマイズする方法を紹介します。
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-1. 请确保您的应用程序按照[这里](/zh/docs/tasks/observability/distributed-tracing/overview/)所描述的方式配置链路追踪的标头。
+1. アプリケーションが[こちら](/zh/docs/tasks/observability/distributed-tracing/overview/)で説明されているようにトレースヘッダーを設定していることを確認してください。
 
-1. 根据您首选的链路追踪后端，
-   按照位于[集成](/zh/docs/ops/integrations/)下的链路追踪安装指南安装适当的软件并配置扩展提供程序。
+1. 希望するトレースバックエンドに応じて、[統合](/zh/docs/ops/integrations/)の下にあるトレースインストールガイドに従い、適切なソフトウェアをインストールし、拡張プロバイダーを設定してください。
 
-## 安装 {#installation}
+## インストール {#installation}
 
-在此示例中，我们将链路发送到 [Zipkin](/zh/docs/ops/integrations/zipkin/)。
-继续操作之前，请先安装 Zipkin。
+この例では、トレースを [Zipkin](/zh/docs/ops/integrations/zipkin/) に送信します。
+続行する前に Zipkin をインストールしてください。
 
-### 配置扩展提供程序 {#configure-an-extension-provider}
+### 拡張プロバイダーの設定 {#configure-an-extension-provider}
 
-使用引用 Zipkin 服务的[扩展提供程序](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider)安装 Istio：
+Zipkin サービスを参照する[拡張プロバイダー](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider)を使って Istio をインストールします：
 
 {{< text bash >}}
 $ cat <<EOF > ./tracing.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing: {} # 禁用旧版 MeshConfig 链路追踪选项
-    extensionProviders:
-    # 添加 zipkin 提供商
-    - name: "zipkin"
-      zipkin:
-        service: zipkin.istio-system.svc.cluster.local
-        port: 9411
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing: {} # 旧 MeshConfig トレースオプションを無効化
+extensionProviders: # zipkin プロバイダーを追加 - name: "zipkin"
+zipkin:
+service: zipkin.istio-system.svc.cluster.local
+port: 9411
 EOF
 $ istioctl install -f ./tracing.yaml --skip-confirmation
 {{< /text >}}
 
-### 启用链路追踪 {#enable-tracing}
+### トレースの有効化 {#enable-tracing}
 
-通过以下配置启用链路追踪：
-
-{{< text bash >}}
-$ kubectl apply -f - <<EOF
-apiVersion: telemetry.istio.io/v1
-kind: Telemetry
-metadata:
-  name: mesh-default
-  namespace: istio-system
-spec:
-  tracing:
-  - providers:
-    - name: "zipkin"
-EOF
-{{< /text >}}
-
-### 验证结果 {#verify-the-results}
-
-您可以通过[访问 Zipkin UI](/zh/docs/tasks/observability/distributed-tracing/zipkin/)来验证结果。
-
-## 自定义 {#customization}
-
-### 自定义链路采样 {#customizing-trace-sampling}
-
-采样率选项可用于控制向链路追踪系统报告的请求百分比，
-应根据服务网格中的流量和您想要收集的链路追踪数据量来配置此选项，
-默认采样率为 1%。
+以下の設定を適用してトレースを有効にします：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: mesh-default
-  namespace: istio-system
+name: mesh-default
+namespace: istio-system
 spec:
-  tracing:
-  - providers:
-    - name: "zipkin"
-    randomSamplingPercentage: 100.00
-EOF
-{{< /text >}}
+tracing:
 
-### 自定义链路追踪标签 {#customizing-tracing-tags}
+- providers: - name: "zipkin"
+  EOF
+  {{< /text >}}
 
-可以基于文本、环境变量和客户端请求标头向 span 中添加自定义标签，以在与环境相关的 span
-中提供额外的信息。
+### 結果の検証 {#verify-the-results}
+
+[Zipkin UI にアクセス](/zh/docs/tasks/observability/distributed-tracing/zipkin/)して結果を検証できます。
+
+## カスタマイズ {#customization}
+
+### トレースサンプリングのカスタマイズ {#customizing-trace-sampling}
+
+サンプリングレートオプションは、トレースシステムにレポートされるリクエストの割合を制御するために使用します。
+これは、サービスメッシュ内のトラフィックや収集したいトレースデータ量に応じて設定してください。
+デフォルト値は 1% です。
+
+{{< text bash >}}
+$ kubectl apply -f - <<EOF
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+name: mesh-default
+namespace: istio-system
+spec:
+tracing:
+
+- providers: - name: "zipkin"
+  randomSamplingPercentage: 100.00
+  EOF
+  {{< /text >}}
+
+### トレースタグのカスタマイズ {#customizing-tracing-tags}
+
+span にカスタムタグを追加することで、文字列、環境変数、クライアントリクエストヘッダーなどに基づき、span に環境固有の追加情報を提供できます。
 
 {{< warning >}}
-添加自定义标签的数量没有限制，但标签名称必须唯一。
+追加できるカスタムタグの数に制限はありませんが、タグ名は一意でなければなりません。
 {{< /warning >}}
 
-您可以使用以下三种方式来添加自定义标签。
+以下の 3 つの方法でカスタムタグを追加できます。
 
-1.  literal 选项可以将一个静态的值添加到每个 span 中。
-
-    {{< text yaml >}}
-    apiVersion: telemetry.istio.io/v1
-    kind: Telemetry
-    metadata:
-      name: mesh-default
-      namespace: istio-system
-    spec:
-      tracing:
-      - providers:
-        - name: "zipkin"
-        randomSamplingPercentage: 100.00
-        customTags:
-          "provider":
-            literal:
-              value: "zipkin"
-    {{< /text >}}
-
-1.  环境变量可以用于从工作负载代理环境中自定义标签。
+1.  literal オプションは、各 span に静的な値を追加します。
 
     {{< text yaml >}}
     apiVersion: telemetry.istio.io/v1
     kind: Telemetry
     metadata:
-      name: mesh-default
-      namespace: istio-system
+    name: mesh-default
+    namespace: istio-system
     spec:
-      tracing:
-        - providers:
-          - name: "zipkin"
-          randomSamplingPercentage: 100.00
-          customTags:
-            "cluster_id":
-              environment:
-                name: ISTIO_META_CLUSTER_ID
-                defaultValue: Kubernetes # 可选
+    tracing:
+
+    - providers: - name: "zipkin"
+      randomSamplingPercentage: 100.00
+      customTags:
+      "provider":
+      literal:
+      value: "zipkin"
+      {{< /text >}}
+
+1.  環境変数を使ってワークロードプロキシの環境からカスタムタグを設定できます。
+
+    {{< text yaml >}}
+    apiVersion: telemetry.istio.io/v1
+    kind: Telemetry
+    metadata:
+    name: mesh-default
+    namespace: istio-system
+    spec:
+    tracing: - providers: - name: "zipkin"
+    randomSamplingPercentage: 100.00
+    customTags:
+    "cluster_id":
+    environment:
+    name: ISTIO_META_CLUSTER_ID
+    defaultValue: Kubernetes # オプション
     {{< /text >}}
 
     {{< warning >}}
-    为了基于环境变量添加自定义标签，您必须修改根 Istio 系统命名空间中的 `istio-sidecar-injector`
-    的 ConfigMap。
+    環境変数ベースのカスタムタグを追加するには、
+    Istio システムのルート名前空間にある `istio-sidecar-injector` の ConfigMap を変更する必要があります。
     {{< /warning >}}
 
-1.  客户端请求头选项可用于从传入的客户端请求头中添加标签。
+1.  クライアントリクエストヘッダーオプションは、受信クライアントリクエストヘッダーからタグ値を設定するために使用します。
 
     {{< text yaml >}}
     apiVersion: telemetry.istio.io/v1
     kind: Telemetry
     metadata:
-      name: mesh-default
-      namespace: istio-system
+    name: mesh-default
+    namespace: istio-system
     spec:
-      tracing:
-        - providers:
-          - name: "zipkin"
-          randomSamplingPercentage: 100.00
-          customTags:
-            my_tag_header:
-              header:
-                name: <CLIENT-HEADER>
-                defaultValue: <VALUE>      # 可选
+    tracing: - providers: - name: "zipkin"
+    randomSamplingPercentage: 100.00
+    customTags:
+    my_tag_header:
+    header:
+    name: <CLIENT-HEADER>
+    defaultValue: <VALUE> # オプション
     {{< /text >}}
 
-### 自定义链路追踪标签长度 {#customizing-tracing-tag-length}
+### トレースタグ長のカスタマイズ {#customizing-tracing-tag-length}
 
-默认情况下，`HttpUrl` 的 span 标签的请求最大长度为 256。要修改此最大长度，
-请将以下内容添加到您的 `tracing.yaml` 配置文件中。
+デフォルトでは、`HttpUrl` span タグに含まれるリクエストパスの最大長は 256 です。この最大長を変更するには、`tracing.yaml` 設定ファイルに以下を追加してください。
 
 {{< text yaml >}}
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing: {} # 通过 MeshConfig 禁用旧版链路追踪选项
-    extensionProviders:
-    - name: "zipkin"
-      zipkin:
-        service: zipkin.istio-system.svc.cluster.local
-        port: 9411
-        maxTagLength: <VALUE>
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing: {} # MeshConfig で旧トレースオプションを無効化
+extensionProviders: - name: "zipkin"
+zipkin:
+service: zipkin.istio-system.svc.cluster.local
+port: 9411
+maxTagLength: <VALUE>
 {{< /text >}}

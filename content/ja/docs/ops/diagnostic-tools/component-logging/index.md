@@ -1,6 +1,6 @@
 ---
-title: 组件日志记录
-description: 如何使用组件级别日志来深入了解正在运行的组件的行为。
+title: コンポーネントのログ記録
+description: 実行中のコンポーネントの動作を詳細に把握するためのコンポーネントレベルのログの使い方。
 weight: 70
 keywords: [ops]
 aliases:
@@ -10,16 +10,13 @@ owner: istio/wg-user-experience-maintainers
 test: no
 ---
 
-Istio 组件使用一个灵活的日志框架来构建，该框架提供了许多功能和控件去帮助操作这些组件并促进诊断，
-在启动组件的时候，可以通过在命令行传递参数来控制这些日志记录功能。
+Istio の各コンポーネントは柔軟なログフレームワークを利用しており、多くの機能や制御を提供して運用や診断を支援します。コンポーネント起動時にコマンドライン引数でログ記録の動作を制御できます。
 
-## 日志作用域  {#logging-scopes}
+## ログスコープ {#logging-scopes}
 
-组件输出的日志信息按**作用域**分类，一个作用域代表可以被控制的相关日志信息的整体。
-根据组件提供的功能，不同的组件具有不同的作用域。所有组件都有 `default` 作用域，
-该作用域用于未分类的日志信息。
+コンポーネントのログ出力は**スコープ**ごとに分類されます。スコープとは、制御可能な関連ログ情報のまとまりを指します。コンポーネントの機能によって、スコープの種類は異なります。すべてのコンポーネントには `default` スコープがあり、分類されないログ情報に使われます。
 
-例如，截至目前，`istioctl` 有 25 个作用域，代表命令中的不同功能区域：
+たとえば、現時点で `istioctl` には 25 個のスコープがあり、コマンドの各機能領域を表します：
 
 - `ads`、`adsc`、`all`、`analysis`、`authn`、`authorization`、
   `ca`、`cache`、`cli`、`default`、`installer`、`klog`、`mcp`、
@@ -27,9 +24,9 @@ Istio 组件使用一个灵活的日志框架来构建，该框架提供了许�
   `tpath`、`translator`、`util`、`validation`、`validationController`、
   `wle`
 
-Pilot、Citadel 和 Galley 具有它们自己的作用域，您可以通过查看它们的[参考文档](/zh/docs/reference/commands/)来获取更多信息。
+Pilot、Citadel、Galley にはそれぞれ独自のスコープがあり、詳細は[リファレンス](/ja/docs/reference/commands/)を参照してください。
 
-每个作用域都有一个唯一的输出级别，为下列其中之一：
+各スコープには、次のいずれかの出力レベルが設定できます：
 
 1. none
 1. error
@@ -37,37 +34,28 @@ Pilot、Citadel 和 Galley 具有它们自己的作用域，您可以通过查�
 1. info
 1. debug
 
-其中 `none` 不产生任何输出信息，并且 `debug` 产生的输出信息最多。所有作用域的默认级别是
-`info`，为在正常情况下使用 Istio 提供大量的日志信息。
+`none` は出力なし、`debug` は最も詳細な出力です。すべてのスコープのデフォルトレベルは `info` で、通常の Istio 利用時に十分なログ情報を提供します。
 
-要控制输出级别，也可以在命令行使用 `--log_output_level` 选项。例如：
+出力レベルはコマンドラインの `--log_output_level` オプションでも制御できます。例：
 
 {{< text bash >}}
 $ istioctl analyze --log_output_level klog:none,cli:info
 {{< /text >}}
 
-除了从命令行控制输出级别外，您也可以使用 [ControlZ](/zh/docs/ops/diagnostic-tools/controlz)
-界面控制一个运行组件的输出级别。
+コマンドライン以外にも、[ControlZ](/ja/docs/ops/diagnostic-tools/controlz) インターフェースからも実行中コンポーネントの出力レベルを制御できます。
 
-## 控制输出  {#controlling-output}
+## 出力の制御 {#controlling-output}
 
-日志信息通常发送到组件的标准输出。`--log_target` 选项可以定向输出到许多不同的位置。
-您可以使用一个逗号分隔列表中的文件系统路径，以及分别表示标准输出和标准错误输出流的特殊值
-`stdout` 和 `stderr` 。
+ログは通常、コンポーネントの標準出力に送信されます。`--log_target` オプションで出力先を指定できます。ファイルシステムのパスや、標準出力・標準エラー出力を表す `stdout`・`stderr` など、カンマ区切りで複数指定可能です。
 
-日志信息通常以友好的格式输出。`--log_as_json` 选项可用于将输出强制转换为 JSON 格式，
-以便于更简单地被工具处理。
+ログは通常、読みやすい形式で出力されます。`--log_as_json` オプションを使うと、出力を JSON 形式に強制でき、ツールによる処理が容易になります。
 
-## 日志轮转  {#log-rotation}
+## ログローテーション {#log-rotation}
 
-Istio 组件可以自动管理日志的轮转，将庞大的日志分解为较小的日志文件。`--log_rotate`
-选项可以让您基于文件名进行轮转。派生名称将用于单个日志文件。
+Istio コンポーネントはログのローテーションを自動管理でき、大きなログを小さなファイルに分割します。`--log_rotate` オプションでファイル名ベースのローテーションが可能です。派生名が個々のログファイルに使われます。
 
-`--log_rotate_max_age` 选项可以在日志文件被轮转前指定最大天数，然而
-`--log_rotate_max_size` 选项可以指定文件轮转之前的最大 size （以兆字节为单位）。
-最后，`--log_rotate_max_backups` 选项可以控制要保留的最大轮转文件数，较旧的文件将被自动删除。
+`--log_rotate_max_age` オプションでローテーション前の最大日数、`--log_rotate_max_size` で最大サイズ（MB 単位）、`--log_rotate_max_backups` で保持する最大ローテートファイル数を指定できます。古いファイルは自動削除されます。
 
-## 组件调试  {#component-debugging}
+## コンポーネントのデバッグ {#component-debugging}
 
-`--log_caller` 和 `--log_stacktrace_level` 选项可以控制日志信息是否包括程序员级别的信息。
-当您试着查找组件中的错误信息时它是有用的，但是，通常在日常操作中不使用。
+`--log_caller` や `--log_stacktrace_level` オプションで、ログにプログラマ向け情報を含めるか制御できます。コンポーネントのエラー調査時に有用ですが、通常運用では不要です。

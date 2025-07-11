@@ -1,7 +1,7 @@
 ---
 title: Egress
-description: 控制 Istio 服务网格的出口流量。
+description: Istio サービスメッシュの出口トラフィックを制御します。
 weight: 71
-keywords: [ingress,egress,gateway]
+keywords: [ingress, egress, gateway]
 test: n/a
 ---

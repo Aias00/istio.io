@@ -1,86 +1,85 @@
 ---
-title: Kubernetes Gardener 快速开始
-description: 使用 Gardener 快速搭建 Istio 服务。
+title: Kubernetes Gardener クイックスタート
+description: Gardener を使って Istio サービスを素早くセットアップ。
 weight: 35
 aliases:
-    - /zh/docs/setup/kubernetes/platform-setup/gardener/
+  - /zh/docs/setup/kubernetes/platform-setup/gardener/
 skip_seealso: true
-keywords: [platform-setup,kubernetes,gardener,sap]
+keywords: [platform-setup, kubernetes, gardener, sap]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-## Gardener 引导 {#bootstrapping-gardener}
+## Gardener ブートストラップ {#bootstrapping-gardener}
 
-若要搭建自己的 [Gardener](https://gardener.cloud) 满足您所在组织的 Kubernetes 服务需求，
-可以查看[文档](https://github.com/gardener/gardener/blob/master/docs/README.md)。
-有关测试用途，也可以通过调用源代码仓库并执行 `make kind-up gardener-up`（这是开发时调用 Gardener 最简单的方式）
-[在您的笔记本上搭建 Gardener](https://github.com/gardener/gardener/blob/master/docs/development/getting_started_locally.md)。
+自分の組織の Kubernetes サービス要件を満たすために [Gardener](https://gardener.cloud) をセットアップしたい場合は、[ドキュメント](https://github.com/gardener/gardener/blob/master/docs/README.md) を参照してください。
+テスト目的の場合は、リポジトリをクローンして `make kind-up gardener-up` を実行することで
+[ローカルで Gardener をセットアップ](https://github.com/gardener/gardener/blob/master/docs/development/getting_started_locally.md) できます（これは開発時に Gardener を呼び出す最も簡単な方法です）。
 
-另外，[`23 Technologies GmbH`](https://23technologies.cloud/) 提供了完全托管的 Gardener 服务，
-能够很方便地处理所有支持的云提供商，附带免费试用机会：[`Okeanos`](https://okeanos.dev/)。
-类似的，[`STACKIT`](https://stackit.de/)、[`B'Nerd`](https://bnerd.com/)、[`MetalStack`](https://metalstack.cloud/)
-和许多其他云提供商可以将 Gardener 用作他们的 Kubernetes 引擎。
+また、[`23 Technologies GmbH`](https://23technologies.cloud/) は完全マネージドの Gardener サービスを提供しており、
+すべてのサポートされているクラウドプロバイダーに簡単に対応でき、無料トライアルもあります：[`Okeanos`](https://okeanos.dev/)。
+同様に、[`STACKIT`](https://stackit.de/)、[`B'Nerd`](https://bnerd.com/)、[`MetalStack`](https://metalstack.cloud/)
+など多くのクラウドプロバイダーが Gardener を Kubernetes エンジンとして利用できます。
 
-要了解有关开源项目的更多信息，请阅读 [`kubernetes.io`](https://kubernetes.io/zh-cn/blog) 上的
-[Gardener 项目更新](https://kubernetes.io/blog/2019/12/02/gardener-project-update/)和
-[Gardener - Kubernetes 植物学家](https://kubernetes.io/blog/2018/05/17/gardener/)。
+オープンソースプロジェクトについて詳しく知りたい場合は、[`kubernetes.io`](https://kubernetes.io/zh-cn/blog) の
+[Gardener プロジェクトアップデート](https://kubernetes.io/blog/2019/12/02/gardener-project-update/) や
+[Gardener - Kubernetes 植物学者](https://kubernetes.io/blog/2018/05/17/gardener/) をご覧ください。
 
-[快速使用 Istio、自定义域和证书培育自己的 Gardener](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-cert-service/tutorials/tutorial-custom-domain-with-istio/)
-是针对 Gardener 最终用户的详细教程。
+[Istio、カスタムドメイン、証明書で自分だけの Gardener を素早く使う](https://gardener.cloud/docs/extensions/others/gardener-extension-shoot-cert-service/tutorials/tutorial-custom-domain-with-istio/)
+は、Gardener のエンドユーザー向けの詳細なチュートリアルです。
 
-### 安装并且配置 `kubectl` {#install-and-configure-Kubernetes}
+### `kubectl` のインストールと設定 {#install-and-configure-Kubernetes}
 
-1. 如果您已经有 `kubectl` CLI，请运行 `kubectl version --short` 来检查版本。
-    您需要一个至少与要订购的 Kubernetes 集群版本匹配的当前版本。
-    如果您的 `kubectl` 版本较旧，请按照下一步安装新版本。
+1. すでに `kubectl` CLI をお持ちの場合は、`kubectl version --short` を実行してバージョンを確認してください。
+   利用する Kubernetes クラスタのバージョンと同等以上のバージョンが必要です。
+   `kubectl` のバージョンが古い場合は、次の手順で新しいバージョンをインストールしてください。
 
-1. [安装 `kubectl` CLI](https://kubernetes.io/zh-cn/docs/tasks/tools/)。
+1. [`kubectl` CLI をインストール](https://kubernetes.io/zh-cn/docs/tasks/tools/) してください。
 
-### 访问 Gardener {#access-gardener}
+### Gardener へのアクセス {#access-gardener}
 
-1. 在 Gardener 仪表板中创建一个项目。这实际上将创建一个名为 `garden-<my-project>` 的 Kubernetes 命名空间。
+1. Gardener ダッシュボードでプロジェクトを作成します。これにより、`garden-<my-project>` という名前の Kubernetes ネームスペースが作成されます。
 
-1. [配置 Gardener 项目的访问权限](https://gardener.cloud/docs/dashboard/usage/gardener-api/)使用 kubeconfig。
+1. [Gardener プロジェクトへのアクセス権を kubeconfig で設定](https://gardener.cloud/docs/dashboard/usage/gardener-api/) します。
 
-    {{< tip >}}
-    如果您打算使用 Gardener 仪表板和嵌入式网络终端创建集群并与之交互，则可以跳过这一步；只有编程访问才需要这一步。
-    {{< /tip >}}
+   {{< tip >}}
+   Gardener ダッシュボードと組み込みの Web ターミナルでクラスタを作成・操作する場合はこの手順をスキップできます。プログラムによるアクセスのみ必要です。
+   {{< /tip >}}
 
-    如果您还不是 Gardener 管理员，则可以在 Gardener 仪表板中创建一个技术用户：
-    转到 "Members" 部分并添加服务帐户。然后，您可以为您的项目下载 kubeconfig。
-    确保在您的 Shell 中设置 `export KUBECONFIG=garden-my-project.yaml`。
+   まだ Gardener 管理者でない場合は、Gardener ダッシュボードでテクニカルユーザーを作成できます。
+   "Members" セクションに移動し、サービスアカウントを追加してください。その後、プロジェクト用の kubeconfig をダウンロードできます。
+   シェルで `export KUBECONFIG=garden-my-project.yaml` を設定してください。
 
-    ![为 Gardener 下载 kubeconfig](https://raw.githubusercontent.com/gardener/dashboard/master/docs/images/01-add-service-account.png "使用服务账户下载 kubeconfig")
+   ![Gardener で kubeconfig をダウンロード](https://raw.githubusercontent.com/gardener/dashboard/master/docs/images/01-add-service-account.png "サービスアカウントで kubeconfig をダウンロード")
 
-### 创建 Kubernetes 集群 {#creating-a-Kubernetes-cluster}
+### Kubernetes クラスタの作成 {#creating-a-Kubernetes-cluster}
 
-您可以通过提供集群规范 yaml 文件，使用 `kubectl` CLI 创建集群。
-您可以在[这里](https://github.com/gardener/gardener/blob/master/example/90-shoot.yaml)找到关于 GCP 的示例。
-确保命名空间与您的项目命名空间匹配。然后只需将准备好的 "shoot" 集群清单与 `kubectl` 配合使用：
+クラスタ仕様の yaml ファイルを用意し、`kubectl` CLI でクラスタを作成できます。
+[GCP 用のサンプルはこちら](https://github.com/gardener/gardener/blob/master/example/90-shoot.yaml)。
+ネームスペースがプロジェクトのネームスペースと一致していることを確認してください。準備した "shoot" クラスタマニフェストを `kubectl` で適用するだけです：
 
 {{< text bash >}}
 $ kubectl apply --filename my-cluster.yaml
 {{< /text >}}
 
-更简单的替代方法是按照 Gardener 仪表板中的集群创建向导来创建集群：
+より簡単な方法として、Gardener ダッシュボードのクラスタ作成ウィザードに従ってクラスタを作成することもできます：
 
-![创建 shoot 集群](https://raw.githubusercontent.com/gardener/dashboard/master/docs/images/dashboard-demo.gif "通过仪表板创建 shoot 集群")
+![shoot クラスタの作成](https://raw.githubusercontent.com/gardener/dashboard/master/docs/images/dashboard-demo.gif "ダッシュボードで shoot クラスタを作成")
 
-### 为集群配置 `kubectl`{#configure-Kubernetes-for-your-cluster}
+### クラスタ用 `kubectl` の設定 {#configure-Kubernetes-for-your-cluster}
 
-现在，您可以在 Gardener 仪表板中或通过 CLI 为新创建的集群下载 kubeconfig，如下所示：
+今、Gardener ダッシュボードまたは CLI で新しく作成したクラスタ用の kubeconfig をダウンロードできます。例：
 
 {{< text bash >}}
 $ kubectl --namespace shoot--my-project--my-cluster get secret kubecfg --output jsonpath={.data.kubeconfig} | base64 --decode > my-cluster.yaml
 {{< /text >}}
 
-此 kubeconfig 文件能让管理员对集群具有完全访问权限。
-对于负载集群的任何活动，请确保已设置 `export KUBECONFIG=my-cluster.yaml`。
+この kubeconfig ファイルで管理者はクラスタにフルアクセスできます。
+ワークロードクラスタで作業する際は、`export KUBECONFIG=my-cluster.yaml` を設定してください。
 
-## 删除 {#cleaning-up}
+## 削除 {#cleaning-up}
 
-使用 Gardener 仪表板删除集群，或者使用指向您的 `garden-my-project.yaml` kubeconfig 的 `kubectl` 执行以下操作：
+Gardener ダッシュボードでクラスタを削除するか、`garden-my-project.yaml` kubeconfig を指定して `kubectl` で以下を実行します：
 
 {{< text bash >}}
 $ kubectl --kubeconfig garden-my-project.yaml --namespace garden--my-project annotate shoot my-cluster confirmation.garden.sapcloud.io/deletion=true

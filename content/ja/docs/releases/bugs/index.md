@@ -1,116 +1,109 @@
 ---
-title: 报告错误
-description: 如果发现错误该怎么办。
+title: バグ報告
+description: もし問題を発見したらどうすればよいか。
 weight: 34
 aliases:
-    - /zh/bugs.html
-    - /zh/bugs/index.html
-    - /zh/help/bugs/
-    - /zh/about/bugs
-    - /zh/latest/about/bugs
+  - /zh/bugs.html
+  - /zh/bugs/index.html
+  - /zh/help/bugs/
+  - /zh/about/bugs
+  - /zh/latest/about/bugs
 icon: bugs
 owner: istio/wg-docs-maintainers
 test: n/a
 ---
 
-不好！您发现了一个问题？我们希望知道这一点。
+あらら！問題を発見しましたか？ぜひお知らせください。
 
-## 产品问题   {#product-bugs}
+## 製品のバグ {#product-bugs}
 
-搜索我们的[问题数据库](https://github.com/istio/istio/issues/)来了解我们是否已经知道您的问题以及何时可以解决它。
-如果您在该数据库中没有找到您的问题，
-请打开一个[新 Issue](https://github.com/istio/istio/issues/new/choose)让我们知道出现了什么错误。
+[課題データベース](https://github.com/istio/istio/issues/)で、すでにその問題が知られているか、いつ修正されるかを確認してください。
+もしデータベースに見つからない場合は、[新しい Issue](https://github.com/istio/istio/issues/new/choose) を作成して、どんなバグが発生したか教えてください。
 
-如果您认为错误实际上是一个安全漏洞，请访问[报告安全漏洞](/zh/about/security-vulnerabilities/)了解如何处理。
+もしバグがセキュリティ脆弱性であると思われる場合は、[セキュリティ脆弱性の報告](/ja/about/security-vulnerabilities/)をご覧ください。
 
-### Kubernetes 集群状态存档   {#Kubernetes-cluster-state-archives}
+### Kubernetes クラスターの状態アーカイブ {#Kubernetes-cluster-state-archives}
 
-如果您正在运行 Kubernetes，请考虑使用错误报告将集群状态存档。为了方便起见，
-您可以运行 `istioctl bug-report` 命令生成一个存档，该存档包含 Kubernetes
-集群中所有相关的状态：
+Kubernetes をご利用の場合は、バグ報告時にクラスターの状態アーカイブを添付することを検討してください。
+簡単にアーカイブを作成するには、`istioctl bug-report` コマンドを実行して、Kubernetes クラスター内の関連状態を含むアーカイブを生成できます：
 
 {{< text bash >}}
 $ istioctl bug-report
 {{< /text >}}
 
-然后在您报告问题时随附上刚生成的 `bug-report.tgz`。
+バグ報告時に、生成された `bug-report.tgz` を添付してください。
 
-如果您的网格跨越了多个集群，对每个集群运行 `istioctl bug-report` 并指定 `--context`
-或者 `--kubeconfig` 参数。
+メッシュが複数のクラスターにまたがる場合は、各クラスターで `istioctl bug-report` を実行し、`--context` または `--kubeconfig` オプションを指定してください。
 
 {{< tip >}}
-`istioctl bug-report` 命令仅适用于 `istioctl` 1.8.0 及以上版本，
-但其依然可以对已经安装的较低版本 Istio 生效。
+`istioctl bug-report` コマンドは `istioctl` 1.8.0 以降で利用可能ですが、より古いバージョンの Istio にも利用できます。
 {{< /tip >}}
 
 {{< tip >}}
-如果您在大型集群上运行 `bug-report`，它可能无法完成。
-请使用 `--include ns1,ns2` 选项仅针对相关命名空间的代理命令和日志集合。如需更多 `bug-report` 选项，
-请参阅 [istioctl bug-report 参考](/zh/docs/reference/commands/istioctl/#istioctl-bug-report)。
+大規模なクラスターで `bug-report` を実行すると、完了しない場合があります。
+その場合は `--include ns1,ns2` オプションを使って、関連する名前空間のみのプロキシコマンドやログ収集を行ってください。その他の `bug-report` オプションについては、[istioctl bug-report リファレンス](/ja/docs/reference/commands/istioctl/#istioctl-bug-report) を参照してください。
 {{< /tip >}}
 
-如果您无法使用 `bug-report` 命令，请附上您自己的存档包含：
+`bug-report` コマンドが使えない場合は、以下の情報を含む独自のアーカイブを添付してください：
 
-* `istioctl analyze` 的输出：
+- `istioctl analyze` の出力：
 
-    {{< text bash >}}
-    $ istioctl analyze --all-namespaces
-    {{< /text >}}
+  {{< text bash >}}
+  $ istioctl analyze --all-namespaces
+  {{< /text >}}
 
-* 所有命名空间下 `pods`、`services`、`deployments`、`endpoints` 资源：
+- すべての名前空間の `pods`、`services`、`deployments`、`endpoints` リソース：
 
-    {{< text bash >}}
-    $ kubectl get pods,services,deployments,endpoints --all-namespaces -o yaml > k8s_resources.yaml
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl get pods,services,deployments,endpoints --all-namespaces -o yaml > k8s_resources.yaml
+  {{< /text >}}
 
-* `istio-system` 下的 Secret：
+- `istio-system` 名前空間の Secret：
 
-    {{< text bash >}}
-    $ kubectl --namespace istio-system get secrets
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl --namespace istio-system get secrets
+  {{< /text >}}
 
-* `istio-system` 下的 ConfigMap：
+- `istio-system` 名前空間の ConfigMap：
 
-    {{< text bash >}}
-    $ kubectl --namespace istio-system get cm -o yaml
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl --namespace istio-system get cm -o yaml
+  {{< /text >}}
 
-* 来自所有 Istio 组件和 Sidecar 的当前日志和历史日志。这里有一些关于如何获取这些日志的例子，
-  请根据您的环境进行调整：
+- すべての Istio コンポーネントおよびサイドカーの現在と過去のログ。以下はログ取得例です。環境に合わせて調整してください：
 
-    * Istiod 日志：
-
-        {{< text bash >}}
-        $ kubectl logs -n istio-system -l app=istiod
-        {{< /text >}}
-
-    * Ingress Gateway 日志：
-
-        {{< text bash >}}
-        $ kubectl logs -l istio=ingressgateway -n istio-system
-        {{< /text >}}
-
-    * Egress Gateway 日志：
-
-        {{< text bash >}}
-        $ kubectl logs -l istio=egressgateway -n istio-system
-        {{< /text >}}
-
-    * Sidecar 日志：
-
-        {{< text bash >}}
-        $ for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}') ; do kubectl logs -l service.istio.io/canonical-revision -c istio-proxy -n $ns ; done
-        {{< /text >}}
-
-* 所有 `Istio` 相关的配置文件：
+  - Istiod のログ：
 
     {{< text bash >}}
-    $ kubectl get istio-io --all-namespaces -o yaml
+    $ kubectl logs -n istio-system -l app=istiod
     {{< /text >}}
 
-## 文档错误   {#documentation-bugs}
+  - Ingress Gateway のログ：
 
-搜索我们的[文档问题数据库](https://github.com/istio/istio.io/issues/)，
-以查看是否我们已经知道您的问题，并了解何时可以解决这些问题。如果您没有在数据库中找到相应的问题，
-请[在那里报告问题](https://github.com/istio/istio.io/issues/new)。
-如果您想提交对页面的修改建议，可以在每个页面的右下角找到"在 GitHub 上编辑此页"的链接。
+    {{< text bash >}}
+    $ kubectl logs -l istio=ingressgateway -n istio-system
+    {{< /text >}}
+
+  - Egress Gateway のログ：
+
+    {{< text bash >}}
+    $ kubectl logs -l istio=egressgateway -n istio-system
+    {{< /text >}}
+
+  - サイドカーのログ：
+
+    {{< text bash >}}
+    $ for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}') ; do kubectl logs -l service.istio.io/canonical-revision -c istio-proxy -n $ns ; done
+    {{< /text >}}
+
+- すべての Istio 関連の設定ファイル：
+
+  {{< text bash >}}
+  $ kubectl get istio-io --all-namespaces -o yaml
+  {{< /text >}}
+
+## ドキュメントのバグ {#documentation-bugs}
+
+[ドキュメント課題データベース](https://github.com/istio/istio.io/issues/)で、すでにその問題が知られているか、いつ修正されるかを確認してください。
+見つからない場合は、[こちらで課題を報告](https://github.com/istio/istio.io/issues/new)してください。
+ページの右下にある「GitHub でこのページを編集」リンクから、修正提案を送ることもできます。

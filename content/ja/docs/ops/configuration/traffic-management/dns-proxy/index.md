@@ -1,62 +1,61 @@
 ---
-title: DNS 代理
-description: 如何配置 DNS 代理。
+title: DNS プロキシ
+description: DNS プロキシの設定方法。
 weight: 60
-keywords: [traffic-management,dns,virtual-machine]
+keywords: [traffic-management, dns, virtual-machine]
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-除了捕获应用流量，Istio 还可以捕获 DNS 请求，
-以提高网格的性能和可用性。当 Istio 代理 DNS 时，
-所有来自应用程序的 DNS 请求将会被重定向到 Sidecar 或 ztunnel 代理，
-因为 Sidecar 存储了域名到 IP 地址的映射。如果请求被代理处理，
-它将直接给应用返回响应，避免了对上游 DNS 服务器的往返。
-反之，请求将按照标准的 `/etc/resolv.conf` DNS 配置向上游转发。
+Istio はアプリケーショントラフィックのキャプチャに加え、DNS リクエストもキャプチャして、
+メッシュのパフォーマンスと可用性を向上させることができます。Istio が DNS をプロキシすると、
+アプリケーションからのすべての DNS リクエストは Sidecar または ztunnel プロキシにリダイレクトされ、
+Sidecar はドメイン名と IP アドレスのマッピングを保持します。リクエストがプロキシで処理される場合、
+アプリケーションに直接応答を返し、上流の DNS サーバーへの往復を回避します。
+そうでない場合、リクエストは標準の `/etc/resolv.conf` DNS 設定に従って上流に転送されます。
 
-虽然 Kubernetes 为 Kubernetes `Service`
-提供了一个开箱即用的 DNS 解析，但任何自定义的 `ServiceEntry`
-都不会被识别。有了这个功能，`ServiceEntry` 地址可以被解析，
-而不需要自定义 DNS 服务配置。对于 Kubernetes `Service` 来说，
-一样的 DNS 响应，但减少了 `kube-dns` 的负载，并且提高了性能。
+Kubernetes は Kubernetes の `Service` に対して標準の DNS 解決を提供しますが、
+カスタムの `ServiceEntry` は認識されません。この機能により、`ServiceEntry` のアドレスも解決でき、
+カスタム DNS サービス設定は不要です。Kubernetes `Service` についても、
+同じ DNS 応答が得られますが、`kube-dns` の負荷が減り、パフォーマンスが向上します。
 
-该功能也适用于在 Kubernetes 外部运行的服务。
-这意味着所有的内部服务都可以被解析，而不需要再使用笨重的运行方法来暴露集群外的 Kubernetes DNS 条目。
+この機能は Kubernetes 外部で稼働するサービスにも適用できます。
+つまり、すべての内部サービスが解決可能となり、
+クラスター外の Kubernetes DNS エントリを公開するための煩雑な方法が不要になります。
 
-## 开始 {#getting-started}
+## はじめに {#getting-started}
 
-Istio 通常会基于 HTTP 头来路由流量。如果无法基于 HTTP 头进行路由
-（例如在 Ambient 模式下，或在 Sidecar 模式下使用 TCP 流量时），则可以启用 DNS 代理。
+Istio は通常、HTTP ヘッダーに基づいてトラフィックをルーティングします。HTTP ヘッダーに基づくルーティングができない場合
+（たとえば Ambient モードや、Sidecar モードで TCP トラフィックを使用する場合）、DNS プロキシを有効にできます。
 
-在 Ambient 模式下，ztunnel 仅能看到第 4 层流量，无法访问 HTTP 头。
-因此，DNS 代理机制对于解析 `ServiceEntry` 地址是必需的，
-特别是在[将出口流量发送到 waypoint](https://github.com/istio/istio/wiki/Troubleshooting-Istio-Ambient#scenario-ztunnel-is-not-sending-egress-traffic-to-waypoints)的情况下更是如此。
+Ambient モードでは、ztunnel はレイヤー 4 のトラフィックしか見えず、HTTP ヘッダーにアクセスできません。
+そのため、DNS プロキシメカニズムは `ServiceEntry` アドレスの解決に必須であり、
+特に[外部トラフィックを waypoint に送信する場合](https://github.com/istio/istio/wiki/Troubleshooting-Istio-Ambient#scenario-ztunnel-is-not-sending-egress-traffic-to-waypoints)に重要です。
 
-### Ambient 模式 {#ambient-mode}
+### Ambient モード {#ambient-mode}
 
-从 Istio 1.25 开始，Ambient 模式默认启用了 DNS 代理机制。
+Istio 1.25 以降、Ambient モードでは DNS プロキシメカニズムがデフォルトで有効になっています。
 
-对于 1.25 之前的版本，您可以在安装时通过设置 `values.cni.ambient.dnsCapture=true`
-和 `values.pilot.env.PILOT_ENABLE_IP_AUTOALLOCATE=true` 来启用 DNS 捕获。
+1.25 より前のバージョンでは、インストール時に `values.cni.ambient.dnsCapture=true`
+および `values.pilot.env.PILOT_ENABLE_IP_AUTOALLOCATE=true` を設定することで DNS キャプチャを有効にできます。
 
-### Sidecar 模式 {#sidecar-mode}
+### Sidecar モード {#sidecar-mode}
 
-此功能默认情况下未启用。要启用该功能，请在安装 Istio 时使用以下设置：
+この機能はデフォルトでは無効です。有効にするには、Istio インストール時に以下の設定を使用します：
 
 {{< text bash >}}
 $ cat <<EOF | istioctl install -y -f -
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    defaultConfig:
-      proxyMetadata:
-        # 启用基本 DNS 代理
-        ISTIO_META_DNS_CAPTURE: "true"
+meshConfig:
+defaultConfig:
+proxyMetadata: # 基本的な DNS プロキシを有効化
+ISTIO_META_DNS_CAPTURE: "true"
 EOF
 {{< /text >}}
 
-您也可以在每个 Pod 上启用该功能，通过 [`proxy.istio.io/config` 注解](/zh/docs/reference/config/annotations/)：
+また、各 Pod ごとに [`proxy.istio.io/config` アノテーション](/ja/docs/reference/config/annotations/)で有効化することもできます：
 
 {{< text syntax=yaml snip_id=none >}}
 kind: Deployment
@@ -74,222 +73,230 @@ spec:
 {{< /text >}}
 
 {{< tip >}}
-当时使用 [`istioctl 工作负载配置`](/zh/docs/setup/install/virtual-machine/)部署虚拟机时，
-默认启用基础 DNS 代理。
+[`istioctl ワークロード構成`](/ja/docs/setup/install/virtual-machine/)で仮想マシンをデプロイする場合、
+デフォルトで基本的な DNS プロキシが有効になります。
 {{< /tip >}}
 
-## DNS 捕获 {#DNS-capture-in-action}
+## DNS キャプチャの動作例 {#DNS-capture-in-action}
 
-为了尝试 DNS 捕获，首先为某些外部服务启动一个 `ServiceEntry`：
+DNS キャプチャを試すには、まずいくつかの外部サービス用に `ServiceEntry` を作成します：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: external-address
+name: external-address
 spec:
-  addresses:
-  - 198.51.100.1
-  hosts:
-  - address.internal
-  ports:
-  - name: http
-    number: 80
-    protocol: HTTP
-EOF
-{{< /text >}}
+addresses:
 
-调用客户端应用以发起 DNS 请求：
+- 198.51.100.1
+  hosts:
+- address.internal
+  ports:
+- name: http
+  number: 80
+  protocol: HTTP
+  EOF
+  {{< /text >}}
+
+クライアントアプリから DNS リクエストを発行します：
 
 {{< text bash >}}
 $ kubectl label namespace default istio-injection=enabled --overwrite
 $ kubectl apply -f @samples/curl/curl.yaml@
 {{< /text >}}
 
-如果不开启 DNS 捕获，请求 `address.internal`
-时可能解析失败。一旦启用 DNS 捕获，您将收到一个基于 `address` 配置的响应：
+DNS キャプチャを有効にしない場合、`address.internal` へのリクエストは解決できない可能性があります。
+DNS キャプチャを有効にすると、`address` 設定に基づいた応答が返されます：
 
 {{< text bash >}}
 $ kubectl exec deploy/curl -- curl -sS -v address.internal
-*   Trying 198.51.100.1:80...
-{{< /text >}}
 
-## 自动分配地址 {#address-auto-allocation}
+- Trying 198.51.100.1:80...
+  {{< /text >}}
 
-在上面的示例中，对于发送请求的服务，您有一个预定义的 IP 地址。
-但是常规情况下，服务访问外部服务时一般没有一个相对固定的地址，
-因此需要通过 DNS 代理去访问外部服务。如果 DNS 代理没有足够的信息去返回一个响应的情况下，
-将需要向上游转发 DNS 请求。
+## アドレスの自動割り当て {#address-auto-allocation}
 
-这在 TCP 通讯中是一个很严重的问题。它不像 HTTP 请求，基于 `Host` 头部去路由。
-TCP 携带的信息更少，只能在目标 IP 和端口号上路由。
-由于后端没有稳定的 IP，所以也不能基于其他信息进行路由，
-只剩下端口号，但是这会导致多个 `ServiceEntry` 使用 TCP
-服务会共享同一端口而产生冲突。更多细节参阅[以下章节](#external-tcp-services-without-vips)。
+上記の例では、リクエスト先サービスに事前定義された IP アドレスがあります。
+しかし、一般的なケースでは、外部サービスへのアクセス時に固定アドレスがないため、
+DNS プロキシを通じて外部サービスにアクセスする必要があります。DNS プロキシが十分な情報を持たない場合、
+上流に DNS リクエストを転送する必要があります。
 
-为了解决这些问题，DNS 代理还支持自动为未明确指定地址的 `ServiceEntry` 分配地址。
-DNS 响应将为每个 `ServiceEntry` 包含一个独特且自动分配的地址。然后，
-代理被配置为将请求匹配到该 IP 地址，并将请求转发到相应的 `ServiceEntry`。
-只要这些服务不使用通配符主机，Istio 将自动为这些服务分配不可路由的虚拟 IP
-（来自 Class E 子网）。侧车上的 Istio 代理将使用这些虚拟 IP 作为应用程序
-DNS 查找查询的响应。Envoy 现在可以清晰地区分每个外部 TCP 服务的流量，并将其转发到正确的目标。
+これは TCP 通信では大きな問題となります。HTTP リクエストのように `Host` ヘッダーでルーティングできず、
+TCP では宛先 IP とポート番号のみでルーティングします。
+バックエンドに安定した IP がないため、他の情報でルーティングできず、
+ポート番号だけが頼りですが、これでは複数の `ServiceEntry` で同じ TCP ポートを共有すると競合が発生します。
+詳細は[以下のセクション](#external-tcp-services-without-vips)を参照してください。
+
+この問題を解決するため、DNS プロキシは明示的にアドレスが指定されていない `ServiceEntry` に対して、
+自動的にアドレスを割り当てる機能もサポートしています。
+DNS 応答には各 `ServiceEntry` ごとに一意で自動割り当てされたアドレスが含まれます。
+プロキシはこのアドレスにリクエストをマッチさせ、対応する `ServiceEntry` に転送します。
+ワイルドカードホストを使わない限り、Istio はこれらのサービスにルーティング不可能な仮想 IP（Class E サブネットから）を自動割り当てします。
+Sidecar 上の Istio プロキシは、アプリケーションの DNS クエリに対してこれらの仮想 IP を返します。
+Envoy はこれで各外部 TCP サービスのトラフィックを明確に区別し、正しい宛先に転送できます。
 
 {{< warning >}}
-由于该特性修改了 DNS 响应，因此可能无法兼容所有应用程序。
+この機能は DNS 応答を変更するため、すべてのアプリケーションと互換性があるとは限りません。
 {{< /warning >}}
 
-尝试配置另外一个 `ServiceEntry`：
+別の `ServiceEntry` を設定してみましょう：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: external-auto
+name: external-auto
 spec:
-  hosts:
-  - auto.internal
-  ports:
-  - name: http
-    number: 80
-    protocol: HTTP
-  resolution: DNS
-EOF
-{{< /text >}}
+hosts:
 
-现在，发送一个请求：
+- auto.internal
+  ports:
+- name: http
+  number: 80
+  protocol: HTTP
+  resolution: DNS
+  EOF
+  {{< /text >}}
+
+次にリクエストを送信します：
 
 {{< text bash >}}
 $ kubectl exec deploy/curl -- curl -sS -v auto.internal
-*   Trying 240.240.0.1:80...
-{{< /text >}}
 
-您可以看到，请求被发送到一个自动分配的地址 `240.240.0.1` 上。
-这些地址将从 `240.240.0.0/16` 预留的 IP 地址池中挑选出来，
-以避免与真实的服务发生冲突。
+- Trying 240.240.0.1:80...
+  {{< /text >}}
 
-用户还可以通过向其 `ServiceEntry` 添加标签
+このように、リクエストは自動割り当てされたアドレス `240.240.0.1` に送信されます。
+これらのアドレスは `240.240.0.0/16` の予約済み IP アドレスプールから選ばれ、
+実際のサービスとの競合を避けます。
+
+ユーザーは `ServiceEntry` に
 `networking.istio.io/enable-autoallocate-ip="true/false"`
-来灵活地进行更细粒度的配置。此标签配置未设置任何 `spec.addresses`
-的 `ServiceEntry` 是否应自动为其分配 IP 地址。
+というラベルを追加することで、より細かく制御できます。このラベルは `spec.addresses` を設定していない
+`ServiceEntry` に対して自動割り当てを有効または無効にします。
 
-要尝试此功能，请使用退出标签更新现有的 `ServiceEntry`：
+この機能を試すには、既存の `ServiceEntry` をラベル付きで更新してください：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: external-auto
-  labels:
-    networking.istio.io/enable-autoallocate-ip: "false"
+name: external-auto
+labels:
+networking.istio.io/enable-autoallocate-ip: "false"
 spec:
-  hosts:
-  - auto.internal
-  ports:
-  - name: http
-    number: 80
-    protocol: HTTP
-  resolution: DNS
-EOF
-{{< /text >}}
+hosts:
 
-现在，发送请求并验证自动分配不再发生：
+- auto.internal
+  ports:
+- name: http
+  number: 80
+  protocol: HTTP
+  resolution: DNS
+  EOF
+  {{< /text >}}
+
+今度はリクエストを送信し、自動割り当てが行われないことを確認します：
 
 {{< text bash >}}
 $ kubectl exec deploy/curl -- curl -sS -v auto.internal
-* Could not resolve host: auto.internal
-* shutting down connection #0
-{{< /text >}}
 
-## 不带 VIP 的外部 TCP 服务 {#external-tcp-services-without-vips}
+- Could not resolve host: auto.internal
+- shutting down connection #0
+  {{< /text >}}
 
-默认情况下，Istio 在路由外部 TCP 流量时存在限制，因为它无法区分相同端口上的多个 TCP 服务。
-当使用第三方数据库（如 AWS 关系型数据库服务）或任何具有地理冗余设置的数据库时，这种限制尤为明显。
-默认情况下，类似但不同的外部 TCP 服务不能被分别处理。
-为了让 Sidecar 区分网格之外的两个不同的 TCP 服务的流量，
-这些服务必须位于不同的端口上，或者它们需要具有全局唯一的 VIP 地址。
+## VIP を持たない外部 TCP サービス {#external-tcp-services-without-vips}
 
-例如，如果您有两个外部数据库服务（`mysql-instance1` 和 `mysql-instance2`），
-并为这两个服务创建了服务条目，则客户端 Sidecar 仍将在 `0.0.0.0:{port}`
-上有一个单独的侦听器，从公共 DNS 服务器查找只 `mysql-instance1` 的 IP 地址，
-并将流量转发到它。它无法将流量路由到 `mysql-instance2`，因为它无法区分抵达
-`0.0.0.0:{port}` 的流量是针对 `mysql-instance1` 还是 `mysql-instance2` 的。
+デフォルトでは、Istio は外部 TCP トラフィックのルーティングに制限があります。
+同じポート上の複数の TCP サービスを区別できないためです。
+サードパーティのデータベース（AWS RDS など）や地理的冗長構成のデータベースでは、
+この制限が特に顕著です。
+デフォルトでは、似ているが異なる外部 TCP サービスを個別に扱うことはできません。
+Sidecar がメッシュ外の 2 つの異なる TCP サービスのトラフィックを区別するには、
+それぞれ異なるポートを使うか、グローバルに一意な VIP アドレスが必要です。
 
-以下示例显示了如何使用 DNS 代理解决此问题。
-虚拟 IP 地址将被分配到每个服务条目，以便客户端 Sidecar 可以清楚地区分每个外部 TCP 服务的流量。
+たとえば、2 つの外部データベースサービス（`mysql-instance1` と `mysql-instance2`）があり、
+それぞれにサービスエントリを作成した場合でも、クライアント Sidecar では `0.0.0.0:{port}`
+に単一のリスナーしか持てません。パブリック DNS サーバーから `mysql-instance1` の IP だけを取得し、
+トラフィックをそちらに転送します。`mysql-instance2` へのトラフィックは区別できません。
+`0.0.0.0:{port}` に届くトラフィックがどちらのサービス宛か判別できないためです。
 
-1.  更新[开始](#getting-started)一节中指定的 Istio 配置，
-    以配置 `discoverySelectors`，从而限制网格仅对启用了
-    `istio-injection` 的命名空间进行筛选。
-    这将使我们可以在集群中使用任何其他命名空间来运行网格之外的 TCP 服务。
+以下の例は、DNS プロキシを使ってこの問題を解決する方法を示します。
+仮想 IP アドレスが各サービスエントリに割り当てられ、クライアント Sidecar は各外部 TCP サービスのトラフィックを明確に区別できます。
+
+1.  [はじめに](#getting-started)セクションの Istio 設定を更新し、
+    `discoverySelectors` を設定して、`istio-injection` が有効なネームスペースだけをメッシュの対象にします。
+    これにより、クラスター内の他のネームスペースでメッシュ外の TCP サービスを実行できます。
 
     {{< text bash >}}
     $ cat <<EOF | istioctl install -y -f -
     apiVersion: install.istio.io/v1alpha1
     kind: IstioOperator
     spec:
-      meshConfig:
-        defaultConfig:
-          proxyMetadata:
-            # 启用基本 DNS 代理
-            ISTIO_META_DNS_CAPTURE: "true"
-        # 下面的 discoverySelectors 配置只是用于模拟外部服务 TCP 场景，
-        # 这样我们就不必使用外部站点进行测试。
-        discoverySelectors:
-        - matchLabels:
-            istio-injection: enabled
+    meshConfig:
+    defaultConfig:
+    proxyMetadata: # 基本的な DNS プロキシを有効化
+    ISTIO_META_DNS_CAPTURE: "true" # 以下の discoverySelectors 設定は外部サービス TCP シナリオのシミュレーション用です。 # 外部サイトを使わずにテストできます。
+    discoverySelectors: - matchLabels:
+    istio-injection: enabled
     EOF
     {{< /text >}}
 
-1.  部署第一个外部样例 TCP 应用：
+1.  1 つ目の外部サンプル TCP アプリをデプロイ：
 
     {{< text bash >}}
     $ kubectl create ns external-1
     $ kubectl -n external-1 apply -f samples/tcp-echo/tcp-echo.yaml
     {{< /text >}}
 
-1.  部署第二个外部样例 TCP 应用：
+1.  2 つ目の外部サンプル TCP アプリをデプロイ：
 
     {{< text bash >}}
     $ kubectl create ns external-2
     $ kubectl -n external-2 apply -f samples/tcp-echo/tcp-echo.yaml
     {{< /text >}}
 
-1.  配置 `ServiceEntry` 以到达外部服务：
+1.  外部サービスへの `ServiceEntry` を設定：
 
     {{< text bash >}}
     $ kubectl apply -f - <<EOF
     apiVersion: networking.istio.io/v1
     kind: ServiceEntry
     metadata:
-      name: external-svc-1
+    name: external-svc-1
     spec:
-      hosts:
-      - tcp-echo.external-1.svc.cluster.local
+    hosts:
+
+    - tcp-echo.external-1.svc.cluster.local
       ports:
-      - name: external-svc-1
-        number: 9000
-        protocol: TCP
+    - name: external-svc-1
+      number: 9000
+      protocol: TCP
       resolution: DNS
-    ---
+
+    ***
+
     apiVersion: networking.istio.io/v1
     kind: ServiceEntry
     metadata:
-      name: external-svc-2
+    name: external-svc-2
     spec:
-      hosts:
-      - tcp-echo.external-2.svc.cluster.local
-      ports:
-      - name: external-svc-2
-        number: 9000
-        protocol: TCP
-      resolution: DNS
-    EOF
-    {{< /text >}}
+    hosts:
 
-1.  确认在客户端侧为每个服务分别配置了侦听器：
+    - tcp-echo.external-2.svc.cluster.local
+      ports:
+    - name: external-svc-2
+      number: 9000
+      protocol: TCP
+      resolution: DNS
+      EOF
+      {{< /text >}}
+
+1.  クライアント側で各サービスごとにリスナーが設定されていることを確認：
 
     {{< text bash >}}
     $ istioctl pc listener deploy/curl | grep tcp-echo | awk '{printf "ADDRESS=%s, DESTINATION=%s %s\n", $1, $4, $5}'
@@ -297,7 +304,7 @@ $ kubectl exec deploy/curl -- curl -sS -v auto.internal
     ADDRESS=240.240.69.138, DESTINATION=Cluster: outbound|9000||tcp-echo.external-1.svc.cluster.local
     {{< /text >}}
 
-## 清理 {#cleanup}
+## クリーンアップ {#cleanup}
 
 {{< text bash >}}
 $ kubectl -n external-1 delete -f @samples/tcp-echo/tcp-echo.yaml@

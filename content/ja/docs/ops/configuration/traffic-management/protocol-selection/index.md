@@ -1,8 +1,8 @@
 ---
-title: 协议选择
-description: 关于如何声明协议。
+title: プロトコル選択
+description: プロトコルの宣言方法について。
 weight: 10
-keywords: [protocol,protocol sniffing,protocol selection,protocol detection]
+keywords: [protocol, protocol sniffing, protocol selection, protocol detection]
 aliases:
   - /zh/help/ops/traffic-management/protocol-selection
   - /zh/help/ops/protocol-selection
@@ -13,68 +13,68 @@ owner: istio/wg-networking-maintainers
 test: no
 ---
 
-Istio 默认支持代理所有 TCP 流量。包括 HTTP、HTTPS、gRPC 以及原始 TCP 协议。但为了提供额外的能力，
-比如路由和丰富的指标，必须确定协议。协议可以被自动检测或者手动声明。
+Istio はデフォルトで、すべての TCP トラフィック（HTTP、HTTPS、gRPC、純粋な TCP プロトコルを含む）をプロキシできます。しかし、追加の機能（ルーティングや豊富なメトリクスなど）を提供するには、プロトコルを特定する必要があります。プロトコルは自動検出または手動で宣言できます。
 
-使用非基于 TCP 的协议时，如 UDP，不会被 Istio 代理拦截，可以继续正常工作。
-但是不能在仅代理的组件中使用，如 Ingress 或 Egress Gateway。
+TCP ベースでないプロトコル（例：UDP）は Istio プロキシでインターセプトされず、通常通り動作します。
+ただし、Ingress や Egress Gateway などプロキシのみのコンポーネントでは使用できません。
 
-## 自动协议选择  {#automatic-protocol-selection}
+## 自動プロトコル選択 {#automatic-protocol-selection}
 
-Istio 可以自动检测出 HTTP 和 HTTP/2 流量。如果未自动检测出协议，流量将会视为普通 TCP 流量。
+Istio は HTTP および HTTP/2 トラフィックを自動的に検出できます。プロトコルが自動検出されない場合、トラフィックは通常の TCP トラフィックとして扱われます。
 
 {{< tip >}}
-Server First 协议，如 MySQL，不兼容自动协议选择。
-查看更多 [Server First 协议](/zh/docs/ops/deployment/application-requirements#server-first-protocols)
+Server First プロトコル（MySQL など）は自動プロトコル選択と互換性がありません。
+詳細は [Server First プロトコル](/ja/docs/ops/deployment/application-requirements#server-first-protocols) を参照してください。
 {{< /tip >}}
 
-## 显式协议选择  {#explicit-protocol-selection}
+## 明示的なプロトコル選択 {#explicit-protocol-selection}
 
-协议可以在 Service 定义中手动指定。
+プロトコルは Service 定義で手動指定できます。
 
-可以通过以下两种方式配置：
+設定方法は 2 通りあります：
 
-- 通过端口名称配置：`name: <protocol>[-<suffix>]`。
-- 在版本 1.18+ 的Kubernetes，通过 `appProtocol` 字段配置：`appProtocol: <protocol>`。
+- ポート名で指定：`name: <protocol>[-<suffix>]`
+- Kubernetes 1.18+ では `appProtocol` フィールドで指定：`appProtocol: <protocol>`
 
-如果两者都被定义了，则 `appProtocol` 优先级高于端口名称。
+両方が定義されている場合、`appProtocol` が優先されます。
 
-请注意，由于网关可能终止 TLS 而协议可能被协商，因此网关的行为在某些情况下可能会有所不同。
+なお、Gateway では TLS 終端やプロトコルネゴシエーションが発生するため、挙動が異なる場合があります。
 
-支持以下协议：
+サポートされるプロトコル：
 
-| 协议                                   | Sidecar 用途                                                                                                                                                   | Gateway 用途                                                                                                                                                                      |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `http`                                | HTTP/1.1 明文流量                                                                                                                                               | HTTP（1.1 或 2）明文流量                                                                                                                                                            |
-| `http2`                               | HTTP/2 明文流量                                                                                                                                                 | HTTP（1.1 或 2）明文流量                                                                                                                                                            |
-| `https`                               | TLS 加密的数据。由于 Sidecar 不解密 TLS 流量，因此这与 `tls` 相同。                                                                                                   | TLS 加密的 HTTP（1.1 或 2）流量                                                                                                                                                     |
-| `tcp`                                 | 不透明的 TCP 数据流                                                                                                                                              | 不透明的 TCP 数据流                                                                                                                                                                 |
-| `tls`                                 | TLS 加密数据                                                                                                                                                    | TLS 加密数据                                                                                                                                                                       |
-| `grpc`、`grpc-web`                    | 与 `http2` 相同                                                                                                                                                 | 与 `http2` 相同                                                                                                                                                                    |
-| `mongo`、`mysql`、`redis`              | 实验性应用协议支持。要启用它们，请配置相应的[环境变量](/zh/docs/reference/commands/pilot-discovery/#envvars)。如果未启用，则将其视为不透明的 TCP 数据流。              | 实验性应用协议支持。要启用它们，请配置相应的[环境变量](/zh/docs/reference/commands/pilot-discovery/#envvars)。如果未启用，则将其视为不透明的 TCP 数据流。                                 |
+| プロトコル                | Sidecar 用途                                                                                                                                            | Gateway 用途                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `http`                    | HTTP/1.1 プレーンテキストトラフィック                                                                                                                   | HTTP（1.1 または 2）プレーンテキストトラフィック                                                                                                        |
+| `http2`                   | HTTP/2 プレーンテキストトラフィック                                                                                                                     | HTTP（1.1 または 2）プレーンテキストトラフィック                                                                                                        |
+| `https`                   | TLS で暗号化されたデータ。Sidecar では TLS を復号しないため `tls` と同じ扱い。                                                                          | TLS で暗号化された HTTP（1.1 または 2）トラフィック                                                                                                     |
+| `tcp`                     | 透過的な TCP データストリーム                                                                                                                           | 透過的な TCP データストリーム                                                                                                                           |
+| `tls`                     | TLS で暗号化されたデータ                                                                                                                                | TLS で暗号化されたデータ                                                                                                                                |
+| `grpc`、`grpc-web`        | `http2` と同じ                                                                                                                                          | `http2` と同じ                                                                                                                                          |
+| `mongo`、`mysql`、`redis` | 実験的なアプリケーションプロトコルサポート。利用には[環境変数](/ja/docs/reference/commands/pilot-discovery/#envvars)の設定が必要。未設定時は TCP 扱い。 | 実験的なアプリケーションプロトコルサポート。利用には[環境変数](/ja/docs/reference/commands/pilot-discovery/#envvars)の設定が必要。未設定時は TCP 扱い。 |
 
-以下示例定义了一个通过 `appProtocol` 定义 `https` 端口和通过 `name` 定义 `http` 端口的 Service：
+以下の例は、`appProtocol` で `https` ポート、`name` で `http` ポートを定義した Service です：
 
 {{< text yaml >}}
 kind: Service
 metadata:
-  name: myservice
+name: myservice
 spec:
-  ports:
-  - port: 3306
-    name: database
-    appProtocol: mysql
-  - port: 80
-    name: http-web
-{{< /text >}}
+ports:
 
-## HTTP 网关协议选择  {#http-gateway-protocol-selection}
+- port: 3306
+  name: database
+  appProtocol: mysql
+- port: 80
+  name: http-web
+  {{< /text >}}
 
-与 Sidecar 不同，网关默认无法自动检测转发请求到后端服务时所使用的具体 HTTP 协议。
-因此，除非使用显式协议选择指定 HTTP/1.1（`http`）或 HTTP/2（`http2` 或 `grpc`），
-否则网关将使用 HTTP/1.1 转发所有传入的 HTTP 请求。
+## HTTP Gateway プロトコル選択 {#http-gateway-protocol-selection}
 
-除了使用显式协议选择外，您还可以通过为服务设置 [`useClientProtocol`](/zh/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-HTTPSettings)
-选项来指示网关使用与传入请求相同的协议转发请求。但需要注意，对于不支持 HTTP/2 的服务使用此选项可能存在风险，
-因为 HTTPS 网关总是[宣传](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation)支持 HTTP/1.1 和 HTTP/2。
-因此，即使后端服务不支持 HTTP/2，比较新的客户端通常也会认为它支持 HTTP/2，并且选择使用它。
+Sidecar と異なり、Gateway はデフォルトでバックエンドサービスへの転送時に使用する HTTP プロトコルを自動検出できません。
+そのため、明示的なプロトコル選択で HTTP/1.1（`http`）や HTTP/2（`http2` または `grpc`）を指定しない限り、
+Gateway はすべての受信 HTTP リクエストを HTTP/1.1 で転送します。
+
+明示的なプロトコル選択のほか、サービスに [`useClientProtocol`](/ja/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-HTTPSettings) オプションを設定することで、Gateway に受信リクエストと同じプロトコルで転送させることもできます。
+ただし、HTTP/2 非対応サービスでこのオプションを使うと問題が発生する場合があります。
+HTTPS Gateway は常に[ALPN](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation) で HTTP/1.1 と HTTP/2 の両方をアドバタイズするため、
+最新のクライアントは後者を選択しがちですが、バックエンドが HTTP/2 非対応だと通信できなくなります。

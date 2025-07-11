@@ -1,79 +1,79 @@
 ---
 title: Oracle Cloud 基础架构
-description: 使用 Oracle Container 为 Istio 准备集群的说明。
+description: Oracle Container を使った Istio クラスタ準備ガイド。
 weight: 60
 skip_seealso: true
 aliases:
-    - /zh/docs/setup/kubernetes/prepare/platform-setup/oci/
-    - /zh/docs/setup/kubernetes/platform-setup/oci/
-keywords: [platform-setup,kubernetes,oke,oci,oracle]
+  - /zh/docs/setup/kubernetes/prepare/platform-setup/oci/
+  - /zh/docs/setup/kubernetes/platform-setup/oci/
+keywords: [platform-setup, kubernetes, oke, oci, oracle]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-本页面最新更新时间为 2021 年 9 月 20 日。
+このページの最終更新日は 2021 年 9 月 20 日です。
 
 {{< boilerplate untested-document >}}
 
-根据如下介绍，为 Istio 配置 OKE 集群环境。
+以下の説明に従って、Istio 用の OKE クラスタ環境を構成します。
 
-## 创建 OKE 集群{#create-an-oke-cluster}
+## OKE クラスタの作成 {#create-an-oke-cluster}
 
-要创建一个 OKE 集群，您必须属于租户的管理员或被策略授予 `CLUSTER_MANAGE` 权限的组。
+OKE クラスタを作成するには、テナントの管理者であるか、`CLUSTER_MANAGE` 権限を持つグループに属している必要があります。
 
-[创建一个 OKE 集群][Create]最简单的方法是使用[快速创建工作流程][Quick]可在 [Oracle Cloud Infrastructure (OCI)控制台][Console]。
-其他方法包括[自定义创建工作流][Custom]和 [Oracle Cloud Infrastructure (OCI) API][API]。
+[OKE クラスタの作成][Create]で最も簡単な方法は、[クイック作成ワークフロー][Quick]を [Oracle Cloud Infrastructure (OCI) コンソール][Console] で利用することです。
+その他の方法としては、[カスタム作成ワークフロー][Custom] や [Oracle Cloud Infrastructure (OCI) API][API] があります。
 
-[OCI CLI][OCICLI] 也可以通过下面的例子中的命令行创建集群:
+[OCI CLI][OCICLI] を使って、以下の例のようにコマンドラインからクラスタを作成することもできます：
 
 {{< text bash >}}
 $ oci ce cluster create \
-      --name <oke-cluster-name> \
-      --kubernetes-version <kubernetes-version> \
-      --compartment-id <compartment-ocid> \
-      --vcn-id <vcn-ocid>
+ --name <oke-cluster-name> \
+ --kubernetes-version <kubernetes-version> \
+ --compartment-id <compartment-ocid> \
+ --vcn-id <vcn-ocid>
 {{< /text >}}
 
-| 参数                  | 预期值                                                |
-|-----------------------|----------------------------------------------------- |
-| `oke-cluster-name`    | 分配给新 OKE 集群的名称                                |
-| `kubernetes-version`  | 要部署的[支持的 Kubernetes 版本][K8S]                  |
-| `compartment-ocid`    | 现有[隔间][CONCEPTS]的 [OCID][CONCEPTS]               |
-| `vcn-ocid`            | 现有[虚拟云网络][CONCEPTS] (VCN) 的 [OCID][CONCEPTS]  |
+| パラメータ           | 説明                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| `oke-cluster-name`   | 新しい OKE クラスタに割り当てる名前                                  |
+| `kubernetes-version` | デプロイする[サポートされている Kubernetes バージョン][K8S]          |
+| `compartment-ocid`   | 既存の[コンパートメント][CONCEPTS]の [OCID][CONCEPTS]                |
+| `vcn-ocid`           | 既存の[仮想クラウドネットワーク][CONCEPTS] (VCN) の [OCID][CONCEPTS] |
 
-## 建立本地对 OKE 集群的访问{#setting-up-local-access-to-an-OKE-cluster}
+## OKE クラスタへのローカルアクセスの設定 {#setting-up-local-access-to-an-OKE-cluster}
 
-从您的本地机器集群[安装 `kubectl`][kubectl] 和 [OCICLI][OCICLI](`OCI`) 接入 OKE 集群。
+ローカルマシンからクラスタにアクセスするには、[kubectl][kubectl] と [OCICLI][OCICLI] (`OCI`) をインストールしてください。
 
-使用以下 OCI CLI 命令创建或更新 `kubeconfig` 文件包括一个 `oci` 命令，
-它可以动态地生成和插入一个短期的认证令牌允许 `kubectl` 访问集群：
+以下の OCI CLI コマンドを使って `kubeconfig` ファイルを作成または更新します。このコマンドは、
+`oci` コマンドを含み、短期間有効な認証トークンを動的に生成・挿入して `kubectl` からクラスタへアクセスできるようにします：
 
 {{< text bash >}}
 $ oci ce cluster create-kubeconfig \
-      --cluster-id <cluster-ocid> \
-      --file $HOME/.kube/config  \
-      --token-version 2.0.0 \
-      --kube-endpoint [PRIVATE_ENDPOINT|PUBLIC_ENDPOINT]
+ --cluster-id <cluster-ocid> \
+ --file $HOME/.kube/config \
+ --token-version 2.0.0 \
+ --kube-endpoint [PRIVATE_ENDPOINT|PUBLIC_ENDPOINT]
 {{< /text >}}
 
 {{< tip >}}
-虽然一个 OKE 集群可能暴露多个端点，但只会攻击 `kubeconfig` 文件中的那个端点。
+OKE クラスタは複数のエンドポイントを公開できますが、`kubeconfig` ファイルには 1 つのエンドポイントのみが記載されます。
 {{< /tip >}}
 
-`kube-endpoint` 支持的值是 `PUBLIC_ENDPOINT` 或 `PRIVATE_ENDPOINT`。
-您可能还需要通过 [Bastion 主机][bastion]配置 SSH 隧道以访问只有私有端点的集群。
+`kube-endpoint` で指定できる値は `PUBLIC_ENDPOINT` または `PRIVATE_ENDPOINT` です。
+プライベートエンドポイントのみのクラスタにアクセスする場合は、[Bastion ホスト][bastion] を使って SSH トンネルを構成する必要がある場合があります。
 
-将 `cluster-ocid` 替换为目标 OKE 集群的 [OCID][CONCEPTS]。
+`cluster-ocid` には対象の OKE クラスタの [OCID][CONCEPTS] を指定してください。
 
-## 验证对集群的访问{#verify-access-to-the-cluster}
+## クラスタへのアクセス確認 {#verify-access-to-the-cluster}
 
-使用 `kubectl get nodes` 命令验证 `kubectl` 能够连接到集群：
+`kubectl get nodes` コマンドで `kubectl` がクラスタに接続できるか確認します：
 
 {{< text bash >}}
 $ kubectl get nodes
 {{< /text >}}
 
-您现在可以使用 [`istioctl`](../../install/istioctl/)、(Helm)(../../install/helm/) 安装或手动安装 Istio。
+これで [`istioctl`](../../install/istioctl/)、(Helm)(../../install/helm/) または手動で Istio をインストールできます。
 
 [CREATE]: https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengcreatingclusterusingoke.htm
 [API]: https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengcreatingclusterusingoke_topic-Using_the_API.htm

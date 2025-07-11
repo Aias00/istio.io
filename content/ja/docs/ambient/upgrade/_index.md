@@ -1,10 +1,10 @@
 ---
-title: 升级指南
-description: Ambient 模式下的 Istio 升级指南。
+title: アップグレードガイド
+description: Ambient モードにおける Istio のアップグレードガイド。
 weight: 10
 aliases:
-  - /zh/docs/ops/ambient/upgrade
-  - /zh/latest/docs/ops/ambient/upgrade
+  - /ja/docs/ops/ambient/upgrade
+  - /ja/latest/docs/ops/ambient/upgrade
 owner: istio/wg-environment-maintainers
 test: n/a
 ---

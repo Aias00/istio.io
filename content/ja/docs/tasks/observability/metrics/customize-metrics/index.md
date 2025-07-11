@@ -1,117 +1,114 @@
 ---
-title: 自定义 Istio 指标
-description: 此任务向您展示如何自定义 Istio 指标。
+title: Istio メトリクスのカスタマイズ
+description: このタスクでは、Istio メトリクスをカスタマイズする方法を紹介します。
 weight: 25
-keywords: [telemetry,metrics,customize]
+keywords: [telemetry, metrics, customize]
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-此任务向您展示如何自定义 Istio 生成的指标。
+このタスクでは、Istio が生成するメトリクスをカスタマイズする方法を紹介します。
 
-Istio 可以生成各种仪表盘所使用的遥测数据，帮助您直观地显示您的网格信息。
-例如，支持 Istio 的仪表盘包括：
+Istio はさまざまなダッシュボードで利用できるテレメトリデータを生成し、メッシュの情報を可視化できます。
+例えば、Istio 対応ダッシュボードには以下があります：
 
-* [Grafana](/zh/docs/tasks/observability/metrics/using-istio-dashboard/)
-* [Kiali](/zh/docs/tasks/observability/kiali/)
-* [Prometheus](/zh/docs/tasks/observability/metrics/querying-metrics/)
+- [Grafana](/zh/docs/tasks/observability/metrics/using-istio-dashboard/)
+- [Kiali](/zh/docs/tasks/observability/kiali/)
+- [Prometheus](/zh/docs/tasks/observability/metrics/querying-metrics/)
 
-默认情况下，Istio 定义并生成一组标准指标（例如 `requests_total`），但您也可以使用
+デフォルトでは、Istio は一連の標準メトリクス（例：`requests_total`）を定義・生成しますが、
 [Telemetry API](/zh/docs/tasks/observability/telemetry/)
-自定义标准指标并创建新指标。
+を使って標準メトリクスのカスタマイズや新規メトリクスの作成も可能です。
 
-## 开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-在集群中[安装 Istio](/zh/docs/setup/)并部署应用程序。
-或者，您可以设置自定义统计作为 Istio 安装的一部分。
+クラスタに[Istio をインストール](/zh/docs/setup/)し、アプリケーションをデプロイしてください。
+または、Istio インストール時にカスタム統計を設定することもできます。
 
-[Bookinfo 示例](/zh/docs/examples/bookinfo/)应用程序在此任务中用作示例应用程序。
-关于安装说明，请参阅部署 [Bookinfo 示例](/zh/docs/examples/bookinfo/#deploying-the-application)。
+[Bookinfo サンプル](/zh/docs/examples/bookinfo/)アプリケーションはこのタスクの例として使われます。
+インストール手順は [Bookinfo サンプルのデプロイ](/zh/docs/examples/bookinfo/#deploying-the-application) を参照してください。
 
-## 启用自定义指标  {#enable-custom-metrics}
+## カスタムメトリクスの有効化 {#enable-custom-metrics}
 
-例如要自定义遥测指标，可以使用以下命令，沿着入站和出站方向，将 `request_host`
-和 `destination_port` 维度添加到同由 Gateway 和 Sidecar 发出的 `requests_total`：
+例えば、以下のコマンドでテレメトリメトリクスをカスタマイズし、Gateway や Sidecar から発行される `requests_total` に
+`request_host` と `destination_port` ディメンションを入出力両方向で追加できます：
 
 {{< text bash >}}
 $ cat <<EOF > ./custom_metrics.yaml
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: namespace-metrics
+name: namespace-metrics
 spec:
-  metrics:
-  - providers:
-    - name: prometheus
-    overrides:
-    - match:
-        metric: REQUEST_COUNT
-      tagOverrides:
-        destination_port:
-          value: "string(destination.port)"
-        request_host:
-          value: "request.host"
-EOF
-$ kubectl apply -f custom_metrics.yaml
-{{< /text >}}
+metrics:
 
-## 验证结果  {#verify-the-results}
+- providers: - name: prometheus
+  overrides: - match:
+  metric: REQUEST_COUNT
+  tagOverrides:
+  destination_port:
+  value: "string(destination.port)"
+  request_host:
+  value: "request.host"
+  EOF
+  $ kubectl apply -f custom_metrics.yaml
+  {{< /text >}}
 
-将流量发送到网格。对于 Bookinfo 示例，请在您的网络浏览器中访问
-`http://$GATEWAY_URL/productpage` 或运行以下命令：
+## 結果の検証 {#verify-the-results}
+
+メッシュにトラフィックを送信します。Bookinfo サンプルの場合、Web ブラウザで
+`http://$GATEWAY_URL/productpage` にアクセスするか、次のコマンドを実行します：
 
 {{< text bash >}}
 $ curl "http://$GATEWAY_URL/productpage"
 {{< /text >}}
 
 {{< tip >}}
-`$GATEWAY_URL` 是 [Bookinfo](/zh/docs/examples/bookinfo/) 示例中设置的值。
+`$GATEWAY_URL` は [Bookinfo](/zh/docs/examples/bookinfo/) サンプルで設定した値です。
 {{< /tip >}}
 
-使用以下命令验证 Istio 是否为您的新维度或修改后的维度生成数据：
+次のコマンドで、Istio が新しいディメンションや変更したディメンションのデータを生成しているか確認できます：
 
 {{< text bash >}}
 $ kubectl exec "$(kubectl get pod -l app=productpage -o jsonpath='{.items[0].metadata.name}')" -c istio-proxy -- curl -sS 'localhost:15000/stats/prometheus' | grep istio_requests_total
 {{< /text >}}
 
-例如，在输出中，找到指标 `istio_requests_total` 并验证它是否包含您的新维度。
+例えば、出力の中で `istio_requests_total` 指標を探し、新しいディメンションが含まれているか確認してください。
 
 {{< tip >}}
-代理开始应用配置可能需要很短的时间。如果未收到该指标，您可以在稍等片刻后重试发送请求，
-然后再次查找该指标。
+プロキシが設定を適用するまでに少し時間がかかる場合があります。指標が見つからない場合は、少し待ってから再度リクエストを送り、再度指標を探してください。
 {{< /tip >}}
 
-## 对值使用表达式  {#use-expressions-for-values}
+## 値に式を使う {#use-expressions-for-values}
 
-指标配置中的值是常用表达式，这意味着您
-JSON 中的字符必须双引号（例如："'string value'"）。
-与 Mixer 表达式语言不同，不支持 pipe（`|`）运算符，但您
-可以使用 `has` 或 `in` 操作符来模拟它，例如：
+メトリクス設定の値は一般的な式であり、JSON では文字列をダブルクォートで囲む必要があります（例："'string value'"）。
+Mixer の式言語とは異なり、pipe（`|`）演算子はサポートされていませんが、
+`has` や `in` 演算子を使って同様のことができます。例：
 
 {{< text plain >}}
 has(request.host) ? request.host : "unknown"
 {{< /text >}}
 
-有关详细信息，请参阅[通用表达式语言](https://opensource.google/projects/cel)。
+詳細は[Common Expression Language（CEL）](https://opensource.google/projects/cel) を参照してください。
 
-Istio 公开了所有标准 [Envoy 属性](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/attributes)。
-对等元数据可用作出站属性 `upstream_peer` 和入站属性 `downstream_peer`，具有以下字段：
+Istio ではすべての標準 [Envoy 属性](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/attributes) が利用可能です。
+ピアメタデータは、出力属性 `upstream_peer` および入力属性 `downstream_peer` として利用でき、以下のフィールドを持ちます：
 
-| 字段         | 类型      | 值                              |
-|-------------|----------|---------------------------------|
-| `app`       | `string` | Application 名称。               |
-| `version`   | `string` | Application 版本。               |
-| `service`   | `string` | 服务实例。                        |
-| `revision`  | `string` | 服务版本。                        |
-| `name`      | `string` | Pod 名称。                       |
-| `namespace` | `string` | Pod 所处命名空间。                |
-| `type`      | `string` | 工作负载类型。                    |
-| `workload`  | `string` | 工作负载名称。                    |
-| `cluster`   | `string` | 此工作负载所属集群的标识符。        |
+| フィールド  | 型       | 値                                         |
+| ----------- | -------- | ------------------------------------------ |
+| `app`       | `string` | アプリケーション名。                       |
+| `version`   | `string` | アプリケーションのバージョン。             |
+| `service`   | `string` | サービスインスタンス。                     |
+| `revision`  | `string` | サービスのリビジョン。                     |
+| `name`      | `string` | Pod 名。                                   |
+| `namespace` | `string` | Pod のネームスペース。                     |
+| `type`      | `string` | ワークロードタイプ。                       |
+| `workload`  | `string` | ワークロード名。                           |
+| `cluster`   | `string` | このワークロードが属するクラスタの識別子。 |
 
-例如，要在出站配置中使用的对等 `app` 标签的表达式是 `filter_state.downstream_peer.app`
-或 `filter_state.upstream_peer.app`。
+例えば、出力設定でピアの `app` ラベルを使う式は `filter_state.downstream_peer.app`
+または `filter_state.upstream_peer.app` です。
 
-## 清理  {#cleanup}
+## クリーンアップ {#cleanup}
 
-要删除 `Bookinfo` 示例应用及其配置，请参阅 [`Bookinfo` 清理](/zh/docs/examples/bookinfo/#cleanup)。
+`Bookinfo` サンプルアプリケーションとその設定を削除するには、[`Bookinfo` のクリーンアップ](/zh/docs/examples/bookinfo/#cleanup)を参照してください。

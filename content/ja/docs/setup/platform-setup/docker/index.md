@@ -1,39 +1,39 @@
 ---
 title: Docker Desktop
-description: 在 Docker Desktop 中运行 Istio 的设置说明。
+description: Docker Desktop で Istio を動作させるためのセットアップ手順。
 weight: 15
 skip_seealso: true
 aliases:
-    - /zh/docs/setup/kubernetes/prepare/platform-setup/docker-for-desktop/
-    - /zh/docs/setup/kubernetes/prepare/platform-setup/docker/
-    - /zh/docs/setup/kubernetes/platform-setup/docker/
-keywords: [platform-setup,kubernetes,docker-desktop]
+  - /zh/docs/setup/kubernetes/prepare/platform-setup/docker-for-desktop/
+  - /zh/docs/setup/kubernetes/prepare/platform-setup/docker/
+  - /zh/docs/setup/kubernetes/platform-setup/docker/
+keywords: [platform-setup, kubernetes, docker-desktop]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-1. 如果您想在 Docker Desktop 下运行 Istio，则需要安装[受支持的 Kubernetes 版本](/zh/docs/releases/supported-releases#support-status-of-istio-releases)
-    ({{< supported_kubernetes_versions >}})。
+1. Docker Desktop 上で Istio を動作させたい場合は、[サポートされている Kubernetes バージョン](/zh/docs/releases/supported-releases#support-status-of-istio-releases)
+   ({{< supported_kubernetes_versions >}}) をインストールする必要があります。
 
-1. 如果您想在 Docker Desktop 内置的 Kubernetes 下运行 Istio，您可能需要在 Docker Desktop 的 **Settings...** 中的
-   **Resources->Advanced** 面板下增加 Docker 的内存限制。将资源设置为至少 8.0 `GB` 的内存和 4 核心 `CPUs`。
+1. Docker Desktop 内蔵の Kubernetes で Istio を動作させたい場合は、Docker Desktop の **Settings...** の
+   **Resources->Advanced** パネルで Docker のメモリ制限を増やす必要があるかもしれません。リソースを最低でも 8.0 `GB` のメモリと 4 コアの `CPUs` に設定してください。
 
-    {{< image width="60%" link="./dockerprefs.png"  caption="Docker Preferences"  >}}
+   {{< image width="60%" link="./dockerprefs.png"  caption="Docker の設定"  >}}
 
-    {{< warning >}}
-    最低内存的要求不尽相同。8 `GB` 足以运行
-    Istio 和 Bookinfo 实例。如果您没有足够的内存用于 Docker Desktop，
-    则可能发生以下错误：
+   {{< warning >}}
+   最低限必要なメモリは環境によって異なります。8 `GB` あれば
+   Istio と Bookinfo のインスタンスを動作させるのに十分です。Docker Desktop に十分なメモリが割り当てられていない場合、
+   以下のようなエラーが発生する可能性があります：
 
-    - 镜像拉取失败
-    - 健康检查超时失败
-    - 主机上 kubectl 运行失败
-    - 虚拟机管理程序的网络不稳定
+   - イメージのプル失敗
+   - ヘルスチェックのタイムアウト失敗
+   - ホスト上での kubectl 実行失敗
+   - 仮想マシンマネージャのネットワーク不安定
 
-    使用以下命令为 Docker Desktop 释放出更多可用资源：
+   以下のコマンドで Docker Desktop のリソースをさらに解放できます：
 
-    {{< text bash >}}
-    $ docker system prune
-    {{< /text >}}
+   {{< text bash >}}
+   $ docker system prune
+   {{< /text >}}
 
-    {{< /warning >}}
+   {{< /warning >}}

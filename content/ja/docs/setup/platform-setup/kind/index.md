@@ -1,126 +1,127 @@
 ---
 title: kind
-description: 为 Istio 设置 kind 的说明。
+description: Istio 用の kind セットアップ手順。
 weight: 30
 skip_seealso: true
-keywords: [platform-setup,kubernetes,kind]
+keywords: [platform-setup, kubernetes, kind]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-[kind](https://kind.sigs.k8s.io/) 是一种使用 Docker 容器 `nodes` 运行本地 Kubernetes 集群的工具。
-kind 主要是为了测试 Kubernetes 自身而设计的，但它也可用于本地开发或 CI。
-请按照以下说明为 Istio 安装准备好 kind 集群。
+[kind](https://kind.sigs.k8s.io/) は、Docker コンテナの `nodes` を使ってローカル Kubernetes クラスタを実行するためのツールです。
+kind は主に Kubernetes 自体のテスト用に設計されていますが、ローカル開発や CI にも利用できます。
+以下の手順に従って、Istio インストール用の kind クラスタを準備してください。
 
-## 准备 {#prerequisites}
+## 前提条件 {#prerequisites}
 
-- 请使用最新的 Go 版本。
-- 为了使用 kind，还需要[安装 Docker](https://docs.docker.com/install/)。
-- 安装最新版本的 [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)。
-- 增加 Docker 的[内存限制](/zh/docs/setup/platform-setup/docker/)。
+- 最新の Go バージョンを使用してください。
+- kind を利用するには、[Docker のインストール](https://docs.docker.com/install/)も必要です。
+- 最新バージョンの [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) をインストールしてください。
+- Docker の[メモリ制限](/ja/docs/setup/platform-setup/docker/)を増やしてください。
 
-## 安装步骤 {#installation-steps}
+## インストール手順 {#installation-steps}
 
-1. 使用下列命令创建一个集群：
+1.  次のコマンドでクラスタを作成します：
 
     {{< text bash >}}
     $ kind create cluster --name istio-testing
     {{< /text >}}
 
-    `--name` 用于为集群指定一个名字。默认情况下，该集群将会名为 `kind`。
+    `--name` でクラスタ名を指定できます。デフォルトではクラスタ名は `kind` になります。
 
-1. 使用下列命令查看 kind 集群列表：
+1.  次のコマンドで kind クラスタの一覧を表示します：
 
     {{< text bash >}}
     $ kind get clusters
     istio-testing
     {{< /text >}}
 
-1. 使用下列命令查看本地 Kubernetes 环境：
+1.  次のコマンドでローカルの Kubernetes 環境を確認します：
 
     {{< text bash >}}
     $ kubectl config get-contexts
-    CURRENT   NAME                 CLUSTER              AUTHINFO             NAMESPACE
-    *         kind-istio-testing   kind-istio-testing   kind-istio-testing
-              minikube             minikube             minikube
-    {{< /text >}}
+    CURRENT NAME CLUSTER AUTHINFO NAMESPACE
+
+    -         kind-istio-testing   kind-istio-testing   kind-istio-testing
+                minikube             minikube             minikube
+      {{< /text >}}
 
     {{< tip >}}
-    `kind` 会作为前缀加到环境和集群名上，如：`kind-istio-testing`
+    `kind` が環境名やクラスタ名の先頭に付与されます（例：`kind-istio-testing`）。
     {{< /tip >}}
 
-1. 如果运行了多套集群，还需要选择 `kubectl` 将要操作哪一套。
-    可以在 [Kubernetes kubeconfig](https://kubernetes.io/zh-cn/docs/concepts/configuration/organize-cluster-access-kubeconfig/)
-    文件中设置当前环境来指定一个默认集群。另外，还可以运行下列命令来为 `kubectl` 设置当前环境：
+1.  複数のクラスタを実行している場合、`kubectl` で操作するクラスタを選択する必要があります。
+    デフォルトのクラスタは [Kubernetes kubeconfig](https://kubernetes.io/ja/docs/concepts/configuration/organize-cluster-access-kubeconfig/)
+    ファイルで現在のコンテキストを設定することで指定できます。また、次のコマンドで `kubectl` の現在のコンテキストを設定できます：
 
     {{< text bash >}}
     $ kubectl config use-context kind-istio-testing
     Switched to context "kind-istio-testing".
     {{< /text >}}
 
-    kind 集群设置完成后，就可以开始在它上面[安装 Istio 发行版](/zh/docs/setup/additional-setup/download-istio-release/)了。
+    kind クラスタのセットアップが完了したら、[Istio リリースをインストール](/ja/docs/setup/additional-setup/download-istio-release/)できます。
 
-1. 当体验过后，想删除集群时，可以使用以下命令：
+1.  検証や実験が終わり、クラスタを削除したい場合は次のコマンドを実行します：
 
     {{< text bash >}}
     $ kind delete cluster --name istio-testing
     Deleting cluster "istio-testing" ...
     {{< /text >}}
 
-## 为 kind 设置负载均衡器 {#setup-loadbalancer-for-kind}
+## kind でロードバランサーをセットアップする {#setup-loadbalancer-for-kind}
 
-kind 没有任何内置方式为你的 `Loadbalancer` 服务类型提供 IP 地址，
-为确保将 IP 地址分配给 `Gateway` 服务，
-请查阅[本指南](https://kind.sigs.k8s.io/docs/user/loadbalancer/)了解更多信息。
+kind には `Loadbalancer` サービスタイプに IP アドレスを割り当てるための組み込み機能はありません。
+`Gateway` サービスに IP アドレスを割り当てるには、[このガイド](https://kind.sigs.k8s.io/docs/user/loadbalancer/)を参照してください。
 
-## 为 kind 设置操作界面 {#setup-dashboard-ui-for-kind}
+## kind でダッシュボード UI をセットアップする {#setup-dashboard-ui-for-kind}
 
-kind 不像 minikube 一样内置了操作界面。但仍然可以设置一个基于网页的 Kubernetes 界面，以查看集群。
-参考以下说明来为 kind 设置操作界面。
+kind には minikube のような組み込みのダッシュボード UI はありませんが、
+Web ベースの Kubernetes ダッシュボードをセットアップしてクラスタを確認できます。
+以下の手順で kind 用のダッシュボードをセットアップします。
 
-1. 运行以下命令以部署操作界面：
+1. 次のコマンドでダッシュボードをデプロイします：
 
-    {{< text bash >}}
-    $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+   {{< /text >}}
 
-1. 验证操作界面已经部署并且正在运行。
+1. ダッシュボードがデプロイされ、稼働していることを確認します。
 
-    {{< text bash >}}
-    $ kubectl get pod -n kubernetes-dashboard
-    NAME                                         READY   STATUS    RESTARTS   AGE
-    dashboard-metrics-scraper-76585494d8-zdb66   1/1     Running   0          39s
-    kubernetes-dashboard-b7ffbc8cb-zl8zg         1/1     Running   0          39s
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl get pod -n kubernetes-dashboard
+   NAME READY STATUS RESTARTS AGE
+   dashboard-metrics-scraper-76585494d8-zdb66 1/1 Running 0 39s
+   kubernetes-dashboard-b7ffbc8cb-zl8zg 1/1 Running 0 39s
+   {{< /text >}}
 
-1. 创建 `ServiceAccount` 和 `ClusterRoleBinding` 以提供对新创建的集群的管理权限访问。
+1. 新しく作成したクラスタに管理者権限を与えるため、`ServiceAccount` と `ClusterRoleBinding` を作成します。
 
-    {{< text bash >}}
-    $ kubectl create serviceaccount -n kubernetes-dashboard admin-user
-    $ kubectl create clusterrolebinding -n kubernetes-dashboard admin-user --clusterrole cluster-admin --serviceaccount=kubernetes-dashboard:admin-user
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl create serviceaccount -n kubernetes-dashboard admin-user
+   $ kubectl create clusterrolebinding -n kubernetes-dashboard admin-user --clusterrole cluster-admin --serviceaccount=kubernetes-dashboard:admin-user
+   {{< /text >}}
 
-1. 需要用 Bearer Token 来登录到操作界面。使用以下命令将 token 保存到变量。
+1. ダッシュボードにログインするには、ベアラートークンが必要です。次のコマンドでトークンを変数に格納します。
 
-    {{< text bash >}}
-    $ token=$(kubectl -n kubernetes-dashboard create token admin-user)
-    {{< /text >}}
+   {{< text bash >}}
+   $ token=$(kubectl -n kubernetes-dashboard create token admin-user)
+   {{< /text >}}
 
-    使用 `echo` 命令显示 token 并复制它，以用于登录到操作界面。
+   `echo` コマンドでトークンを表示し、ダッシュボードへのログインに使用するためコピーしてください。
 
-    {{< text bash >}}
-    $ echo $token
-    {{< /text >}}
+   {{< text bash >}}
+   $ echo $token
+   {{< /text >}}
 
-1. 使用 kubectl 命令行工具运行以下命令以访问操作界面：
+1. kubectl コマンドラインツールを使ってダッシュボードにアクセスするには、次のコマンドを実行します：
 
-    {{< text bash >}}
-    $ kubectl proxy
-    Starting to serve on 127.0.0.1:8001
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl proxy
+   Starting to serve on 127.0.0.1:8001
+   {{< /text >}}
 
-    点击 [Kubernetes Dashboard](http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/) 来查看您的 Deployment 和 Service。
+   [Kubernetes ダッシュボード](http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/) をクリックして、デプロイやサービスを確認できます。
 
-    {{< warning >}}
-    最好将 token 保存起来，不然每次登录到操作界面需要 token 时都得重新运行上述步骤 4.
-    {{< /warning >}}
+   {{< warning >}}
+   トークンはどこかに保存しておいてください。そうしないと、ダッシュボードにログインするたびに 4 番目の手順を実行する必要があります。
+   {{< /warning >}}

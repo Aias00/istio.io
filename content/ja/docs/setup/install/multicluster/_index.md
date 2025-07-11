@@ -1,33 +1,34 @@
 ---
-title: 多集群安装
-description: 跨多 Kubernetes 集群，安装 Istio 服务网格。
+title: マルチクラスタインストール
+description: 複数の Kubernetes クラスタにまたがって Istio サービスメッシュをインストールします。
 weight: 40
 aliases:
-    - /zh/docs/setup/kubernetes/multicluster-install/
-    - /zh/docs/setup/kubernetes/multicluster/
-    - /zh/docs/setup/kubernetes/install/multicluster/
-    - /zh/docs/setup/install/multicluster/gateways/
-    - /zh/docs/setup/install/multicluster/shared/
-keywords: [kubernetes,multicluster]
+  - /zh/docs/setup/kubernetes/multicluster-install/
+  - /zh/docs/setup/kubernetes/multicluster/
+  - /zh/docs/setup/kubernetes/install/multicluster/
+  - /zh/docs/setup/install/multicluster/gateways/
+  - /zh/docs/setup/install/multicluster/shared/
+keywords: [kubernetes, multicluster]
 simple_list: true
 content_above: true
 test: table-of-contents
 owner: istio/wg-environments-maintainers
 ---
-按照本指南安装跨多个{{< gloss "cluster" >}}集群{{< /gloss >}}的
-Istio {{< gloss "service mesh" >}}服务网格{{< /gloss >}}。
 
-本指南的内容涵盖了创建{{< gloss "multicluster" >}}多集群{{< /gloss >}}网格时最常见的一些问题。
+このガイドに従って、複数の{{< gloss "cluster" >}}クラスタ{{< /gloss >}}にまたがる
+Istio {{< gloss "service mesh" >}}サービスメッシュ{{< /gloss >}}をインストールします。
 
-- [网络拓扑](/zh/docs/ops/deployment/deployment-models#network-models)：
-  一或二个网络
+このガイドでは、{{< gloss "multicluster" >}}マルチクラスタ{{< /gloss >}}メッシュを作成する際によくある課題について説明します。
 
-- [控制平面拓扑](/zh/docs/ops/deployment/deployment-models#control-plane-models)：
-  多{{< gloss "primary cluster" >}}主集群{{< /gloss >}}、
-  主{{< gloss "remote cluster" >}}从集群{{< /gloss >}}
+- [ネットワークトポロジー](/zh/docs/ops/deployment/deployment-models#network-models)：
+  1 つまたは 2 つのネットワーク
+
+- [コントロールプレーントポロジー](/zh/docs/ops/deployment/deployment-models#control-plane-models)：
+  複数の{{< gloss "primary cluster" >}}プライマリクラスタ{{< /gloss >}}、
+  プライマリ{{< gloss "remote cluster" >}}リモートクラスタ{{< /gloss >}}
 
 {{< tip >}}
-对于跨两个以上集群的网格，您可以扩展本指南的步骤，以配置更复杂的拓扑结构。
+2 つ以上のクラスタにまたがるメッシュの場合は、このガイドの手順を拡張して、より複雑なトポロジーを構成できます。
 
-更多信息，参见[部署模型](/zh/docs/ops/deployment/deployment-models)。
+詳細は[デプロイメントモデル](/zh/docs/ops/deployment/deployment-models)を参照してください。
 {{< /tip >}}

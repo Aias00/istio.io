@@ -1,8 +1,8 @@
 ---
-title: 日志
-description: 演示 Istio 网格日志的配置、收集和处理。
+title: ログ
+description: Istio メッシュのログの設定、収集、処理方法を紹介します。
 weight: 20
 aliases:
-    - /zh/docs/tasks/telemetry/logs/
+  - /zh/docs/tasks/telemetry/logs/
 test: n/a
 ---

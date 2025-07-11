@@ -1,9 +1,9 @@
 ---
-title: 分布式追踪
-description: 该任务展示了如何为启用了 Istio 支持的应用进行追踪。
+title: 分散トレース
+description: このタスクでは、Istio 対応アプリケーションのトレース方法を紹介します。
 weight: 30
-keywords: [telemetry,tracing]
+keywords: [telemetry, tracing]
 aliases:
- - /zh/docs/tasks/telemetry/distributed-tracing/
+  - /zh/docs/tasks/telemetry/distributed-tracing/
 test: table-of-contents
 ---

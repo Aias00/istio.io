@@ -1,54 +1,53 @@
 ---
-title: TCP 流量转移
-description: 展示如何将一个服务的 TCP 流量从旧版本迁移到新版本。
+title: TCP トラフィックシフト
+description: サービスの TCP トラフィックを旧バージョンから新バージョンへ移行する方法を紹介します。
 weight: 31
-keywords: [traffic-management,tcp-traffic-shifting]
+keywords: [traffic-management, tcp-traffic-shifting]
 aliases:
-    - /zh/docs/tasks/traffic-management/tcp-version-migration.html
+  - /zh/docs/tasks/traffic-management/tcp-version-migration.html
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-本任务展示了如何将 TCP 流量从微服务的一个版本迁移到另一个版本。
+このタスクでは、マイクロサービスの TCP トラフィックをあるバージョンから別のバージョンへ移行する方法を紹介します。
 
-一个常见的用例是将 TCP 流量从微服务的旧版本逐步迁移到新版本。
-在 Istio 中，您可以通过配置一系列路由规则来实现此目标，这些规则将一定比例的 TCP
-流量从一个目的地重定向到另一个目的地。
+よくあるユースケースは、マイクロサービスの旧バージョンから新バージョンへ TCP トラフィックを段階的に移行することです。
+Istio では、一連のルーティングルールを設定することで、TCP トラフィックの一定割合をある宛先から別の宛先へリダイレクトできます。
 
-在此任务中，您将会把 100% 的 TCP 流量分配到 `tcp-echo:v1`。
-接着，再通过配置 Istio 路由权重把 20% 的 TCP 流量分配到 `tcp-echo:v2`。
+このタスクでは、まず TCP トラフィックの 100% を `tcp-echo:v1` に割り当てます。
+次に、Istio のルーティング重み付けを使って TCP トラフィックの 20% を `tcp-echo:v2` に割り当てます。
 
 {{< boilerplate gateway-api-gamma-experimental >}}
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-* 按照[安装指南](/zh/docs/setup/)中的说明安装 Istio。
+- [インストールガイド](/ja/docs/setup/) の手順に従って Istio をインストールします。
 
-* 查看[流量管理](/zh/docs/concepts/traffic-management)概念文档。
+- [トラフィック管理](/ja/docs/concepts/traffic-management) の概念ドキュメントを確認してください。
 
-## 设置测试环境 {#set-up-the-test-environment}
+## テスト環境のセットアップ {#set-up-the-test-environment}
 
-1.  首先，创建一个命名空间用于测试 TCP 流量迁移。
+1.  まず、TCP トラフィックシフトのテスト用に名前空間を作成します。
 
     {{< text bash >}}
     $ kubectl create namespace istio-io-tcp-traffic-shifting
     {{< /text >}}
 
-1. 部署 [curl]({{< github_tree >}}/samples/curl) 示例应用程序，作为发送请求的测试源。
+1.  [curl]({{< github_tree >}}/samples/curl) サンプルアプリケーションをデプロイし、リクエスト送信元のテスト用とします。
 
     {{< text bash >}}
     $ kubectl apply -f @samples/curl/curl.yaml@ -n istio-io-tcp-traffic-shifting
     {{< /text >}}
 
-1. 部署 `tcp-echo` 微服务的 `v1` 和 `v2` 版本。
+1.  `tcp-echo` マイクロサービスの `v1` と `v2` バージョンをデプロイします。
 
     {{< text bash >}}
     $ kubectl apply -f @samples/tcp-echo/tcp-echo-services.yaml@ -n istio-io-tcp-traffic-shifting
     {{< /text >}}
 
-## 应用基于权重的 TCP 路由 {#apply-weight-based-TCP-routing}
+## 重み付けによる TCP ルーティングの適用 {#apply-weight-based-TCP-routing}
 
-1. 将所有 TCP 流量路由到微服务 `tcp-echo` 的 `v1` 版本。
+1. すべての TCP トラフィックを `tcp-echo` サービスの `v1` バージョンにルーティングします。
 
 {{< tabset category-name="config-api" >}}
 
@@ -70,20 +69,20 @@ $ kubectl apply -f @samples/tcp-echo/gateway-api/tcp-echo-all-v1.yaml@ -n istio-
 
 {{< /tabset >}}
 
-2) 确定 Ingress IP 和端口：
+2. Ingress IP とポートを確認します：
 
 {{< tabset category-name="config-api" >}}
 
 {{< tab name="Istio APIs" category-value="istio-apis" >}}
 
-遵循[确定 Ingress IP 和端口](/zh/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-ip-and-ports)中的指示说明来设置
-`TCP_INGRESS_PORT` 和 `INGRESS_HOST` 环境变量。
+[Ingress IP とポートの確認](/ja/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-ip-and-ports) の手順に従い、
+`TCP_INGRESS_PORT` と `INGRESS_HOST` 環境変数を設定します。
 
 {{< /tab >}}
 
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
-使用以下命令设置 `SECURE_INGRESS_PORT` 和 `INGRESS_HOST` 环境变量：
+以下のコマンドで `SECURE_INGRESS_PORT` と `INGRESS_HOST` 環境変数を設定します：
 
 {{< text bash >}}
 $ kubectl wait --for=condition=programmed gtw tcp-echo-gateway -n istio-io-tcp-traffic-shifting
@@ -95,30 +94,29 @@ $ export TCP_INGRESS_PORT=$(kubectl get gtw tcp-echo-gateway -n istio-io-tcp-tra
 
 {{< /tabset >}}
 
-3)  通过发送一些 TCP 流量来确认 `tcp-echo` 服务已启动且正在运行。
+3. いくつかの TCP トラフィックを送信して `tcp-echo` サービスが起動していることを確認します。
 
-    {{< text bash >}}
-    $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
+   {{< text bash >}}
+   $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
     $ for i in {1..20}; do \
     kubectl exec "$CURL" -c curl -n istio-io-tcp-traffic-shifting -- sh -c "(date; curl 1) | nc $INGRESS_HOST $TCP_INGRESS_PORT"; \
     done
-    one Mon Nov 12 23:24:57 UTC 2022
-    one Mon Nov 12 23:25:00 UTC 2022
-    one Mon Nov 12 23:25:02 UTC 2022
-    one Mon Nov 12 23:25:05 UTC 2022
-    one Mon Nov 12 23:25:07 UTC 2022
-    one Mon Nov 12 23:25:10 UTC 2022
-    one Mon Nov 12 23:25:12 UTC 2022
-    one Mon Nov 12 23:25:15 UTC 2022
-    one Mon Nov 12 23:25:17 UTC 2022
-    one Mon Nov 12 23:25:19 UTC 2022
-    ...
-    {{< /text >}}
+   one Mon Nov 12 23:24:57 UTC 2022
+   one Mon Nov 12 23:25:00 UTC 2022
+   one Mon Nov 12 23:25:02 UTC 2022
+   one Mon Nov 12 23:25:05 UTC 2022
+   one Mon Nov 12 23:25:07 UTC 2022
+   one Mon Nov 12 23:25:10 UTC 2022
+   one Mon Nov 12 23:25:12 UTC 2022
+   one Mon Nov 12 23:25:15 UTC 2022
+   one Mon Nov 12 23:25:17 UTC 2022
+   one Mon Nov 12 23:25:19 UTC 2022
+   ...
+   {{< /text >}}
 
-    请注意，所有时间戳都有一个前缀 “**one**”，说明所有流量都被路由到 `tcp-echo`
-    Service 的 `v1` 版本。
+   すべてのタイムスタンプに「**one**」というプレフィックスが付いていることに注目してください。これは、すべてのトラフィックが `tcp-echo` サービスの `v1` バージョンにルーティングされていることを示しています。
 
-4)  通过以下命令，将 20% 流量从 `tcp-echo:v1` 迁移到 `tcp-echo:v2`：
+4. 次のコマンドで、`tcp-echo:v1` から `tcp-echo:v2` へ 20% のトラフィックを移行します：
 
 {{< tabset category-name="config-api" >}}
 
@@ -140,7 +138,7 @@ $ kubectl apply -f @samples/tcp-echo/gateway-api/tcp-echo-20-v2.yaml@ -n istio-i
 
 {{< /tabset >}}
 
-5) 等几秒让新规则传播并确认规则已被替换：
+5. 数秒待って新しいルールが伝播されたことを確認し、ルールが置き換わったことを確認します：
 
 {{< tabset category-name="config-api" >}}
 
@@ -150,26 +148,24 @@ $ kubectl apply -f @samples/tcp-echo/gateway-api/tcp-echo-20-v2.yaml@ -n istio-i
 $ kubectl get virtualservice tcp-echo -o yaml -n istio-io-tcp-traffic-shifting
 apiVersion: networking.istio.io/v1
 kind: VirtualService
-  ...
+...
 spec:
-  ...
-  tcp:
-  - match:
-    - port: 31400
-    route:
-    - destination:
-        host: tcp-echo
-        port:
-          number: 9000
-        subset: v1
-      weight: 80
-    - destination:
-        host: tcp-echo
-        port:
-          number: 9000
-        subset: v2
-      weight: 20
-{{< /text >}}
+...
+tcp:
+
+- match: - port: 31400
+  route: - destination:
+  host: tcp-echo
+  port:
+  number: 9000
+  subset: v1
+  weight: 80 - destination:
+  host: tcp-echo
+  port:
+  number: 9000
+  subset: v2
+  weight: 20
+  {{< /text >}}
 
 {{< /tab >}}
 
@@ -179,69 +175,64 @@ spec:
 $ kubectl get tcproute tcp-echo -o yaml -n istio-io-tcp-traffic-shifting
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: TCPRoute
-  ...
-spec:
-  parentRefs:
-  - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: tcp-echo-gateway
-    sectionName: tcp-31400
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: tcp-echo-v1
-      port: 9000
-      weight: 80
-    - group: ""
-      kind: Service
-      name: tcp-echo-v2
-      port: 9000
-      weight: 20
 ...
-{{< /text >}}
+spec:
+parentRefs:
+
+- group: gateway.networking.k8s.io
+  kind: Gateway
+  name: tcp-echo-gateway
+  sectionName: tcp-31400
+  rules:
+- backendRefs: - group: ""
+  kind: Service
+  name: tcp-echo-v1
+  port: 9000
+  weight: 80 - group: ""
+  kind: Service
+  name: tcp-echo-v2
+  port: 9000
+  weight: 20
+  ...
+  {{< /text >}}
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-6)  发送更多 TCP 流量到 `tcp-echo` 微服务。
+6. さらに TCP トラフィックを `tcp-echo` マイクロサービスに送信します。
 
-    {{< text bash >}}
-    $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
+   {{< text bash >}}
+   $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
     $ for i in {1..20}; do \
     kubectl exec "$CURL" -c curl -n istio-io-tcp-traffic-shifting -- sh -c "(date; curl 1) | nc $INGRESS_HOST $TCP_INGRESS_PORT"; \
     done
-    one Mon Nov 12 23:38:45 UTC 2022
-    two Mon Nov 12 23:38:47 UTC 2022
-    one Mon Nov 12 23:38:50 UTC 2022
-    one Mon Nov 12 23:38:52 UTC 2022
-    one Mon Nov 12 23:38:55 UTC 2022
-    two Mon Nov 12 23:38:57 UTC 2022
-    one Mon Nov 12 23:39:00 UTC 2022
-    one Mon Nov 12 23:39:02 UTC 2022
-    one Mon Nov 12 23:39:05 UTC 2022
-    one Mon Nov 12 23:39:07 UTC 2022
-    ...
-    {{< /text >}}
+   one Mon Nov 12 23:38:45 UTC 2022
+   two Mon Nov 12 23:38:47 UTC 2022
+   one Mon Nov 12 23:38:50 UTC 2022
+   one Mon Nov 12 23:38:52 UTC 2022
+   one Mon Nov 12 23:38:55 UTC 2022
+   two Mon Nov 12 23:38:57 UTC 2022
+   one Mon Nov 12 23:39:00 UTC 2022
+   one Mon Nov 12 23:39:02 UTC 2022
+   one Mon Nov 12 23:39:05 UTC 2022
+   one Mon Nov 12 23:39:07 UTC 2022
+   ...
+   {{< /text >}}
 
-    请注意，大约 20% 的时间戳带有前缀 “**two**”，说明 80% 的 TCP 流量被路由到
-    `tcp-echo` Service 的 `v1` 版本，而 20% 的流量被路由到 `v2` 版本。
+   約 20% のタイムスタンプに「**two**」というプレフィックスが付いていることに注目してください。これは、TCP トラフィックの 80% が `tcp-echo` サービスの `v1` バージョンに、20% が `v2` バージョンにルーティングされていることを示しています。
 
-## 理解原理 {#understanding-what-happened}
+## 仕組みの理解 {#understanding-what-happened}
 
-这个任务中，使用 Istio 路由权重特性将 `tcp-echo` 服务的 TCP
-流量从旧版本迁移到了新版本。请注意，这与使用容器编排平台的部署功能进行版本迁移完全不同，
-后者（容器编排平台）使用了实例扩容来管理流量。
+このタスクでは、Istio のルーティング重み付け機能を使って `tcp-echo` サービスの TCP トラフィックを旧バージョンから新バージョンへ移行しました。これは、コンテナオーケストレーションプラットフォームのデプロイ機能によるバージョン移行とは異なります。後者（コンテナオーケストレーションプラットフォーム）はインスタンスのスケールアウトによってトラフィックを管理します。
 
-在 Istio 中，可以对 `tcp-echo` 服务的两个版本进行独立扩容和缩容，
-这个过程不会影响两个服务版本之间的流量分配。
+Istio では、`tcp-echo` サービスの 2 つのバージョンを個別にスケールイン・スケールアウトでき、この操作は両バージョン間のトラフィック分配に影響しません。
 
-有关不同版本间流量管理及自动扩缩的更多信息，请查看[使用 Istio 进行金丝雀部署](/zh/blog/2017/0.1-canary/)这篇博文。
+異なるバージョン間のトラフィック管理や自動スケーリングの詳細については、[Istio でのカナリアリリース](/ja/blog/2017/0.1-canary/) のブログ記事をご覧ください。
 
-## 清理 {#cleanup}
+## クリーンアップ {#cleanup}
 
-1. 移除路由规则：
+1. ルーティングルールを削除します：
 
 {{< tabset category-name="config-api" >}}
 
@@ -263,10 +254,10 @@ $ kubectl delete -f @samples/tcp-echo/gateway-api/tcp-echo-all-v1.yaml@ -n istio
 
 {{< /tabset >}}
 
-2) 移除 `curl` 样例、`tcp-echo` 应用和测试命名空间：
+2. `curl` サンプル、`tcp-echo` アプリケーション、テスト用名前空間を削除します：
 
-    {{< text bash >}}
-    $ kubectl delete -f @samples/curl/curl.yaml@ -n istio-io-tcp-traffic-shifting
-    $ kubectl delete -f @samples/tcp-echo/tcp-echo-services.yaml@ -n istio-io-tcp-traffic-shifting
-    $ kubectl delete namespace istio-io-tcp-traffic-shifting
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete -f @samples/curl/curl.yaml@ -n istio-io-tcp-traffic-shifting
+   $ kubectl delete -f @samples/tcp-echo/tcp-echo-services.yaml@ -n istio-io-tcp-traffic-shifting
+   $ kubectl delete namespace istio-io-tcp-traffic-shifting
+   {{< /text >}}

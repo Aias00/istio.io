@@ -1,178 +1,167 @@
 ---
-title: 信任域迁移
-description: 阐述如何在不更改授权策略的前提下从一个信任域迁移到另一个。
+title: トラストドメインの移行
+description: 認可ポリシーを変更せずにトラストドメインを移行する方法を説明します。
 weight: 60
-keywords: [security,access-control,rbac,authorization,trust domain, migration]
+keywords:
+  [security, access-control, rbac, authorization, trust domain, migration]
 owner: istio/wg-security-maintainers
 test: yes
 ---
 
-该任务阐述了如何在不更改授权策略的前提下从一个信任域迁移到另一个。
+このタスクでは、認可ポリシーを変更せずにトラストドメインを移行する方法について説明します。
 
-在 Istio 1.4 中，我们引入了一个 Alpha 特性以支持授权策略 {{< gloss >}}trust domain migration{{</ gloss >}}。
-这意味着如果一个 Istio 网格需要改变它的 {{< gloss >}}trust domain{{</ gloss >}}，
-其授权策略是不需要手动更新的。在 Istio 中，如果一个 {{< gloss >}}workload{{</ gloss >}}
-运行在命名空间 `foo` 中，服务账户为 `bar`，系统的信任域为 `my-td`，那么该工作负载的身份就是
-`spiffe://my-td/ns/foo/sa/bar`。默认情况下，Istio 网格的信任域是 `cluster.local`，
-除非您在安装时另外指定了。
+Istio 1.4 では、認可ポリシーの {{< gloss >}}trust domain migration{{</ gloss >}} をサポートする Alpha 機能が導入されました。
+これは、Istio メッシュの {{< gloss >}}trust domain{{</ gloss >}} を変更する必要がある場合でも、認可ポリシーを手動で更新する必要がないことを意味します。Istio では、{{< gloss >}}workload{{</ gloss >}} が名前空間 `foo` でサービスアカウント `bar` で動作し、システムのトラストドメインが `my-td` の場合、そのワークロードの ID は `spiffe://my-td/ns/foo/sa/bar` となります。デフォルトでは、Istio メッシュのトラストドメインは `cluster.local` ですが、インストール時に別途指定しない限りこの値になります。
 
-## 开始之前{#before-you-begin}
+## 始める前に{#before-you-begin}
 
-在您开始任务之前，请完成以下内容：
+このタスクを始める前に、以下を完了してください：
 
-1. 阅读[授权](/zh/docs/concepts/security/#authorization)指南。
+1. [認可](/ja/docs/concepts/security/#authorization)ガイドを読んでください。
 
-1. 安装 Istio，自定义信任域，并启用双向 TLS。
+1. Istio をインストールし、トラストドメインをカスタマイズし、双方向 TLS を有効にします。
 
-    {{< text bash >}}
-    $ istioctl install --set profile=demo --set meshConfig.trustDomain=old-td
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl install --set profile=demo --set meshConfig.trustDomain=old-td
+   {{< /text >}}
 
-1. 将 [httpbin]({{< github_tree >}}/samples/httpbin) 示例部署于 `default` 命名空间中，
-   将 [curl]({{< github_tree >}}/samples/curl) 示例部署于 `default` 和 `curl-allow`
-   命名空间中：
+1. [httpbin]({{< github_tree >}}/samples/httpbin) サンプルを `default` 名前空間に、[curl]({{< github_tree >}}/samples/curl) サンプルを `default` と `curl-allow` 名前空間にデプロイします：
 
-    {{< text bash >}}
-    $ kubectl label namespace default istio-injection=enabled
-    $ kubectl apply -f @samples/httpbin/httpbin.yaml@
-    $ kubectl apply -f @samples/curl/curl.yaml@
-    $ kubectl create namespace curl-allow
-    $ kubectl label namespace curl-allow istio-injection=enabled
-    $ kubectl apply -f @samples/curl/curl.yaml@ -n curl-allow
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl label namespace default istio-injection=enabled
+   $ kubectl apply -f @samples/httpbin/httpbin.yaml@
+   $ kubectl apply -f @samples/curl/curl.yaml@
+   $ kubectl create namespace curl-allow
+   $ kubectl label namespace curl-allow istio-injection=enabled
+   $ kubectl apply -f @samples/curl/curl.yaml@ -n curl-allow
+   {{< /text >}}
 
-1. 应用如下授权策略以拒绝所有到 `httpbin` 的请求，除了来自 `curl-allow` 命名空间的 `curl` 服务。
+1. 次の認可ポリシーを適用し、`curl-allow` 名前空間の `curl` サービスからのリクエスト以外は `httpbin` へのすべてのリクエストを拒否します。
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: service-httpbin.default.svc.cluster.local
-      namespace: default
-    spec:
-      rules:
-      - from:
-        - source:
-            principals:
-            - old-td/ns/curl-allow/sa/curl
-        to:
-        - operation:
-            methods:
-            - GET
-      selector:
-        matchLabels:
-          app: httpbin
-    ---
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: service-httpbin.default.svc.cluster.local
+   namespace: default
+   spec:
+   rules:
 
-    请注意授权策略传播到这些 Sidecar 大约需要几十秒。
+   - from:
+     - source:
+       principals: - old-td/ns/curl-allow/sa/curl
+       to:
+     - operation:
+       methods: - GET
+       selector:
+       matchLabels:
+       app: httpbin
 
-1. 验证从以下请求源发送至 `httpbin` 的请求：
+   ***
 
-    * 来自 `default` 命名空间的 `curl` 服务的请求被拒绝。
+   EOF
+   {{< /text >}}
 
-        {{< text bash >}}
-        $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-        403
-        {{< /text >}}
+   認可ポリシーが Sidecar に伝播するまで数十秒かかる場合があります。
 
-    * 来自 `curl-allow` 命名空间的 `curl` 服务的请求通过了。
+1. 次のように `httpbin` へのリクエスト元を検証します：
 
-        {{< text bash >}}
-        $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-        200
-        {{< /text >}}
+   - `default` 名前空間の `curl` サービスからのリクエストは拒否されます。
 
-## 迁移信任域但不使用别名{#migrate-trust-domain-without-trust-domain-aliases}
+     {{< text bash >}}
+     $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+     403
+     {{< /text >}}
 
-1. 使用一个新的信任域安装 Istio。
+   - `curl-allow` 名前空間の `curl` サービスからのリクエストは許可されます。
 
-    {{< text bash >}}
-    $ istioctl install --set profile=demo --set meshConfig.trustDomain=new-td
-    {{< /text >}}
+     {{< text bash >}}
+     $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+     200
+     {{< /text >}}
 
-1. 重新部署 istiod 以使信任域发生更改。
+## トラストドメインをエイリアスなしで移行する{#migrate-trust-domain-without-trust-domain-aliases}
 
-    {{< text bash >}}
-    $ kubectl rollout restart deployment -n istio-system istiod
-    {{< /text >}}
+1. 新しいトラストドメインで Istio をインストールします。
 
-    Istio 网格现在运行于一个新的信任域 `new-td` 了。
+   {{< text bash >}}
+   $ istioctl install --set profile=demo --set meshConfig.trustDomain=new-td
+   {{< /text >}}
 
-1. 重新部署 `httpbin` 和 `curl` 应用以从新的 Istio 控制平面获取更新。
+1. istiod を再デプロイしてトラストドメインを変更します。
 
-    {{< text bash >}}
-    $ kubectl delete pod --all
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl rollout restart deployment -n istio-system istiod
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete pod --all -n curl-allow
-    {{< /text >}}
+   Istio メッシュは新しいトラストドメイン `new-td` で動作するようになりました。
 
-1. 验证来自 `default` 和 `curl-allow` 命名空间的 `curl` 到 `httpbin` 的访问都被拒绝。
+1. `httpbin` と `curl` アプリケーションを再デプロイし、新しい Istio コントロールプレーンから更新を取得します。
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-    403
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete pod --all
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-    403
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete pod --all -n curl-allow
+   {{< /text >}}
 
-    这是因为我们指定了一个授权策略，它会拒绝所有到 `httpbin` 的请求，除非请求来源的身份是
-    `old-td/ns/curl-allow/sa/curl`，而这个身份是 `curl-allow` 命名空间的 `curl` 的旧身份。
-    当我们迁移到一个新的信任域，即 `new-td`，`curl` 应用的身份就变成 `new-td/ns/curl-allow/sa/curl`，
-    与 `old-td/ns/curl-allow/sa/curl` 不同。因此，`curl-allow` 命名空间中的 `curl`
-    应用之前的请求被放行，但现在被拒绝。在 Istio 1.4 之前，修复该问题的唯一方式就是手动调整授权策略。
-    而在 Istio 1.4 中，我们引入了一种更简单的方法，如下所示。
+1. `default` および `curl-allow` 名前空間の `curl` から `httpbin` へのアクセスがいずれも拒否されることを確認します。
 
-## 使用别名迁移信任域{#migrate-trust-domain-with-trust-domain-aliases}
+   {{< text bash >}}
+   $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+   403
+   {{< /text >}}
 
-1. 使用一个新的信任域和信任域别名安装 Istio。
+   {{< text bash >}}
+   $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+   403
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ cat <<EOF > ./td-installation.yaml
-    apiVersion: install.istio.io/v1alpha2
-    kind: IstioControlPlane
-    spec:
-      meshConfig:
-        trustDomain: new-td
-        trustDomainAliases:
-          - old-td
-    EOF
-    $ istioctl install --set profile=demo -f td-installation.yaml -y
-    {{< /text >}}
+   これは、`httpbin` へのすべてのリクエストを拒否する認可ポリシーを指定し、リクエスト元の ID が `old-td/ns/curl-allow/sa/curl` の場合のみ許可しているためです。
+   新しいトラストドメイン `new-td` に移行すると、`curl` アプリケーションの ID は `new-td/ns/curl-allow/sa/curl` となり、`old-td/ns/curl-allow/sa/curl` とは異なります。そのため、以前は許可されていた `curl-allow` 名前空間の `curl` からのリクエストも拒否されます。Istio 1.4 より前は、この問題を解決する唯一の方法は認可ポリシーを手動で修正することでしたが、Istio 1.4 以降はより簡単な方法が導入されています。
 
-1. 不调整授权策略，验证到 `httpbin` 的请求：
+## エイリアスを使ってトラストドメインを移行する{#migrate-trust-domain-with-trust-domain-aliases}
 
-    * 来自 `default` 命名空间的 `curl` 的请求被拒绝。
+1. 新しいトラストドメインとトラストドメインエイリアスを指定して Istio をインストールします。
 
-        {{< text bash >}}
-        $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-        403
-        {{< /text >}}
+   {{< text bash >}}
+   $ cat <<EOF > ./td-installation.yaml
+   apiVersion: install.istio.io/v1alpha2
+   kind: IstioControlPlane
+   spec:
+   meshConfig:
+   trustDomain: new-td
+   trustDomainAliases: - old-td
+   EOF
+   $ istioctl install --set profile=demo -f td-installation.yaml -y
+   {{< /text >}}
 
-    * 来自 `curl-allow` 命名空间的 `curl` 通过了。
+1. 認可ポリシーを変更せずに `httpbin` へのリクエストを検証します：
 
-        {{< text bash >}}
-        $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-        200
-        {{< /text >}}
+   - `default` 名前空間の `curl` からのリクエストは拒否されます。
 
-## 最佳实践{#best-practices}
+     {{< text bash >}}
+     $ kubectl exec "$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+     403
+     {{< /text >}}
 
-从 Istio 1.4 起，在编辑授权策略时，您应该在策略中的信任域部分使用 `cluster.local`。
-例如，应该是 `cluster.local/ns/curl-allow/sa/curl`，而不是 `old-td/ns/curl-allow/sa/curl`。
-请注意，在这种情况下，`cluster.local` 并不是 Istio 网格的信任域（信任域依然是 `old-td`）。
-在策略中，`cluster.local` 是一个指针，指向当前信任域，即 `old-td`（后来是 `new-td`）及其别名。
-通过在授权策略中使用 `cluster.local`，当您迁移到新的信任域时，Istio 将检测到此情况，
-并将新的信任域视为旧的信任域，而无需包含别名。
+   - `curl-allow` 名前空間の `curl` からのリクエストは許可されます。
 
-## 清理{#clean-up}
+     {{< text bash >}}
+     $ kubectl exec "$(kubectl -n curl-allow get pod -l app=curl -o jsonpath={.items..metadata.name})" -c curl -n curl-allow -- curl http://httpbin.default:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+     200
+     {{< /text >}}
+
+## ベストプラクティス{#best-practices}
+
+Istio 1.4 以降、認可ポリシーを編集する際は、ポリシー内のトラストドメイン部分に `cluster.local` を使用することを推奨します。
+例えば、`old-td/ns/curl-allow/sa/curl` ではなく、`cluster.local/ns/curl-allow/sa/curl` と記述します。
+この場合、`cluster.local` は Istio メッシュのトラストドメイン（この例では `old-td`、後に `new-td`）およびそのエイリアスを指すポインタとなります。
+認可ポリシーで `cluster.local` を使用することで、新しいトラストドメインに移行した際も、Istio はこの状況を検出し、新しいトラストドメインを旧ドメインと同等に扱います。
+
+## クリーンアップ{#clean-up}
 
 {{< text bash >}}
 $ kubectl delete authorizationpolicy service-httpbin.default.svc.cluster.local

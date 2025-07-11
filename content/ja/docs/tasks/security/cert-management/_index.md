@@ -1,6 +1,6 @@
 ---
-title: 证书管理
-description: 管理 Istio 的证书。
+title: 証明書管理
+description: Istio の証明書を管理します。
 weight: 10
 test: n/a
 ---

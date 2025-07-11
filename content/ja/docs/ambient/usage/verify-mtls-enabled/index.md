@@ -1,67 +1,60 @@
 ---
-title: 验证双向 TLS 已启用
-description: 了解如何在 Ambient 网格中验证工作负载之间已启用 mTLS。 
+title: mTLS 有効化の検証
+description: Ambient メッシュでワークロード間の mTLS が有効化されていることを検証する方法を解説します。
 weight: 15
 owner: istio/wg-networking-maintainers
 test: no
 ---
 
-一旦您将应用添加到 Ambient 网格中，您就可以使用以下一种或多种方法轻松校验工作负载之间是否启用了 mTLS：
+アプリケーションを Ambient メッシュに追加したら、以下のいずれかの方法でワークロード間で mTLS が有効になっているか簡単に検証できます：
 
-## 使用工作负载的 ztunnel 配置来校验 mTLS {#validate-mtls-using-workloads-ztunnel-configurations}
+## ワークロードの ztunnel 設定で mTLS を検証 {#validate-mtls-using-workloads-ztunnel-configurations}
 
-通过方便的 `istioctl ztunnel-config workloads` 命令，您可以查看工作负载是否被配置为通过
-`PROTOCOL` 列的值发送和接收 HBONE 流量。例如：
+便利な `istioctl ztunnel-config workloads` コマンドを使うと、`PROTOCOL` 列の値で HBONE トラフィックの送受信設定がされているか確認できます。例：
 
 {{< text syntax=bash >}}
 $ istioctl ztunnel-config workloads
-NAMESPACE    POD NAME                                IP         NODE                     WAYPOINT PROTOCOL
-default      details-v1-857849f66-ft8wx              10.42.0.5  k3d-k3s-default-agent-0  None     HBONE
-default      kubernetes                              172.20.0.3                          None     TCP
-default      productpage-v1-c5b7f7dbc-hlhpd          10.42.0.8  k3d-k3s-default-agent-0  None     HBONE
-default      ratings-v1-68d5f5486b-b5sbj             10.42.0.6  k3d-k3s-default-agent-0  None     HBONE
-default      reviews-v1-7dc5fc4b46-ndrq9             10.42.1.5  k3d-k3s-default-agent-1  None     HBONE
-default      reviews-v2-6cf45d556b-4k4md             10.42.0.7  k3d-k3s-default-agent-0  None     HBONE
-default      reviews-v3-86cb7d97f8-zxzl4             10.42.1.6  k3d-k3s-default-agent-1  None     HBONE
+NAMESPACE POD NAME IP NODE WAYPOINT PROTOCOL
+default details-v1-857849f66-ft8wx 10.42.0.5 k3d-k3s-default-agent-0 None HBONE
+default kubernetes 172.20.0.3 None TCP
+default productpage-v1-c5b7f7dbc-hlhpd 10.42.0.8 k3d-k3s-default-agent-0 None HBONE
+default ratings-v1-68d5f5486b-b5sbj 10.42.0.6 k3d-k3s-default-agent-0 None HBONE
+default reviews-v1-7dc5fc4b46-ndrq9 10.42.1.5 k3d-k3s-default-agent-1 None HBONE
+default reviews-v2-6cf45d556b-4k4md 10.42.0.7 k3d-k3s-default-agent-0 None HBONE
+default reviews-v3-86cb7d97f8-zxzl4 10.42.1.6 k3d-k3s-default-agent-1 None HBONE
 {{< /text >}}
 
-在您的工作负载上配置了 HBONE 并不意味着您的工作负载会拒绝任何明文流量。
-如果您希望工作负载拒绝明文流量，请为您的工作负载创建一个将 mTLS 模式设置为 `STRICT` 的 `PeerAuthentication` 策略。
+ワークロードで HBONE が設定されていても、明文トラフィックを拒否するとは限りません。明文トラフィックを拒否したい場合は、`PeerAuthentication` ポリシーで mTLS モードを `STRICT` に設定してください。
 
-## 基于指标校验 mTLS {#validate-mtls-from-metrics}
+## メトリクスで mTLS を検証 {#validate-mtls-from-metrics}
 
-如果您已[安装 Prometheus](/zh/docs/ops/integrations/prometheus/#installation)，
-您可以设置端口转发并使用以下命令打开 Prometheus UI：
+[Prometheus をインストール](/ja/docs/ops/integrations/prometheus/#installation)している場合、ポートフォワードして以下のコマンドで Prometheus UI を開けます：
 
 {{< text syntax=bash >}}
 $ istioctl dashboard prometheus
 {{< /text >}}
 
-在 Prometheus 中，您可以查看 TCP 指标的值。首先，选择 Graph 并输入一个指标，例如
-`istio_tcp_connections_opened_total`、`istio_tcp_connections_closed_total`、
-`istio_tcp_received_bytes_total` 或 `istio_tcp_sent_bytes_total`。
-最后，点击 Execute。数据将包含如下条目：
+Prometheus で TCP メトリクス値を確認できます。Graph を選択し、`istio_tcp_connections_opened_total`、`istio_tcp_connections_closed_total`、`istio_tcp_received_bytes_total`、`istio_tcp_sent_bytes_total` などのメトリクスを入力し、Execute をクリックします。データには以下のようなエントリが含まれます：
 
 {{< text syntax=plain >}}
 istio_tcp_connections_opened_total{
-  app="ztunnel",
-  connection_security_policy="mutual_tls",
-  destination_principal="spiffe://cluster.local/ns/default/sa/bookinfo-details",
-  destination_service="details.default.svc.cluster.local",
-  reporter="source",
-  request_protocol="tcp",
-  response_flags="-",
-  source_app="curl",
-  source_principal="spiffe://cluster.local/ns/default/sa/curl",source_workload_namespace="default",
-  ...}
+app="ztunnel",
+connection_security_policy="mutual_tls",
+destination_principal="spiffe://cluster.local/ns/default/sa/bookinfo-details",
+destination_service="details.default.svc.cluster.local",
+reporter="source",
+request_protocol="tcp",
+response_flags="-",
+source_app="curl",
+source_principal="spiffe://cluster.local/ns/default/sa/curl",source_workload_namespace="default",
+...}
 {{< /text >}}
 
-校验 `connection_security_policy` 值是否设置为 `mutual_tls`，以及期望的源和目标身份信息。
+`connection_security_policy` の値が `mutual_tls` であること、および期待するソース・ターゲットのアイデンティティ情報を確認してください。
 
-## 基于日志校验 mTLS {#validate-mtls-from-logs}
+## ログで mTLS を検証 {#validate-mtls-from-logs}
 
-您还可以结合对等身份来查看源或目标 ztunnel 日志以确认 mTLS 是否已启用。
-以下是从 `curl` 服务到 `details` 服务请求的源 ztunnel 的日志示例：
+ピアアイデンティティ情報と合わせて、ソースまたはターゲットの ztunnel ログを確認し、mTLS が有効かどうかを確認できます。以下は `curl` サービスから `details` サービスへのリクエスト時のソース ztunnel のログ例です：
 
 {{< text syntax=plain >}}
 2024-08-21T15:32:05.754291Z info access connection complete src.addr=10.42.0.9:33772 src.workload="curl-7656cf8794-6lsm4" src.namespace="default"
@@ -70,32 +63,27 @@ dst.workload="details-v1-857849f66-ft8wx" dst.namespace="default" dst.identity="
 direction="outbound" bytes_sent=84 bytes_recv=358 duration="15ms"
 {{< /text >}}
 
-校验 `src.identity` 和 `dst.identity` 值是否正确。
-它们是用于源工作负载和目标工作负载之间 mTLS 通信的身份。
-有关细节请参阅[通过日志验证 ztunnel 流量部分](/zh/docs/ambient/usage/troubleshoot-ztunnel/#verifying-ztunnel-traffic-through-logs)。
+`src.identity` と `dst.identity` の値が正しいか確認してください。これらはソースワークロードとターゲットワークロード間の mTLS 通信に使われるアイデンティティです。詳細は[ztunnel トラフィックのログによる検証](/ja/docs/ambient/usage/troubleshoot-ztunnel/#verifying-ztunnel-traffic-through-logs)を参照してください。
 
-## 使用 Kiali 仪表板校验 {#validate-with-kiali-dashboard}
+## Kiali ダッシュボードで検証 {#validate-with-kiali-dashboard}
 
-如果您已安装 Kiali 和 Prometheus，您可以使用 Kiali 的仪表板可视化您的工作负载通信。
-您可以结合对等身份信息来查看任意工作负载之间的连接是否具有锁定图标，以验证 mTLS 是否已启用：
+Kiali と Prometheus をインストールしている場合、Kiali のダッシュボードでワークロード間通信を可視化できます。ピアアイデンティティ情報と合わせて、任意のワークロード間の接続にロックアイコンが表示されていれば mTLS が有効化されていることを確認できます：
 
-{{< image link="./kiali-mtls.png" caption="Kiali 仪表板" >}}
+{{< image link="./kiali-mtls.png" caption="Kiali ダッシュボード" >}}
 
-有关细节请参阅[可视化应用和指标](/zh/docs/ambient/getting-started/secure-and-visualize/#visualize-the-application-and-metrics)文档。
+詳細は[アプリとメトリクスの可視化](/ja/docs/ambient/getting-started/secure-and-visualize/#visualize-the-application-and-metrics)ドキュメントを参照してください。
 
-## 使用 `tcpdump` 验证 {#validate-with-tcpdump}
+## `tcpdump` で検証 {#validate-with-tcpdump}
 
-如果您可以访问 Kubernetes 工作节点，您可以运行 `tcpdump` 命令以捕获网络接口上的所有流量，
-可以选择聚焦于应用端口和 HBONE 端口。在此示例中，端口 `9080` 是 `details` 服务端口，`15008` 是 HBONE 端口：
+Kubernetes ワーカーノードにアクセスできる場合、`tcpdump` コマンドでネットワークインターフェース上の全トラフィックをキャプチャできます。アプリケーションポートや HBONE ポートに絞ることも可能です。例では `9080` が `details` サービスのポート、`15008` が HBONE ポートです：
 
 {{< text syntax=bash >}}
 $ tcpdump -nAi eth0 port 9080 or port 15008
 {{< /text >}}
 
-您应该在 `tcpdump` 命令的输出中看到加密的流量。
+`tcpdump` の出力で暗号化されたトラフィックが見えるはずです。
 
-如果您无法访问工作节点，您可以使用
-[netshoot 容器镜像](https://hub.docker.com/r/nicolaka/netshoot)来轻松运行以下命令：
+ワーカーノードにアクセスできない場合は、[netshoot コンテナイメージ](https://hub.docker.com/r/nicolaka/netshoot)を使って以下のコマンドを実行できます：
 
 {{< text syntax=bash >}}
 $ POD=$(kubectl get pods -l app=details -o jsonpath="{.items[0].metadata.name}")

@@ -1,39 +1,35 @@
 ---
 title: Kiali
-description: 有关如何与 Kiali 集成的信息。
+description: Kiali との統合方法に関する情報。
 weight: 29
-keywords: [integration,kiali]
+keywords: [integration, kiali]
 owner: istio/wg-environments-maintainers
 test: no
 ---
-[Kiali](https://kiali.io/) 是具有服务网格配置和验证功能的 Istio
-可观测性的控制台。通过监视流量来推断拓扑和错误报告，它可以帮助您了解服务网格的结构和运行状态。
-Kiali 提供了详细的的指标并与 Grafana 进行基础集成，可以用于高级查询。通过与
-[Jaeger](/zh/docs/ops/integrations/jaeger) 来提供分布式链路追踪功能。
 
-## 安装 {#installation}
+[Kiali](https://kiali.io/) はサービスメッシュの設定や検証機能を備えた Istio の可観測性コンソールです。トラフィックを監視してトポロジやエラーを可視化し、サービスメッシュの構造や状態を把握できます。
+Kiali は詳細な指標を提供し、Grafana との基本的な統合も可能で、高度なクエリにも対応します。また、[Jaeger](/ja/docs/ops/integrations/jaeger) と連携して分散トレーシング機能も提供します。
 
-### 方法1：快速开始 {#option-1-quick-start}
+## インストール {#installation}
 
-Istio 提供了一个基础的安装示例用于快速使用和运行 Kiali：
+### 方法 1：クイックスタート {#option-1-quick-start}
+
+Istio では Kiali を素早く起動できる基本的なインストール例を提供しています：
 
 {{< text bash >}}
 $ kubectl apply -f {{< github_file >}}/samples/addons/kiali.yaml
 {{< /text >}}
 
-这将会在您的集群中部署 Kiali。这仅用于演示，并且不会针对性能或安全性进行调整。
+このコマンドで Kiali がクラスタにデプロイされます。これはデモ用であり、パフォーマンスやセキュリティの調整はされていません。
 
 {{< idea >}}
-如果您使用这个样例 YAML 并计划公开暴露 Kiali 安装，请确保在使用除
-`anonymous` 之外的身份验证策略时更改 Kiali 的 ConfigMap 中的 `signing_key`。
+このサンプル YAML を使って Kiali を外部公開する場合、`anonymous` 以外の認証ポリシーを使う際は ConfigMap の `signing_key` を必ず変更してください。
 {{< /idea >}}
 
-### 方法2：自定义安装 {#option-2-customizable-install}
+### 方法 2：カスタムインストール {#option-2-customizable-install}
 
-Kiali 项目提供了自己的[快速入门指南](https://kiali.io/docs/installation/quick-start)和
-[自定义安装方法](https://kiali.io/docs/installation/installation-guide)。
-我们建议生产用户遵循这些说明，确保了解最新版本和最佳方式。
+Kiali プロジェクトは[クイックスタートガイド](https://kiali.io/docs/installation/quick-start)や[カスタムインストール方法](https://kiali.io/docs/installation/installation-guide)を提供しています。運用環境ではこれらの手順に従い、最新バージョンやベストプラクティスを確認してください。
 
-## 使用 {#usage}
+## 利用方法 {#usage}
 
-更多关于 Kiali 的使用信息，请查看[可视化网格](/zh/docs/tasks/observability/kiali/)任务。
+Kiali の利用方法については[メッシュの可視化](/ja/docs/tasks/observability/kiali/)タスクを参照してください。

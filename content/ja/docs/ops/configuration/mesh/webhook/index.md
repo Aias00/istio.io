@@ -1,6 +1,6 @@
 ---
-title: 动态准入 Webhook 概述
-description: 简要描述 Istio 对 Kubernetes webhook 的使用以及可能出现的相关问题。
+title: 動的アドミッション Webhook の概要
+description: Istio における Kubernetes webhook の利用と関連する問題について簡単に説明します。
 weight: 10
 aliases:
   - /zh/help/ops/setup/webhook
@@ -9,51 +9,49 @@ owner: istio/wg-user-experience-maintainers
 test: no
 ---
 
-来自 [Kubernetes 准入控制机制](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/extensible-admission-controllers/)：
+[Kubernetes のアドミッションコントロールメカニズム](https://kubernetes.io/ja/docs/reference/access-authn-authz/extensible-admission-controllers/)より：
 
 {{< tip >}}
-准入 Webhook 是 HTTP 方式的回调，接收准入请求并对其进行相关操作。
-可定义两种类型的准入 Webhook，Validating 准入 Webhook 和 Mutating
-准入 Webhook。使用 Validating Webhook，可以通过自定义的准入策略来拒绝请求；
-使用 Mutating Webhook，可以通过自定义默认值来修改请求。
+アドミッション Webhook は HTTP で呼び出されるコールバックで、アドミッションリクエストを受け取り処理します。
+アドミッション Webhook には 2 種類あり、Validating アドミッション Webhook と Mutating アドミッション Webhook です。
+Validating Webhook ではカスタムのアドミッションポリシーでリクエストを拒否でき、Mutating Webhook ではカスタムのデフォルト値でリクエストを変更できます。
 {{< /tip >}}
 
-Istio 使用 `ValidatingAdmissionWebhooks` 验证 Istio 配置，使用
-`MutatingAdmissionWebhooks` 自动将 Sidecar 代理注入至用户 Pod。
+Istio は `ValidatingAdmissionWebhooks` を使って Istio 設定の検証を行い、
+`MutatingAdmissionWebhooks` を使ってユーザー Pod への Sidecar プロキシ自動注入を行います。
 
-Webhook 设置过程需要了解 Kubernetes 动态准入 Webhook 相关的知识。
-查阅 Kubernetes API 的相关资料，请参
+Webhook の設定には Kubernetes の動的アドミッション Webhook の知識が必要です。
+Kubernetes API の詳細は
 [Mutating Webhook Configuration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#mutatingwebhookconfiguration-v1-admissionregistration-k8s-io)
-和 [Validating Webhook Configuration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#validatingwebhookconfiguration-v1-admissionregistration-k8s-io)。
+および [Validating Webhook Configuration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#validatingwebhookconfiguration-v1-admissionregistration-k8s-io) を参照してください。
 
-## 验证动态准入 Webhook 前置条件 {#verify-dynamic-admission-webhook-prerequisites}
+## 動的アドミッション Webhook の前提条件の確認 {#verify-dynamic-admission-webhook-prerequisites}
 
-请参阅[平台设置说明](/zh/docs/setup/platform-setup/)了解 Kubernetes
-提供的详细的设置说明。如果集群配置错误，Webhook 将无法正常工作。集群配置后，
-当动态 Webhook 和相关特性不能正常工作时，您可以通过以下步骤进行检查。
+Kubernetes の[プラットフォームセットアップガイド](/ja/docs/setup/platform-setup/)を参照し、
+Kubernetes の詳細なセットアップ手順を確認してください。クラスタ設定に問題があると Webhook は正常に動作しません。クラスタ設定後、
+動的 Webhook や関連機能が正しく動作しない場合は、以下の手順で確認できます。
 
-1. 验证当前使用正确的 [`kubectl`](https://kubernetes.io/zh-cn/docs/tasks/tools/#kubectl)
-   和 Kubernetes 服务[支持的版本](/zh/docs/releases/supported-releases#support-status-of-istio-releases)({{< supported_kubernetes_versions >}})：
+1. 現在利用している [`kubectl`](https://kubernetes.io/ja/docs/tasks/tools/#kubectl) と Kubernetes サーバーが[サポートされているバージョン](/ja/docs/releases/supported-releases#support-status-of-istio-releases) ({{< supported_kubernetes_versions >}}) であることを確認します：
 
-    {{< text bash >}}
-    $ kubectl version --short
-    Client Version: v1.29.0
-    Server Version: v1.29.1
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl version --short
+   Client Version: v1.29.0
+   Server Version: v1.29.1
+   {{< /text >}}
 
-1. `admissionregistration.k8s.io/v1beta1` 应是启用状态
+1. `admissionregistration.k8s.io/v1beta1` が有効であることを確認します
 
-    {{< text bash >}}
-    $ kubectl api-versions | grep admissionregistration.k8s.io/v1
-    admissionregistration.k8s.io/v1
-    admissionregistration.k8s.io/v1beta1
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl api-versions | grep admissionregistration.k8s.io/v1
+   admissionregistration.k8s.io/v1
+   admissionregistration.k8s.io/v1beta1
+   {{< /text >}}
 
-1. 验证 `kube-apiserver --enable-admission-plugins` 配置中插件
-   `MutatingAdmissionWebhook` 和 `ValidatingAdmissionWebhook`
-   是否被启用。通过检查[指定规范](/zh/docs/setup/platform-setup/)中的标志（`--enable-admission-plugins`）。
+1. `kube-apiserver --enable-admission-plugins` 設定で
+   `MutatingAdmissionWebhook` および `ValidatingAdmissionWebhook` プラグインが有効になっていることを確認します。
+   [指定仕様](/ja/docs/setup/platform-setup/)のフラグ（`--enable-admission-plugins`）を確認してください。
 
-1. 验证 Kubernetes API Server 与 Webhook 所在 Pod 的网络连通是否正常。
-   例如错误配置 `http_proxy` 可能干扰 API Server 正常运行（详细信息请参阅
+1. Kubernetes API Server と Webhook が動作する Pod 間のネットワーク接続が正常であることを確認します。
+   例えば、`http_proxy` の誤設定は API Server の正常動作を妨げる場合があります（詳細は
    [PR](https://github.com/kubernetes/kubernetes/pull/58698#discussion_r163879443)
-   和 [Issue](https://github.com/kubernetes/kubeadm/issues/666)）。
+   および [Issue](https://github.com/kubernetes/kubeadm/issues/666) を参照）。

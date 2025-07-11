@@ -1,6 +1,6 @@
 ---
-title: 集成
-description: 能够与 Istio 集成以提供额外功能的其他软件。
+title: 統合
+description: Istio と統合して追加機能を提供できる他のソフトウェア。
 weight: 60
 keywords: [ops, integrations]
 test: n/a

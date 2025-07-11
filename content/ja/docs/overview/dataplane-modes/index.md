@@ -1,48 +1,46 @@
 ---
-title: Sidecar 还是 Ambient？
-description: 了解 Istio 的两种数据平面模式以及您应该使用哪一种。
+title: Sidecar か Ambient か？
+description: Istio の 2 つのデータプレーンモードと、どちらを使うべきかを解説します。
 weight: 30
 keywords: [sidecar, ambient]
 owner: istio/wg-docs-maintainers-english
 test: n/a
 ---
 
-Istio 服务网格在逻辑上分为数据平面和控制平面。
+Istio サービスメッシュは論理的にデータプレーンとコントロールプレーンに分かれます。
 
-{{< gloss "data plane" >}}数据平面{{< /gloss >}}是一组代理，用于调解和控制微服务之间的所有网络通信。
-这些代理还可以收集和报告所有网格流量的可观测数据。
+{{< gloss "data plane" >}}データプレーン{{< /gloss >}}は、マイクロサービス間のすべてのネットワーク通信を仲介・制御するプロキシ群です。
+これらのプロキシは、すべてのメッシュトラフィックの可観測データも収集・報告します。
 
-{{< gloss "control plane" >}}控制平面{{< /gloss >}}管理和配置数据平面中的这些代理。
+{{< gloss "control plane" >}}コントロールプレーン{{< /gloss >}}は、これらのプロキシの管理・構成を担います。
 
-Istio 支持两种主要的{{< gloss "data plane mode">}}数据平面模式{{< /gloss >}}：
+Istio では主に 2 種類の{{< gloss "data plane mode">}}データプレーンモード{{< /gloss >}}をサポートしています：
 
-* **Sidecar 模式**，此模式会为集群中启动的每个 Pod 都部署一个 Envoy 代理，
-  或者与在虚拟机上运行的服务并行运行一个 Envoy 代理。
-* **Ambient 模式**，此模式在每个节点上使用四层代理，
-  另外可以选择为每个命名空间使用一个 Envoy 代理来实现七层功能。
+- **Sidecar モード**：クラスタ内の各 Pod に Envoy プロキシをデプロイ、または VM 上のサービスと並行して実行
+- **Ambient モード**：各ノードに L4 プロキシを配置し、必要に応じて各ネームスペースに Envoy プロキシを追加して L7 機能を実現
 
-您可以选择将某些命名空间或工作负载纳入任一模式。
+どちらのモードも、ネームスペースやワークロード単位で選択できます。
 
-## Sidecar 模式 {#sidecar=mode}
+## Sidecar モード {#sidecar=mode}
 
-Istio 自 2017 年首次发布以来就基于 Sidecar 模式构建。
-Sidecar 模式易于理解且经过彻底的实战测试，但需要花费资源成本和运营开销。
+Istio は 2017 年の初リリース以来、Sidecar モードをベースに構築されてきました。
+Sidecar モードは分かりやすく実績も豊富ですが、リソースコストや運用負荷がかかります。
 
-* 您部署的每个应用都有一个 Envoy 代理{{< gloss "injection" >}}被注入{{< /gloss >}}作为 Sidecar
-* 所有代理都可以处理四层和七层流量
+- デプロイした各アプリケーションに Envoy プロキシが Sidecar として{{< gloss "injection" >}}注入{{< /gloss >}}されます
+- すべてのプロキシが L4/L7 トラフィックを処理できます
 
-## Ambient 模式 {#ambient-mode}
+## Ambient モード {#ambient-mode}
 
-Ambient 模式于 2022 年推出，旨在解决 Sidecar 模式用户报告的缺点。
-从 Istio 1.22 开始，它在单集群使用场景就达到生产就绪状态。
+Ambient モードは 2022 年に登場し、Sidecar モードの課題を解決するために設計されました。
+Istio 1.22 以降、単一クラスタでの利用が本番対応となっています。
 
-* 所有流量都通过仅支持四层的节点代理进行代理
-* 应用可以选择通过 Envoy 代理进行路由，以获得七层功能
+- すべてのトラフィックはノード上の L4 プロキシで処理されます
+- 必要に応じて Envoy プロキシを追加し、L7 機能を有効化できます
 
-## 在 Sidecar 和 Ambient 之间做出选择 {#choosing-between-sidecar-and-ambient}
+## Sidecar と Ambient の選択 {#choosing-between-sidecar-and-ambient}
 
-用户通常首先部署网格以实现零信任安全态势，然后根据需要选择性地启用 L7 功能。
-Ambient 网格允许这些用户在不需要 L7 功能时完全绕过 L7 处理的成本。
+多くのユーザーはまずゼロトラストセキュリティのためにメッシュを導入し、必要に応じて L7 機能を選択的に有効化します。
+Ambient メッシュでは、L7 機能が不要な場合は L7 処理コストを完全に回避できます。
 
 <table>
   <thead>
@@ -54,152 +52,104 @@ Ambient 网格允许这些用户在不需要 L7 功能时完全绕过 L7 处理�
   </thead>
   <tbody>
     <tr>
-      <th>流量管理</th>
-      <td>完整的 Istio 功能集</td>
-      <td>完整的 Istio 功能集（需要使用 waypoint）</td>
+      <th>トラフィック管理</th>
+      <td>Istio の全機能</td>
+      <td>Istio の全機能（waypoint 利用時）</td>
     </tr>
     <tr>
-      <th>安全</th>
-      <td>完整的 Istio 功能集</td>
-      <td>完整的 Istio 功能集：Ambient 模式下具备加密和 L4 鉴权。需要 waypoint 才能进行 L7 鉴权。</td>
+      <th>セキュリティ</th>
+      <td>Istio の全機能</td>
+      <td>Istio の全機能：Ambient では暗号化と L4 認可。L7 認可は waypoint が必要。</td>
     </tr>
     <tr>
-      <th>可观测性</th>
-      <td>完整的 Istio 功能集</td>
-      <td>完整的 Istio 功能集：Ambient 模式下具备 L4 遥测；使用 waypoint 实现 L7 可观测性</td>
+      <th>可観測性</th>
+      <td>Istio の全機能</td>
+      <td>Istio の全機能：Ambient で L4 テレメトリー、waypoint で L7 可観測性</td>
     </tr>
     <tr>
-      <th>可扩展性</th>
-      <td>完整的 Istio 功能集</td>
-      <td>通过 <a href="/zh/docs/ambient/usage/extend-waypoint-wasm">WebAssembly 插件</a>（需要使用 waypoint）<br>不支持 EnvoyFilter API。</td>
+      <th>拡張性</th>
+      <td>Istio の全機能</td>
+      <td><a href="/ja/docs/ambient/usage/extend-waypoint-wasm">WebAssembly プラグイン</a>（waypoint 利用時）<br>EnvoyFilter API は非対応</td>
     </tr>
     <tr>
-      <th>向网格添加工作负载</th>
-      <td>为命名空间添加标签并重启所有 Pod 以添加 Sidecar</td>
-      <td>为命名空间添加标签 - 无需重启 Pod</td>
+      <th>ワークロード追加</th>
+      <td>ネームスペースにラベル付与し、全 Pod を再起動して Sidecar を追加</td>
+      <td>ネームスペースにラベル付与のみ - Pod 再起動不要</td>
     </tr>
     <tr>
-      <th>递增式部署</th>
-      <td>二进制：Sidecar 是否已被注入</td>
-      <td>渐进式：L4 始终开启，L7 可通过配置添加</td>
+      <th>段階的導入</th>
+      <td>バイナリ：Sidecar の有無</td>
+      <td>段階的：L4 は常時有効、L7 は設定で追加</td>
     </tr>
     <tr>
-      <th>生命周期管理</th>
-      <td>代理由应用开发人员管理</td>
-      <td>平台管理员</td>
+      <th>ライフサイクル管理</th>
+      <td>アプリ開発者が管理</td>
+      <td>プラットフォーム管理者</td>
     </tr>
     <tr>
-      <th>资源利用率</th>
-      <td>浪费；必须考虑到每个单独 Pod 的最糟情况并配置最大的 CPU 和内存资源</td>
-      <td>waypoint 代理可以像任何其他 Kubernetes Deployment 一样自动扩缩容。<br>有多个副本的工作负载可以使用同一个 waypoint，而不是每个副本都有自己的 Sidecar。</td>
+      <th>リソース利用</th>
+      <td>非効率：各 Pod ごとに最大リソースを見積もる必要あり</td>
+      <td>waypoint プロキシは通常の Deployment と同様に自動スケール可能。複数レプリカのワークロードは 1 つの waypoint を共有できる</td>
     </tr>
     <tr>
-      <th>平均资源成本</th>
+      <th>平均リソースコスト</th>
       <td>大</td>
       <td>小</td>
     </tr>
     <tr>
-      <th>平均延迟（p90/p99）</th>
+      <th>平均遅延（p90/p99）</th>
       <td>0.63ms-0.88ms</td>
       <td>Ambient：0.16ms-0.20ms<br />waypoint：0.40ms-0.50ms</td>
     </tr>
     <tr>
-      <th>L7 处理步骤</th>
-      <td>两步（源和目标 Sidecar）</td>
-      <td>一步（目标 waypoint）</td>
+      <th>L7 処理ステップ</th>
+      <td>2 ステップ（送信元・宛先 Sidecar）</td>
+      <td>1 ステップ（宛先 waypoint）</td>
     </tr>
     <tr>
-      <th>大规模配置</th>
-      <td>需要对<a href="/zh/docs/ops/configuration/mesh/configuration-scoping/">每个 Sidecar 的范围进行配置</a>以削减配置量</td>
-      <td>无需自定义配置即可工作</td>
+      <th>大規模構成</th>
+      <td><a href="/ja/docs/ops/configuration/mesh/configuration-scoping/">各 Sidecar のスコープ設定</a>が必要</td>
+      <td>カスタム設定不要</td>
     </tr>
     <tr>
-      <th>支持“服务器优先”协议</th>
-      <td><a href="/zh/docs/ops/deployment/application-requirements/#server-first-protocols">需要配置</a></td>
-      <td>是</td>
+      <th>サーバーファーストプロトコル対応</th>
+      <td><a href="/ja/docs/ops/deployment/application-requirements/#server-first-protocols">設定が必要</a></td>
+      <td>対応</td>
     </tr>
     <tr>
-      <th>对 Kubernetes Job 的支持</th>
-      <td>由于 Sidecar 使用寿命长而变得复杂</td>
-      <td>透明支持</td>
+      <th>Kubernetes Job 対応</th>
+      <td>Sidecar の寿命管理が複雑</td>
+      <td>透過的に対応</td>
     </tr>
     <tr>
-      <th>安全模型</th>
-      <td>最强：每个工作负载都有自己的密钥</td>
-      <td>强：每个节点代理仅具有该节点上工作负载的密钥</td>
+      <th>セキュリティモデル</th>
+      <td>最強：各ワークロードごとに鍵を発行</td>
+      <td>強：ノードごとに鍵を発行</td>
     </tr>
     <tr>
-      <th>被入侵的应用 Pod<br>可访问网格密钥</th>
-      <td>可以</td>
-      <td>不可以</td>
+      <th>侵害された Pod の鍵アクセス</th>
+      <td>可能</td>
+      <td>不可</td>
     </tr>
     <tr>
-      <th>支持</th>
-      <td>稳定版，包括多集群</td>
-      <td>稳定，仅限单集群</td>
+      <th>サポート</th>
+      <td>安定版、マルチクラスタ対応</td>
+      <td>安定版、単一クラスタのみ</td>
     </tr>
     <tr>
-      <th>支持的平台</th>
-      <td>Kubernetes（任意 CNI）<br />虚拟机</td>
+      <th>対応プラットフォーム</th>
+      <td>Kubernetes（任意 CNI）、VM</td>
       <td>Kubernetes（任意 CNI）</td>
     </tr>
   </tbody>
 </table>
 
-## 四层与七层功能 {#layer-4-vs-layer-7-features}
+## L4 と L7 の機能 {#layer-4-vs-layer-7-features}
 
-在七层处理协议的开销远远高于在四层处理网络数据包的开销。
-对于给定的服务，如果您的要求可以在 L4 被满足，则可以以明显更低的成本交付服务网格。
+L7 プロトコル処理は L4 のネットワークパケット処理よりも大きなオーバーヘッドがあります。
+要件が L4 で満たせる場合、サービスメッシュのコストを大幅に削減できます。
 
-### 安全 {#security}
-
-<table>
-  <thead>
-    <tr>
-      <td style="border-width: 0px" width="20%"></td>
-      <th width="40%">L4</th>
-      <th width="40%">L7</th>
-    </tr>
-   </thead>
-   <tbody>
-    <tr>
-      <th>加密</th>
-      <td>所有 Pod 之间的流量都使用 {{< gloss "mutual tls authentication" >}}mTLS{{< /gloss >}} 加密。</td>
-      <td>不适用；Istio 中的服务身份基于 TLS。</td>
-    </tr>
-    <tr>
-      <th>服务到服务的身份验证</th>
-      <td>通过 mTLS 证书执行 {{< gloss >}}SPIFFE{{< /gloss >}}。Istio 颁发一个短期 X.509 证书，对 Pod 的服务帐户身份进行编码。</td>
-      <td>不适用；Istio 中的服务身份基于 TLS。</td>
-    </tr>
-    <tr>
-      <th>服务到服务的鉴权</th>
-      <td>基于网络的鉴权，加上基于身份的策略，例如：
-        <ul>
-          <li>A 只能接受来自“10.2.0.0/16”的入站调用；</li>
-          <li>A 可以调用 B。</li>
-        </ul>
-      </td>
-      <td>完整政策，例如：
-        <ul>
-          <li>只有使用包含 READ 范围的有效最终用户凭证，A 才能在 B 上执行 GET /foo 操作。</li>
-        </ul>
-      </td>
-    </tr>
-    <tr>
-      <th>最终用户身份验证</th>
-      <td>不适用；我们无法应用每个用户的设置。</td>
-      <td>JWT 的本地身份验证，支持通过 OAuth 和 OIDC 流进行远程身份验证。</td>
-    </tr>
-    <tr>
-      <th>最终用户鉴权</th>
-      <td>不适用；同上</td>
-      <td>可以扩展服务到服务的策略，以要求<a href="/zh/docs/reference/config/security/conditions/">具有特定范围、发行者、主体、受众等的最终用户凭证</a>。<br />可以使用外部鉴权，实现完整的用户到资源的访问，允许根据外部服务的决策来制定每个请求的策略，例如 OPA。</td>
-    </tr>
-  </tbody>
-</table>
-
-### 可观测性 {#observability}
+### セキュリティ {#security}
 
 <table>
   <thead>
@@ -211,24 +161,34 @@ Ambient 网格允许这些用户在不需要 L7 功能时完全绕过 L7 处理�
    </thead>
    <tbody>
     <tr>
-      <th>日志记录</th>
-      <td>基本网络信息：网络 5 元组、发送/接收的字节数等。<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators">查看 Envoy 文档</a>。</td>
-      <td><a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators">完整的请求元数据日志记录</a>，外加基本的网络信息。</td>
+      <th>暗号化</th>
+      <td>すべての Pod 間トラフィックは {{< gloss "mutual tls authentication" >}}mTLS{{< /gloss >}} で暗号化</td>
+      <td>該当なし。Istio のサービス ID は TLS ベース</td>
     </tr>
     <tr>
-      <th>链路追踪</th>
-      <td>目前还不行，但最终有可能通过 HBONE 实现。</td>
-      <td>Envoy 参与分布式链路跟踪。<a href="/zh/docs/tasks/observability/distributed-tracing/overview/">查看 Istio 链路追踪概述</a>。</td>
+      <th>サービス間認証</th>
+      <td>mTLS 証明書による {{< gloss >}}SPIFFE{{< /gloss >}}。Istio は短期 X.509 証明書で Pod のサービスアカウント ID をエンコード</td>
+      <td>該当なし。Istio のサービス ID は TLS ベース</td>
     </tr>
     <tr>
-      <th>指标</th>
-      <td>仅 TCP（发送/接收的字节数、数据包数量等）。</td>
-      <td>L7 RED 指标：请求率、错误率、请求时间（延迟）。</td>
+      <th>サービス間認可</th>
+      <td>ネットワークベースの認可＋ID ベースのポリシー（例：A は 10.2.0.0/16 からのみ受信可、A は B へ通信可）</td>
+      <td>完全なポリシー（例：A は READ スコープのユーザーのみ B の GET /foo を許可）</td>
+    </tr>
+    <tr>
+      <th>エンドユーザー認証</th>
+      <td>該当なし。ユーザー単位の設定は不可</td>
+      <td>JWT のローカル認証、OAuth/OIDC 連携によるリモート認証</td>
+    </tr>
+    <tr>
+      <th>エンドユーザー認可</th>
+      <td>該当なし。同上</td>
+      <td><a href="/ja/docs/reference/config/security/conditions/">特定スコープ・発行者・サブジェクト・オーディエンス等のユーザー認可</a>が可能。外部認可（OPA など）も利用可</td>
     </tr>
   </tbody>
 </table>
 
-### 流量管理 {#traffic-management}
+### 可観測性 {#observability}
 
 <table>
   <thead>
@@ -240,53 +200,82 @@ Ambient 网格允许这些用户在不需要 L7 功能时完全绕过 L7 处理�
    </thead>
    <tbody>
     <tr>
-      <th>负载均衡</th>
-      <td>仅限连接级别。<a href="/zh/docs/tasks/traffic-management/tcp-traffic-shifting/">请参阅 TCP 流量转移任务</a>。</td>
-      <td>根据请求，启用例如金丝雀部署、gRPC 流量等。<a href="/zh/docs/tasks/traffic-management/traffic-shifting/">查看 HTTP 流量转移任务</a>。</td>
+      <th>ログ</th>
+      <td>基本的なネットワーク情報（5 タプル、送受信バイト数など）。<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators">Envoy ドキュメント</a>参照</td>
+      <td><a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators">リクエストメタデータを含む完全なログ</a>＋基本ネットワーク情報</td>
     </tr>
     <tr>
-      <th>熔断</th>
-      <td><a href="/zh/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-TCPSettings">仅 TCP</a>。</td>
-      <td>除了 TCP 之外，<a href="/zh/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-HTTPSettings">还有 HTTP 设置</a>。</td>
+      <th>トレース</th>
+      <td>現時点では不可。将来的に HBONE で実現予定</td>
+      <td>Envoy による分散トレース。<a href="/ja/docs/tasks/observability/distributed-tracing/overview/">Istio トレース概要</a>参照</td>
     </tr>
     <tr>
-      <th>离群值检测</th>
-      <td>当连接建立/失败时。</td>
-      <td>请求成功/失败。</td>
-    </tr>
-    <tr>
-      <th>限流</th>
-      <td>使用全局限流选项和本地限流选项，<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/network_filters/rate_limit_filter#config-network-filters-rate-limit">仅在建立连接时对 L4 连接数据进行限流</a>。</td>
-      <td>根据每个请求，<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/rate_limit_filter#config-http-filters-rate-limit">L7 请求元数据的限流</a>。</td>
-    </tr>
-    <tr>
-      <th>超时</th>
-      <td>仅建立连接（通过熔断设置来配置保持活跃的连接）。</td>
-      <td>按请求。</td>
-    </tr>
-    <tr>
-      <th>重试</th>
-      <td>重试建立连接。</td>
-      <td>每次请求失败时重试。</td>
-    </tr>
-    <tr>
-      <th>故障注入</th>
-      <td>不适用；无法在 TCP 连接上配置故障注入。</td>
-      <td>完整的应用和连接级故障（<a href="/zh/docs/tasks/traffic-management/fault-injection/">超时、延迟、特定响应码</a>）。</td>
-    </tr>
-    <tr>
-      <th>流量镜像</th>
-      <td>不适用；仅支持 HTTP</td>
-      <td><a href="/zh/docs/tasks/traffic-management/mirroring/">按百分比将请求镜像到多个后端</a>。</td>
+      <th>メトリクス</th>
+      <td>TCP のみ（送受信バイト数、パケット数など）</td>
+      <td>L7 RED メトリクス（リクエスト数、エラー率、レイテンシ）</td>
     </tr>
   </tbody>
 </table>
 
-## 不支持的功能 {#unsupported-features}
+### トラフィック管理 {#traffic-management}
 
-以下功能在 Sidecar 模式下可用，但尚未在 Ambient 模式下实现：
+<table>
+  <thead>
+    <tr>
+      <td style="border-width: 0px" width="20%"></td>
+      <th width="40%">L4</th>
+      <th width="40%">L7</th>
+    </tr>
+   </thead>
+   <tbody>
+    <tr>
+      <th>ロードバランシング</th>
+      <td>コネクション単位のみ。<a href="/ja/docs/tasks/traffic-management/tcp-traffic-shifting/">TCP トラフィックシフト</a>参照</td>
+      <td>リクエスト単位。カナリアリリースや gRPC など。<a href="/ja/docs/tasks/traffic-management/traffic-shifting/">HTTP トラフィックシフト</a>参照</td>
+    </tr>
+    <tr>
+      <th>サーキットブレーカー</th>
+      <td><a href="/ja/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-TCPSettings">TCP のみ</a></td>
+      <td>TCP に加え、<a href="/ja/docs/reference/config/networking/destination-rule/#ConnectionPoolSettings-HTTPSettings">HTTP 設定</a>も利用可</td>
+    </tr>
+    <tr>
+      <th>異常検知</th>
+      <td>コネクション確立・失敗時</td>
+      <td>リクエスト成功・失敗時</td>
+    </tr>
+    <tr>
+      <th>レート制限</th>
+      <td>グローバル・ローカルレート制限。<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/network_filters/rate_limit_filter#config-network-filters-rate-limit">L4 コネクション単位</a></td>
+      <td>リクエスト単位。<a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/rate_limit_filter#config-http-filters-rate-limit">L7 メタデータ単位</a></td>
+    </tr>
+    <tr>
+      <th>タイムアウト</th>
+      <td>コネクション確立時のみ（サーキットブレーカーで設定）</td>
+      <td>リクエスト単位</td>
+    </tr>
+    <tr>
+      <th>リトライ</th>
+      <td>コネクション確立時にリトライ</td>
+      <td>リクエスト失敗時にリトライ</td>
+    </tr>
+    <tr>
+      <th>フォールトインジェクション</th>
+      <td>不可。TCP では設定不可</td>
+      <td>アプリ・コネクションレベルの障害注入（<a href="/ja/docs/tasks/traffic-management/fault-injection/">タイムアウト、遅延、特定レスポンスコード</a>）</td>
+    </tr>
+    <tr>
+      <th>トラフィックミラーリング</th>
+      <td>不可。HTTP のみ対応</td>
+      <td><a href="/ja/docs/tasks/traffic-management/mirroring/">リクエストを複数バックエンドにミラー</a></td>
+    </tr>
+  </tbody>
+</table>
 
-* Sidecar 与 waypoint 的互操作性
-* 多集群安装
-* 多网络支持
-* 虚拟机支持
+## 未対応機能 {#unsupported-features}
+
+以下の機能は Sidecar モードでは利用できますが、Ambient モードでは未対応です：
+
+- Sidecar と waypoint の相互運用
+- マルチクラスタ
+- マルチネットワーク
+- VM サポート

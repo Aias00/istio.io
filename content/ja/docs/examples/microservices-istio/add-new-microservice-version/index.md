@@ -1,135 +1,114 @@
 ---
-title: 添加一个新版本的 reviews
-overview: 部署一个新版本的微服务。
+title: reviews の新バージョンを追加する
+overview: 新しいバージョンのマイクロサービスをデプロイします。
 weight: 50
 owner: istio/wg-docs-maintainers
 test: no
 ---
 
-在此模块中，您将部署 reviews 服务的一个新版本 v2，该服务将返回审阅人员提供的评分星标和评级颜色。
-在实际场景中，您需要先在模拟环境中执行静态分析测试、单元测试、集成测试、端到端测试和验证，然后再部署。
+このモジュールでは、レビュアーが提供した評価の星と色を返す reviews サービスの新バージョン v2 をデプロイします。
+実際のシナリオでは、まず模擬環境で静的解析テスト、ユニットテスト、統合テスト、エンドツーエンドテスト、検証を行ってからデプロイします。
 
-1.  部署不带 `app=reviews` 标签的新版本的 `reviews` 微服务。没有此标签，
-    将不会选择新版本的 `reviews` 来提供服务。那样的话，生产代码也不会调用新版本。
-    运行以下命令部署 v2 的 `reviews` 微服务，同时将标签 `app=reviews` 替换为 `app=reviews_test`：
+1. `app=reviews` ラベルのない新バージョンの `reviews` マイクロサービスをデプロイします。このラベルがなければ、新バージョンの `reviews` はサービスに選ばれず、プロダクションコードからも呼ばれません。次のコマンドで v2 の `reviews` マイクロサービスをデプロイし、ラベル `app=reviews` を `app=reviews_test` に置き換えます：
 
-    {{< text bash >}}
-    $ curl -s {{< github_file >}}/samples/bookinfo/platform/kube/bookinfo.yaml | sed 's/app: reviews/app: reviews_test/' | kubectl apply -l app=reviews_test,version=v2 -f -
-    deployment.apps/reviews-v2 created
-    {{< /text >}}
+   {{< text bash >}}
+   $ curl -s {{< github_file >}}/samples/bookinfo/platform/kube/bookinfo.yaml | sed 's/app: reviews/app: reviews_test/' | kubectl apply -l app=reviews_test,version=v2 -f -
+   deployment.apps/reviews-v2 created
+   {{< /text >}}
 
-1.  访问您的应用以确保已部署的微服务不会破坏该应用。
+1. アプリにアクセスし、デプロイしたマイクロサービスがアプリを壊していないことを確認します。
 
-1.  从集群内部使用您之前部署的测试容器来测试新版本的微服务。
-    请注意您的新版本会在测试期间访问 `ratings` 微服务的生产 Pod。
-    另请注意，您必须使用 Pod IP 来访问新版本的微服务，因为新版本还没有被
-    `reviews` 服务选中。
+1. 以前にデプロイしたテストコンテナを使って、クラスター内部から新バージョンのマイクロサービスをテストします。新バージョンはテスト中に `ratings` マイクロサービスのプロダクション Pod にアクセスすることに注意してください。また、新バージョンはまだ `reviews` サービスに選ばれていないため、Pod IP を使ってアクセスする必要があります。
 
-    1.  获取 Pod IP：
+   1. Pod IP を取得します：
 
-        {{< text bash >}}
-        $ REVIEWS_V2_POD_IP=$(kubectl get pod -l app=reviews_test,version=v2 -o jsonpath='{.items[0].status.podIP}')
-        $ echo $REVIEWS_V2_POD_IP
-        {{< /text >}}
+      {{< text bash >}}
+      $ REVIEWS_V2_POD_IP=$(kubectl get pod -l app=reviews_test,version=v2 -o jsonpath='{.items[0].status.podIP}')
+      $ echo $REVIEWS_V2_POD_IP
+      {{< /text >}}
 
-    1.  向 Pod 发送请求并查看它是否返回正确结果：
+   1. Pod にリクエストを送り、正しい結果が返るか確認します：
 
-        {{< text bash >}}
-        $ kubectl exec $(kubectl get pod -l app=curl -o jsonpath='{.items[0].metadata.name}') -- curl -sS "$REVIEWS_V2_POD_IP:9080/reviews/7"
-        {"id": "7","reviews": [{  "reviewer": "Reviewer1",  "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!", "rating": {"stars": 5, "color": "black"}},{  "reviewer": "Reviewer2",  "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare.", "rating": {"stars": 4, "color": "black"}}]}
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl exec $(kubectl get pod -l app=curl -o jsonpath='{.items[0].metadata.name}') -- curl -sS "$REVIEWS_V2_POD_IP:9080/reviews/7"
+      {"id": "7","reviews": [{ "reviewer": "Reviewer1", "text": "An extremely entertaining play by Shakespeare. The slapstick humour is refreshing!", "rating": {"stars": 5, "color": "black"}},{ "reviewer": "Reviewer2", "text": "Absolutely fun and entertaining. The play lacks thematic depth when compared to other plays by Shakespeare.", "rating": {"stars": 4, "color": "black"}}]}
+      {{< /text >}}
 
-    1.  连续发送 10 次请求来执行原始负载测试：
+   1. 10 回連続でリクエストを送り、簡易負荷テストを行います：
 
-        {{< text bash >}}
-        $ kubectl exec $(kubectl get pod -l app=curl -o jsonpath='{.items[0].metadata.name}') -- sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do curl -o /dev/null -s -w '%{http_code}\n' $REVIEWS_V2_POD_IP:9080/reviews/7; done"
-        200
-        200
-        ...
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl exec $(kubectl get pod -l app=curl -o jsonpath='{.items[0].metadata.name}') -- sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do curl -o /dev/null -s -w '%{http_code}\n' $REVIEWS_V2_POD_IP:9080/reviews/7; done"
+      200
+      200
+      ...
+      {{< /text >}}
 
-1.  前面的这几步确保新版本的 `reviews` 可以正常工作，现在您可以对其进行部署了。
-    您将部署一个单副本的服务到生产中，随后真实的生产流量将开始到达新版本的服务。
-    在当前的设置下，75% 的流量将到达旧版本（旧版本的三个 Pod），而 25% 的流量将到达新版本（单个 Pod）。
+1. これまでの手順で新バージョンの `reviews` が正常に動作することを確認できたので、デプロイを進めます。まず、単一レプリカのサービスを本番にデプロイし、実際のプロダクショントラフィックが新バージョンに流れ始めます。現状では、75% のトラフィックが旧バージョン（3 つの Pod）、25% が新バージョン（1 つの Pod）に流れます。
 
-    要部署 **reviews v2**，请重新部署带有 `app=reviews` 标签的新版本，以便它能被
-    `reviews` 服务寻址找到。
+   **reviews v2** をデプロイするには、新バージョンに `app=reviews` ラベルを付与し、`reviews` サービスでアドレス指定できるようにします。
 
-    {{< text bash >}}
-    $ kubectl label pods -l version=v2 app=reviews --overwrite
-    pod "reviews-v2-79c8c8c7c5-4p4mn" labeled
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl label pods -l version=v2 app=reviews --overwrite
+   pod "reviews-v2-79c8c8c7c5-4p4mn" labeled
+   {{< /text >}}
 
-1.  现在，您访问应用页面，并观察评级所用的黑色星标。您可以多访问几次该页面，
-    会发现有时返回的页面带有星标（大约 25% 的时间），有时不带星标（大约 75% 的时间）。
+1. アプリページにアクセスし、評価に黒い星が表示されることを確認します。何度かページをリロードすると、約 25% の確率で星が表示され、約 75% では表示されません。
 
-    {{< image width="80%"
-        link="bookinfo-reviews-v2.png"
-        caption="以黑色星标评级的 Bookinfo Web 应用"
-        >}}
+   {{< image width="80%"
+       link="bookinfo-reviews-v2.png"
+       caption="黒い星で評価された Bookinfo Web アプリ"
+       >}}
 
-1.  如果您在实际场景下使用新版本时遇到任何问题，可以快速取消新版本的部署，这样只有旧版本会被用到：
+1. 実際の運用で新バージョンに問題が発生した場合は、すぐに新バージョンのデプロイを削除できます。これで旧バージョンのみが利用されます：
 
-    {{< text bash >}}
-    $ kubectl delete deployment reviews-v2
-    $ kubectl delete pod -l app=reviews,version=v2
-    deployment.apps "reviews-v2" deleted
-    pod "reviews-v2-79c8c8c7c5-4p4mn" deleted
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete deployment reviews-v2
+   $ kubectl delete pod -l app=reviews,version=v2
+   deployment.apps "reviews-v2" deleted
+   pod "reviews-v2-79c8c8c7c5-4p4mn" deleted
+   {{< /text >}}
 
-    留出时间让配置更改在系统中生效。然后，访问几次您的应用页面，现在看到黑色星标没有再出现。
+   設定変更が反映されるまで少し待ち、アプリページを何度かリロードすると、黒い星が表示されなくなります。
 
-    恢复新版本：
+   新バージョンを復元するには：
 
-    {{< text bash >}}
-    $ kubectl apply -l app=reviews,version=v2 -f {{< github_file >}}/samples/bookinfo/platform/kube/bookinfo.yaml
-    deployment.apps/reviews-v2 created
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -l app=reviews,version=v2 -f {{< github_file >}}/samples/bookinfo/platform/kube/bookinfo.yaml
+   deployment.apps/reviews-v2 created
+   {{< /text >}}
 
-    多次访问您的应用页面，发现大约有 25% 的时间会出现黑色星标。
+   アプリページを何度かリロードすると、約 25% の確率で黒い星が表示されます。
 
-1.  接下来，增加新版本的副本数。您可以渐进式增加副本数，仔细地检查出错的次数没有增加。
+1. 次に、新バージョンのレプリカ数を増やします。段階的にレプリカ数を増やし、エラーが増えていないか慎重に確認します。
 
-    {{< text bash >}}
-    $ kubectl scale deployment reviews-v2 --replicas=3
-    deployment.apps/reviews-v2 scaled
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl scale deployment reviews-v2 --replicas=3
+   deployment.apps/reviews-v2 scaled
+   {{< /text >}}
 
-    现在，您可以多次访问您的应用页面，看到黑色星标出现的时间大约是一半。
+   これでアプリページを何度かリロードすると、黒い星が表示される確率が約半分になります。
 
-1.  现在，您可以停用旧版本：
+1. 旧バージョンを停止します：
 
-    {{< text bash >}}
-    $ kubectl delete deployment reviews-v1
-    deployment.apps "reviews-v1" deleted
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete deployment reviews-v1
+   deployment.apps "reviews-v1" deleted
+   {{< /text >}}
 
-    访问该应用的页面时，将只返回带有黑色星标的 `reviews`。
+   以降、アプリページにアクセスすると、黒い星付きの `reviews` のみが返されます。
 
-在以上步骤中，您对 `reviews` 执行了更新操作。首先，您部署了新版本且没有发送模拟的生产流量。
-您在生产环境中使用测试流量对其进行了测试。您确认了新版本提供正确的结果。
-您发布了新版本，并逐渐增加到其的生产流量。最后，您停用了旧版本。
+これらの手順で `reviews` のローリングアップデートを実施しました。まず新バージョンをデプロイし、プロダクショントラフィックを流さずにテストしました。テストで正しい結果が得られることを確認し、本番リリース後は段階的にトラフィックを増やし、最終的に旧バージョンを停止しました。
 
-在这里，您可以使用以下示例任务来改进部署策略。首先，在生产中对新版本进行端到端测试。
-这要求能够使用请求参数（例如使用存储在 Cookie 中的用户名）将流量推送到新版本。
-随后，对新版本的生产流量进行屏蔽，并检查新版本是否提供了错误的结果或者产生了错误。
-最后，对上线发布执行更精细的控制。例如，您可以先部署 1%，然后只要服务没有被降级就每小时增加 1%。
-Istio 直接帮助您执行这些任务来增强 Kubernetes 的价值。有关部署的更多详细信息和最佳实践，
-请参阅[部署模型](/zh/docs/ops/deployment/deployment-models/)。
+ここからは、以下のサンプルタスクでデプロイ戦略をさらに改善できます。まず、本番環境で新バージョンのエンドツーエンドテストを行います。これは、リクエストパラメータ（例：Cookie に保存されたユーザー名）を使ってトラフィックを新バージョンに振り分けることで実現できます。次に、新バージョンの本番トラフィックをミラーリングし、誤った結果やエラーが発生しないか確認します。最後に、リリース時のトラフィック制御をより細かく行います。たとえば、最初は 1% だけリリースし、問題がなければ 1 時間ごとに 1% ずつ増やすなどです。Istio はこれらのタスクを直接支援し、Kubernetes の価値を高めます。デプロイの詳細やベストプラクティスは[デプロイモデル](/ja/docs/ops/deployment/deployment-models/)を参照してください。
 
-在这里，您有两个选择：
+ここで 2 つの選択肢があります：
 
-1. 使用**服务网格**。在服务网格中，您将所有报告、路由、策略、安全逻辑放在
-   **Sidecar** 代理中，并**透明地**注入到您的应用 Pod 中。
-   业务逻辑保留在应用的代码中，无需更改应用的代码。
+1. **サービスメッシュ**を使う。サービスメッシュでは、すべてのレポート、ルーティング、ポリシー、セキュリティロジックを**Sidecar** プロキシに集約し、アプリ Pod に**透過的に**注入します。ビジネスロジックはアプリのコードに残り、アプリのコードを変更する必要はありません。
 
-1. 在应用代码中实现所需的功能。大多数功能已通过各种库来提供，例如
-   Netflix 的 [Hystrix](https://github.com/Netflix/Hystrix) 适用于 Java 编程语言。
-   但是，您现在必须修改您的代码才能使用这些库。
-   您的业务代码量将膨胀，业务逻辑将与报告、路由、策略、网络逻辑混合在一起。
-   由于您的微服务使用不同的编程语言，因此您必须学习、使用和更新多个库。
+1. 必要な機能をアプリケーションコードで実装する。多くの機能はさまざまなライブラリで提供されています（例：Java 用の Netflix [Hystrix](https://github.com/Netflix/Hystrix) など）。ただし、これらのライブラリを使うにはコードの修正が必要です。ビジネスロジックとレポート、ルーティング、ポリシー、ネットワークロジックが混在し、コード量も増加します。マイクロサービスごとに異なる言語を使っている場合、複数のライブラリを学び、使い、更新する必要があります。
 
-参阅 [Istio 服务网格](/zh/about/service-mesh/)以了解 Istio 如何执行本文及更多页面中提到的任务。
-接下来的模块中，您将探索 Istio 的各种功能。
+[Istio サービスメッシュ](/ja/about/service-mesh/)を参照すると、本記事や他のページで紹介したタスクを Istio がどのように実現するかが分かります。
 
-您已经准备好[在 `productpage` 中启用 Istio](/zh/docs/examples/microservices-istio/add-istio/)。
+次のモジュールでは、Istio の機能を探索します。
+
+[`productpage` で Istio を有効化](/ja/docs/examples/microservices-istio/add-istio/)する準備ができました。

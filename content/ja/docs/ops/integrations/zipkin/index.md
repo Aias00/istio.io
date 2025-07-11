@@ -1,33 +1,30 @@
 ---
 title: Zipkin
-description: 如何与 Zipkin 进行集成。
+description: Zipkin との統合方法。
 weight: 31
-keywords: [integration,zipkin,tracing]
+keywords: [integration, zipkin, tracing]
 owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-[Zipkin](https://zipkin.io/) 是一个分布式追踪系统，可用来协助收集在定位服务架构延迟问题时所需的计时数据，
-功能包括此数据的收集和查找。
+[Zipkin](https://zipkin.io/) は分散トレーシングシステムで、サービスアーキテクチャの遅延問題の特定に必要なタイミングデータの収集や検索を支援します。
 
-## 安装 {#installation}
+## インストール {#installation}
 
-### 方法1：快速开始 {#quick-start}
+### 方法 1：クイックスタート {#quick-start}
 
-Istio 提供了一个基本的安装示例来快速启动和运行 Zipkin：
+Istio では Zipkin を素早く起動できる基本的なインストール例を提供しています：
 
 {{< text bash >}}
 $ kubectl apply -f {{< github_file >}}/samples/addons/extras/zipkin.yaml
 {{< /text >}}
 
-通过 `kubectl apply -f` 将 Zipkin 部署到集群中。此示例仅用于演示，
-没有针对其性能或安全性进行调优。
+`kubectl apply -f` で Zipkin をクラスタにデプロイします。この例はデモ用であり、パフォーマンスやセキュリティの調整はされていません。
 
-### 方法2：定制化安装 {#customizable-install}
+### 方法 2：カスタムインストール {#customizable-install}
 
-参阅 [Zipkin 文档](https://zipkin.io/)开始安装。Zipkin 集成 Istio 使用时无需进行特殊修改。
+[Zipkin ドキュメント](https://zipkin.io/)を参照してインストールを開始してください。Istio で Zipkin を利用する際に特別な変更は不要です。
 
-## 使用 {#usage}
+## 利用方法 {#usage}
 
-有关使用 Zipkin 的信息，请参阅
-[Zipkin](/zh/docs/tasks/observability/distributed-tracing/zipkin/)。
+Zipkin の利用方法については [Zipkin タスク](/ja/docs/tasks/observability/distributed-tracing/zipkin/) を参照してください。

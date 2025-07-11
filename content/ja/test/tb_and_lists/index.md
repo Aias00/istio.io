@@ -1,70 +1,70 @@
 ---
-title: 文本块和列表
-description: 编写文本块和列表。
+title: テキストブロックとリスト
+description: テキストブロックとリストの作成。
 skip_sitemap: true
 ---
 
-1. 一个项目编号
+1. 番号付きの項目
 
-    {{< text plain >}}
-    嵌套在一个项目编号中的文本块
-    有第二行
+   {{< text plain >}}
+   番号付きの項目にネストされたテキストブロック
+   2 行目があります
 
-    和第三行
-    {{< /text >}}
+   そして 3 行目
+   {{< /text >}}
 
-1. 另一个项目编号
+1. もう一つの番号付き項目
 
-    {{< warning >}}
-    一条嵌套的警告
-    {{< /warning >}}
+   {{< warning >}}
+   ネストされた警告
+   {{< /warning >}}
 
-    {{< text plain >}}
-    另一个嵌套的文本块
-    有第二行
+   {{< text plain >}}
+   もう一つのネストされたテキストブロック
+   2 行目があります
 
-    和第三行
-    {{< /text >}}
+   そして 3 行目
+   {{< /text >}}
 
-1. 又一个项目编号
+1. さらに別の番号付き項目
 
-    第二段
+   2 つ目の段落
 
-1. 还是一个项目编号
+1. さらに番号付きの項目
 
-    {{< warning >}}
-    这是带项目编号的一条警告。
+   {{< warning >}}
+   これは番号付きの警告です。
 
-    {{< text plain >}}
-    这是带项目编号的警告中的一个文本块
-    有第二行
+   {{< text plain >}}
+   これは番号付き警告内のテキストブロックです
+   2 行目があります
 
-    和第三行
-    {{< /text >}}
+   そして 3 行目
+   {{< /text >}}
 
-    {{< /warning >}}
+   {{< /warning >}}
 
-1.  使用 `kubectl` 命令部署您的应用程序：
+1. `kubectl` コマンドでアプリケーションをデプロイします：
 
-    {{< text bash >}}
-    $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo.yaml@
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo.yaml@
+   {{< /text >}}
 
-    {{< warning >}}
-    如果您在安装期间禁用了自动 Sidecar 注入且采用
-    [手动 Sidecar 注入](/zh/docs/setup/additional-setup/sidecar-injection/#manual-sidecar-injection)，
-    请先用 `istioctl kube-inject` 命令修改 `bookinfo.yaml` 文件，然后再部署您的应用程序。
-    有关更多信息，请查阅 `istioctl` [参考文档](/zh/docs/reference/commands/istioctl/#istioctl-kube-inject)。
+   {{< warning >}}
+   インストール時に自動サイドカーインジェクションを無効にし、
+   [手動サイドカーインジェクション](/zh/docs/setup/additional-setup/sidecar-injection/#manual-sidecar-injection) を使用している場合は、
+   まず `istioctl kube-inject` コマンドで `bookinfo.yaml` ファイルを修正してからアプリケーションをデプロイしてください。
+   詳細は `istioctl` の [リファレンスドキュメント](/zh/docs/reference/commands/istioctl/#istioctl-kube-inject) を参照してください。
 
-    {{< text bash >}}
-    $ kubectl apply -f <(istioctl kube-inject -f @samples/bookinfo/platform/kube/bookinfo.yaml@)
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f <(istioctl kube-inject -f @samples/bookinfo/platform/kube/bookinfo.yaml@)
+   {{< /text >}}
 
-    {{< /warning >}}
+   {{< /warning >}}
 
-    这条命令将启动 `bookinfo` 应用程序架构图中显示的全部四个服务。
-    审阅服务的 3 个版本（v1、v2 和 v3）都会被启动。
+   このコマンドは `bookinfo` アプリケーションアーキテクチャ図に示されている 4 つのサービスすべてを起動します。
+   レビューサービスの 3 つのバージョン（v1、v2、v3）もすべて起動されます。
 
-    {{< tip >}}
-    在实际的部署过程中，会随着时间部署新版本的微服务，并不会同时部署所有版本。
-    {{< /tip >}}
+   {{< tip >}}
+   実際のデプロイでは、新しいバージョンのマイクロサービスは時間をかけてデプロイされ、すべてのバージョンが同時にデプロイされるわけではありません。
+   {{< /tip >}}

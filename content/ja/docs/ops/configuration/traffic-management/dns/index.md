@@ -1,91 +1,89 @@
 ---
-title: 理解 DNS
+title: DNS を理解する
 linktitle: DNS
-description: 理解 Istio 如何与 DNS 交互。
+description: Istio が DNS とどのように連携するかを理解する。
 weight: 31
-keywords: [traffic-management,proxy]
+keywords: [traffic-management, proxy]
 owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-Istio 以不同的方式与 DNS 交互，这可能会让人感到困惑。本文档深入介绍了
-Istio 和 DNS 的交互方式。
+Istio は DNS とさまざまな方法で連携しますが、これは混乱を招くことがあります。本ドキュメントでは、
+Istio と DNS の連携方法について詳しく説明します。
 
 {{< warning >}}
 
-本文档描述了底层实施细节。要了解更高层次的概述，
-请查看流量管理[概念](/zh/docs/concepts/traffic-management/)或
-[任务](/zh/docs/tasks/traffic-management/)页面。
+このドキュメントは低レベルの実装詳細を説明しています。より高レベルの概要については、
+トラフィック管理の[コンセプト](/ja/docs/concepts/traffic-management/)や
+[タスク](/ja/docs/tasks/traffic-management/)ページをご覧ください。
 
 {{< /warning >}}
 
-## 请求过程 {#life-of-a-request}
+## リクエストの流れ {#life-of-a-request}
 
-下面我们将以一个应用程序运行 `curl example.com` 为例来看一个请求的全过程。
-这里的 `curl` 请求过程适用于几乎所有客户端。
+ここでは、アプリケーションが `curl example.com` を実行する例を使って、リクエストの全体的な流れを見ていきます。
+この `curl` のリクエストフローは、ほとんどすべてのクライアントに当てはまります。
 
-当您向一个域名发送请求时，客户端会进行 DNS 解析，将其解析为一个 IP 地址。
-不管 Istio 如何设置，这都会发生，因为 Istio 只是拦截网络流量；
-它不能改变应用程序的行为或决定是否发送 DNS 请求。在下面的例子中，
-`example.com` 被解析为 `192.0.2.0`。
+ドメイン名にリクエストを送信すると、クライアントは DNS 解決を行い、IP アドレスに変換します。
+Istio の設定に関係なく、これは必ず発生します。Istio はネットワークトラフィックをインターセプトするだけで、
+アプリケーションの動作や DNS リクエストの有無を変更することはできません。以下の例では、
+`example.com` は `192.0.2.0` に解決されます。
 
 {{< text bash >}}
 $ curl example.com -v
-*   Trying 192.0.2.0:80...
-{{< /text >}}
 
-接下来，该请求将被 Istio 拦截。这时，Istio 将看到主机名（来自
-`Host: example.com` 头）和目标地址（`192.0.2.0:80`）。Istio
-使用这些信息来确定预定目的地。
-[理解流量路由](/zh/docs/ops/configuration/traffic-management/traffic-routing/)对这种行为的工作原理进行了深入探讨。
+- Trying 192.0.2.0:80...
+  {{< /text >}}
 
-如果客户端无法解析 DNS 请求，在 Istio 收到请求之前就会终止。
-这意味着，即使一个请求发送到一个 Istio 已知的主机名（例如，通过
-`ServiceEntry` 配置），但是无法通过 DNS 解析，该请求也会失败。
-不过 Istio 的 [DNS 代理](#dns-proxing)可以改变这种行为。
+次に、このリクエストは Istio によってインターセプトされます。このとき、Istio はホスト名（
+`Host: example.com` ヘッダーから）と宛先アドレス（`192.0.2.0:80`）を認識します。Istio は
+これらの情報を使って、意図された宛先を決定します。
+[トラフィックルーティングの理解](/ja/docs/ops/configuration/traffic-management/traffic-routing/)でこの動作の詳細を説明しています。
 
-一旦 Istio 确定了预期的目的地，它必须选择要发送到的地址。由于
-Istio 的高级[负载均衡能力](/zh/docs/concepts/traffic-management/#load-balancing-options)，
-这个地址往往不是客户端发送的原始 IP 地址。根据服务配置的不同，Istio
-有几种不同的方式来实现：
+クライアントが DNS 解決に失敗した場合、Istio がリクエストを受け取る前に終了します。
+つまり、Istio が認識しているホスト名（たとえば `ServiceEntry` で設定されたもの）であっても、
+DNS で解決できなければリクエストは失敗します。
+ただし、Istio の [DNS プロキシ](#dns-proxing)を使うことでこの動作を変更できます。
 
-* 使用客户端的原始 IP 地址（上例中为 `192.0.2.0`）。
-  这种情况适用于 `resolution: NONE` 类型的 `ServiceEntry`
-  和[无头服务](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/#headless-services)。
-* 在一组静态 IP 地址上进行负载均衡。这种情况适用于 `resolution: STATIC`
-  类型的 `ServiceEntry`，这将使用 `spec.endpoints` 中的所有地址，
-  或者对于标准 `Services` 将使用其所有 `Endpoints` 地址。
-* 使用 DNS 定期解析地址，并在所有结果中进行负载均衡。这种情况适用于
-  `resolution: DNS` 类型的 `ServiceEntry`。
+Istio が意図した宛先を決定した後、どのアドレスに送信するかを選択する必要があります。
+Istio の高度な[負荷分散機能](/ja/docs/concepts/traffic-management/#load-balancing-options)により、
+このアドレスはクライアントが送信した元の IP アドレスとは限りません。サービスの設定によって、Istio はいくつかの方法を取ります：
 
-请注意，在任何情况下，Istio 代理内部的 DNS 解析与用户应用程序中的
-DNS 解析是正交（orthogonal）的。即使客户端进行了 DNS 解析，
-代理也可能忽略已解析的 IP 地址，而使用自己的地址，这些地址可能来自静态的
-IP 列表或通过代理的 DNS 解析（可能是同一主机名或不同的主机名）。
+- クライアントの元の IP アドレスを使用（上記の例では `192.0.2.0`）。
+  これは `resolution: NONE` タイプの `ServiceEntry` や[ヘッドレスサービス](https://kubernetes.io/ja/docs/concepts/services-networking/service/#headless-services)に該当します。
+- 静的 IP アドレスのセットで負荷分散を行う。これは `resolution: STATIC` タイプの `ServiceEntry` で、`spec.endpoints` のすべてのアドレス、
+  または標準の `Services` ではすべての `Endpoints` アドレスを使用します。
+- DNS で定期的にアドレスを解決し、すべての結果で負荷分散を行う。これは
+  `resolution: DNS` タイプの `ServiceEntry` に該当します。
 
-## 代理 DNS 解析 {#proxying-dns-resolution}
+いずれの場合も、Istio プロキシ内部の DNS 解決はユーザーアプリケーションの
+DNS 解決とは独立しています。クライアントが DNS 解決を行っても、
+プロキシは解決済みの IP アドレスを無視し、独自のアドレス（静的リストやプロキシ自身の DNS 解決結果）を使う場合があります。
 
-与大多数客户端在请求时按需执行 DNS 请求（然后通常缓存结果）不同，
-Istio 代理从不执行同步 DNS 请求。配置 `resolution: DNS`
-类型的 `ServiceEntry` 后，代理将定期解析配置的主机名并将其用于所有请求。
-此间隔固定为 30 秒，目前无法更改。
-即使代理从未向这些应用程序发送任何请求，该情况也会发生。
+## プロキシによる DNS 解決 {#proxying-dns-resolution}
 
-对于具有许多代理或许多 `resolution: DNS` 类型 `ServiceEntry`
-的网格而言，尤其是在使用较低 `TTL` 时，可能会导致 DNS 服务器的负载很高。
-在这些情况下，以下行为有助于减轻负载：
+多くのクライアントがリクエスト時に都度 DNS リクエストを行い（通常は結果をキャッシュ）、
+Istio プロキシは同期的な DNS リクエストを一切行いません。`resolution: DNS`
+タイプの `ServiceEntry` を設定すると、プロキシは設定されたホスト名を定期的（30 秒間隔、現時点で変更不可）に解決し、
+すべてのリクエストにその結果を使用します。
+この間隔は固定で、現在は変更できません。
+プロキシがこれらのアプリケーションに一度もリクエストを送信していなくても、
+この動作は発生します。
 
-* 将 `ServiceEntries` 切换为 `resolution: NONE` 类型以完全避免代理 DNS 查找，
-  这适用于许多使用场景。
-* 如果您可以控制正在解析的域，请适当增加它们的 TTL。
-* 如果您的 `ServiceEntry` 只有少量工作负载，请使用 `exportTo`
-  或 [`Sidecar`](/zh/docs/reference/config/networking/sidecar/) 限制其范围。
+多数のプロキシや `resolution: DNS` タイプの `ServiceEntry` が多いメッシュでは、
+特に TTL が短い場合、DNS サーバーへの負荷が高くなる可能性があります。
+このような場合、以下の方法で負荷を軽減できます：
 
-## DNS 代理 {#dns-proxing}
+- `ServiceEntries` を `resolution: NONE` タイプに切り替えてプロキシの DNS ルックアップを完全に回避する。
+  これは多くのユースケースで有効です。
+- 解決対象のドメインを管理できる場合は、TTL を適切に長く設定する。
+- `ServiceEntry` の対象ワークロードが少数の場合は、`exportTo` や [`Sidecar`](/ja/docs/reference/config/networking/sidecar/) でスコープを制限する。
 
-Istio 提供了[代理 DNS 请求](/zh/docs/ops/configuration/traffic-management/dns-proxy/)的功能。
-这允许 Istio 捕获客户端发送的 DNS 请求并直接返回响应。这可以改善 DNS 延迟，
-减少负载，并解决了 `ServiceEntries` 无法通过 `kube-dns` 解析的问题。
+## DNS プロキシ {#dns-proxing}
 
-请注意，此代理仅适用于用户应用程序发送的 DNS 请求；当使用 `resolution: DNS`
-类型的 `ServiceEntries` 时，DNS 代理对 Istio 代理的 DNS 解析没有影响。
+Istio は[DNS リクエストのプロキシ](/ja/docs/ops/configuration/traffic-management/dns-proxy/)機能を提供しています。
+これにより、Istio はクライアントが送信した DNS リクエストをキャプチャし、直接応答を返すことができます。これにより DNS レイテンシが改善され、
+負荷が軽減され、`ServiceEntries` が `kube-dns` で解決できない問題も解決できます。
+
+このプロキシはユーザーアプリケーションが送信する DNS リクエストのみに適用されます。
+`resolution: DNS` タイプの `ServiceEntries` でプロキシ自身が行う DNS 解決には影響しません。

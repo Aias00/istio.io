@@ -1,6 +1,6 @@
 ---
-title: 概述
-description: Istio 和服务网格的高级介绍。
+title: 概要
+description: Istio とサービスメッシュの概要。
 weight: 5
 test: table-of-contents
 ---

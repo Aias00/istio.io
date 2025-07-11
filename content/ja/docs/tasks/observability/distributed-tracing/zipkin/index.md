@@ -1,103 +1,101 @@
 ---
 title: Zipkin
-description: 了解如何通过配置代理以向 Zipkin 发送追踪请求。
+description: プロキシを設定して Zipkin へトレースリクエストを送信する方法を学びます。
 weight: 7
-keywords: [telemetry,tracing,zipkin,span,port-forwarding]
+keywords: [telemetry, tracing, zipkin, span, port-forwarding]
 aliases:
-    - /zh/docs/tasks/zipkin-tracing.html
+  - /zh/docs/tasks/zipkin-tracing.html
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-通过本任务，您将了解如何使应用程序可被 [Zipkin](https://zipkin.io/) 追踪，
-而无需考虑应用程序使用何种开发语言、框架或平台。
+このタスクを通じて、[Zipkin](https://zipkin.io/) でアプリケーションをトレースする方法が分かります。
+アプリケーションの開発言語、フレームワーク、プラットフォームは問いません。
 
-本任务使用 [Bookinfo](/zh/docs/examples/bookinfo/) 作为示例应用程序。
+このタスクでは [Bookinfo](/zh/docs/examples/bookinfo/) サンプルアプリケーションを使用します。
 
-要了解 Istio 如何处理追踪，请访问此任务的[概述](../overview/)。
+Istio がどのようにトレースを処理するかについては、このタスクの[概要](../overview/)をご覧ください。
 
-## 开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-1. 参考 [Zipkin 安装](/zh/docs/setup/install/istioctl)文档将 Zipkin 安装到您的集群中。
+1. [Zipkin インストール](/zh/docs/setup/install/istioctl)ドキュメントに従い、Zipkin をクラスタにインストールしてください。
 
-1. 部署 [Bookinfo](/zh/docs/examples/bookinfo/#deploying-the-application) 示例应用程序。
+1. [Bookinfo](/zh/docs/examples/bookinfo/#deploying-the-application) サンプルアプリケーションをデプロイしてください。
 
-## 配置 Istio 进行分布式链路追踪 {#configure-istio-for-distributed-tracing}
+## Istio の分散トレース設定 {#configure-istio-for-distributed-tracing}
 
-### 配置扩展提供程序 {#configure-an-extension-provider}
+### 拡張プロバイダーの設定 {#configure-an-extension-provider}
 
-使用引用 Zipkin 服务的[扩展提供程序](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider)安装 Istio：
+Zipkin サービスを参照する[拡張プロバイダー](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig-ExtensionProvider)を使って Istio をインストールします：
 
 {{< text bash >}}
 $ cat <<EOF > ./tracing.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing: {} # 禁用旧版 MeshConfig 链路追踪选项
-    extensionProviders:
-    - name: zipkin
-      zipkin:
-        service: zipkin.istio-system.svc.cluster.local
-        port: 9411
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing: {} # 旧 MeshConfig トレースオプションを無効化
+extensionProviders: - name: zipkin
+zipkin:
+service: zipkin.istio-system.svc.cluster.local
+port: 9411
 EOF
 $ istioctl install -f ./tracing.yaml --skip-confirmation
 {{< /text >}}
 
-### 启用链路追踪 {#enable-tracing}
+### トレースの有効化 {#enable-tracing}
 
-通过应用以下配置启用链路追踪：
+以下の設定を適用してトレースを有効にします：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: mesh-default
-  namespace: istio-system
+name: mesh-default
+namespace: istio-system
 spec:
-  tracing:
-  - providers:
-    - name: zipkin
-EOF
-{{< /text >}}
+tracing:
 
-## 访问仪表盘 {#accessing-the-dashboard}
+- providers: - name: zipkin
+  EOF
+  {{< /text >}}
 
-[远程访问遥测插件任务](/zh/docs/tasks/observability/gateways)详细介绍了如何通过网关配置对 Istio 插件的访问。
+## ダッシュボードへのアクセス {#accessing-the-dashboard}
 
-对于测试（或临时访问），您也可以使用端口转发。假设已将 Zipkin 部署到 `istio-system` 命名空间，请使用以下内容：
+[リモートでのテレメトリプラグインへのアクセス](/zh/docs/tasks/observability/gateways)タスクでは、ゲートウェイ経由で Istio プラグインへアクセスする方法を詳しく説明しています。
+
+テスト（または一時的なアクセス）の場合、ポートフォワーディングも利用できます。Zipkin が `istio-system` 名前空間にデプロイされていると仮定し、以下を使用してください：
 
 {{< text bash >}}
 $ istioctl dashboard zipkin
 {{< /text >}}
 
-## 使用 Bookinfo 示例产生追踪  {#generating-traces-using-the-Bookinfo-sample}
+## Bookinfo サンプルでトレースを生成する {#generating-traces-using-the-Bookinfo-sample}
 
-1. 当 Bookinfo 应用程序启动并运行时，访问 `http://$GATEWAY_URL/productpage` 一次或多次以生成追踪信息。
+1. Bookinfo アプリケーションが起動し稼働している状態で、`http://$GATEWAY_URL/productpage` に一度または複数回アクセスしてトレース情報を生成します。
 
-    {{< boilerplate trace-generation >}}
+   {{< boilerplate trace-generation >}}
 
-1. 在搜索面板中，点击 `+` 号，从第一个下拉列表中选择 `serviceName`，
-   从第二个下拉列表中选择 `productpage.default`，再点击搜索图标：
+1. 検索パネルで `+` をクリックし、最初のドロップダウンから `serviceName` を選択し、
+   2 番目のドロップダウンから `productpage.default` を選択して検索アイコンをクリックします：
 
-    {{< image link="./istio-tracing-list-zipkin.png" caption="Tracing Dashboard" >}}
+   {{< image link="./istio-tracing-list-zipkin.png" caption="Tracing Dashboard" >}}
 
-1. 点击 `ISTIO-INGRESSGATEWAY` 的搜索结果，查看与之对应的最新的 `/productpage` 请求的详细信息：
+1. `ISTIO-INGRESSGATEWAY` の検索結果をクリックし、最新の `/productpage` リクエストの詳細を確認します：
 
-    {{< image link="./istio-tracing-details-zipkin.png" caption="Detailed Trace View" >}}
+   {{< image link="./istio-tracing-details-zipkin.png" caption="Detailed Trace View" >}}
 
-1. 追踪由一组 Span 组成，其中每个 Span 对应一个 Bookinfo Service，这些服务在执行
-   `/productpage` 请求或 Istio 内部组件时被调用，例如：`istio-ingressgateway`。
+1. トレースは複数の Span で構成されており、それぞれが `/productpage` リクエストや Istio の内部コンポーネント（例：`istio-ingressgateway`）で呼び出される Bookinfo サービスに対応します。
 
-## 清理  {#cleanup}
+## クリーンアップ {#cleanup}
 
-1. 使用 Control-C 或删除任何可能仍在运行的 `istioctl` 进程：
+1. Control-C を使うか、実行中の `istioctl` プロセスをすべて終了してください：
 
-    {{< text bash >}}
-    $ killall istioctl
-    {{< /text >}}
+   {{< text bash >}}
+   $ killall istioctl
+   {{< /text >}}
 
-1. 如果您不打算继续深入探索任何后续任务，请参考 [Bookinfo 清理](/zh/docs/examples/bookinfo/#cleanup)说明，关闭应用程序。
+1. 今後のタスクを試す予定がなければ、[Bookinfo のクリーンアップ](/zh/docs/examples/bookinfo/#cleanup)の手順に従ってアプリケーション全体を停止してください。

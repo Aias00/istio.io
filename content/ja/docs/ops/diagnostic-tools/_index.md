@@ -1,6 +1,6 @@
 ---
-title: 诊断工具
-description: 帮助解决 Istio 网格问题的工具和技术。
+title: 診断ツール
+description: Istio メッシュの問題解決に役立つツールと技術。
 weight: 50
 keywords: [ops]
 aliases:

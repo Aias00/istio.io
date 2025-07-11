@@ -1,6 +1,6 @@
 ---
-title: 设置本地计算机
-overview: 为该教程设置本地计算机。
+title: ローカルマシンのセットアップ
+overview: このチュートリアル用にローカルマシンをセットアップします。
 weight: 3
 owner: istio/wg-docs-maintainers
 test: no
@@ -8,41 +8,41 @@ test: no
 
 {{< boilerplate work-in-progress >}}
 
-在本模块中，您将为教程准备本地计算机
+このモジュールでは、チュートリアル用にローカルマシンを準備します。
 
-1. 安装 [`curl`](https://curl.haxx.se/download.html)。
+1. [`curl`](https://curl.haxx.se/download.html) をインストールします。
 
-1. 安装 [Node.js](https://nodejs.org/en/download/)。
+1. [Node.js](https://nodejs.org/en/download/) をインストールします。
 
-1. 安装 [Docker](https://docs.docker.com/install/)。
+1. [Docker](https://docs.docker.com/install/) をインストールします。
 
-1. 安装 [`kubectl`](https://kubernetes.io/zh-cn/docs/tasks/tools/#kubectl)。
+1. [`kubectl`](https://kubernetes.io/ja/docs/tasks/tools/#kubectl) をインストールします。
 
-1. 为您从教程中收到的配置文件或者在上一个模块自己创建的配置文件设置环境变量 `KUBECONFIG`。
+1. チュートリアルで受け取った、または前のモジュールで自分で作成した設定ファイルを `KUBECONFIG` 環境変数に設定します。
 
-    {{< text bash >}}
-    $ export KUBECONFIG=<the file you recieved or created in the previous module>
-    {{< /text >}}
+   {{< text bash >}}
+   $ export KUBECONFIG=<前のモジュールで受け取った、または作成したファイル>
+   {{< /text >}}
 
-1. 通过打印当前命名空间来验证配置是否生效：
+1. 現在の名前空間を表示して、設定が有効かどうか確認します：
 
-    {{< text bash >}}
-    $ kubectl config view -o jsonpath="{.contexts[?(@.name==\"$(kubectl config current-context)\")].context.namespace}"
-    tutorial
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl config view -o jsonpath="{.contexts[?(@.name==\"$(kubectl config current-context)\")].context.namespace}"
+   tutorial
+   {{< /text >}}
 
-    您应该在输出中看到命名空间的名称，该命名空间由讲师分配或者在上一个模块中由您自己分配。
+   出力に講師から割り当てられた、または前のモジュールで自分で割り当てた名前空間が表示されていれば OK です。
 
-1. 下载一个 [Istio 发行版](https://github.com/istio/istio/releases)，
-   从 `bin` 目录下提出命令行工具 `istioctl`，使用下边的命令验证 `istioctl` 是否可以正常使用：
+1. [Istio リリース](https://github.com/istio/istio/releases) をダウンロードし、
+   `bin` ディレクトリからコマンドラインツール `istioctl` を取り出します。下記コマンドで `istioctl` が正しく動作するか確認します：
 
-    {{< text bash >}}
-    $ istioctl version
-    client version: 1.22.0
-    control plane version: 1.22.0
-    data plane version: 1.22.0 (4 proxies)
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl version
+   client version: 1.22.0
+   control plane version: 1.22.0
+   data plane version: 1.22.0 (4 proxies)
+   {{< /text >}}
 
-恭喜，您已配置完毕本地计算机！
+おめでとうございます。ローカルマシンのセットアップが完了しました！
 
-接下来[在本地运行微服务](/zh/docs/examples/microservices-istio/single/)。
+次は[ローカルでマイクロサービスを実行](/ja/docs/examples/microservices-istio/single/)しましょう。

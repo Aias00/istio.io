@@ -1,8 +1,9 @@
 ---
-title: 地域负载均衡
-description: 本系列任务演示如何在 Istio 中配置地域负载均衡。
+title: ローカリティ負荷分散
+description: このシリーズのタスクでは、Istio でローカリティ負荷分散を構成する方法を説明します。
 weight: 65
-keywords: [locality,load balancing,priority,prioritized,kubernetes,multicluster]
+keywords:
+  [locality, load balancing, priority, prioritized, kubernetes, multicluster]
 list_below: true
 simple_list: true
 content_above: true
@@ -16,32 +17,28 @@ owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-一个 **地域** 定义了 {{< gloss >}}workload instance{{</ gloss >}} 在您的网格中的地理位置。这三个元素定义了一个地域：
+**ローカリティ** とは、{{< gloss >}}ワークロードインスタンス{{</ gloss >}} がメッシュ内で存在する地理的な場所を定義します。ローカリティは次の 3 つの要素で構成されます：
 
-- **地区**：代表较大的地理区域，例如 **us-east**。一个地区通常包含许多**可用区**。
-  在 Kubernetes 中，标签 [`topology.kubernetes.io/region`](https://kubernetes.io/zh-cn/docs/reference/labels-annotations-taints/#topologykubernetesioregion) 决定了节点所在的地区。
+- **リージョン**：大きな地理的領域を表します（例：**us-east**）。1 つのリージョンには複数の**ゾーン**が含まれます。
+  Kubernetes では、ラベル [`topology.kubernetes.io/region`](https://kubernetes.io/ja/docs/reference/labels-annotations-taints/#topologykubernetesioregion) がノードのリージョンを決定します。
 
-- **区域**：区域内的一组计算资源。通过在区域内的多个区域中运行服务，可以在区域内的区域之间进行故障转移，
-  同时保持最终用户的数据地域性。在 Kubernetes 中，
-  标签 [`topology.kubernetes.io/zone`](https://kubernetes.io/zh-cn/docs/reference/labels-annotations-taints/#topologykubernetesiozone) 决定了节点所在的区域。
+- **ゾーン**：リージョン内の計算リソースのグループです。複数のゾーンにサービスをデプロイすることで、ゾーン間でフェイルオーバーしつつ、ユーザーデータのローカリティを維持できます。
+  Kubernetes では、ラベル [`topology.kubernetes.io/zone`](https://kubernetes.io/ja/docs/reference/labels-annotations-taints/#topologykubernetesiozone) がノードのゾーンを決定します。
 
-- **分区**：允许管理员进一步细分区域，以实现更细粒度的控制，例如“相同机架”。
-  Kubernetes 中不存在分区的概念。所以 Istio 引入了自定义节点标签
-  [`topology.istio.io/subzone`](/zh/docs/reference/config/labels/#:~:text=topology.istio.io/subzone) 来定义分区。
+- **サブゾーン**：管理者がゾーンをさらに細分化して、より細かい制御（例：「同一ラック」）を実現できます。
+  Kubernetes にはサブゾーンの概念はありません。そのため、Istio ではカスタムノードラベル [`topology.istio.io/subzone`](/ja/docs/reference/config/labels/#:~:text=topology.istio.io/subzone) を導入しています。
 
 {{< tip >}}
-如果您使用托管的 Kubernetes 服务，则云提供商应为您配置地区和区域标签。
-如果您正在运行自己的 Kubernetes 集群，则需要将这些标签添加到您的节点上。
+マネージド Kubernetes サービスを利用している場合、クラウドプロバイダーがリージョンとゾーンのラベルを設定してくれます。
+独自の Kubernetes クラスタを運用している場合は、これらのラベルをノードに追加する必要があります。
 {{< /tip >}}
 
-地域是分层的，按匹配顺序排列：
+ローカリティは階層構造で、次の順序でマッチします：
 
-1. 地区
+1. リージョン
+1. ゾーン
+1. サブゾーン
 
-1. 区域
+つまり、`foo` リージョンの `bar` ゾーンで動作する Pod は、`baz` リージョンの `bar` ゾーンで動作する Pod とは**みなされません**。
 
-1. 分区
-
-这意味着，在 `foo` 地区的 `bar` 区域中运行 Pod **不会** 被视为在 `baz` 地区的 `bar` 区域中运行的 Pod。
-
-Istio 使用地域信息来控制负载均衡行为。参照本系列的某个任务，为您的网格配置地域负载均衡。
+Istio はローカリティ情報を使って負荷分散の挙動を制御します。本シリーズのいずれかのタスクを参照して、メッシュにローカリティ負荷分散を構成してください。

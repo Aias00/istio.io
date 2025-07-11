@@ -1,6 +1,6 @@
 ---
-title: 认证
-description: 管控网格服务间的双向 TLS 和终端用户的身份认证。
+title: 認証
+description: メッシュサービス間の双方向 TLS とエンドユーザー認証を管理します。
 weight: 10
 test: n/a
 ---

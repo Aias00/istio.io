@@ -1,6 +1,6 @@
 ---
-title: 应用程序要求
-description: 部署在支持 Istio 的集群中的应用程序的要求。
+title: アプリケーション要件
+description: Istio 対応クラスタにデプロイするアプリケーションの要件。
 weight: 40
 keywords:
   - kubernetes
@@ -23,130 +23,119 @@ owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-Istio 为应用程序提供了大量的功能，而对应用程序代码本身几乎没有影响。
-许多 Kubernetes 应用程序可以部署在启用 Istio 的集群中，而不需要对应用程序做任何修改。
-然而，在部署启用 Istio 的应用程序时，需要特别注意 Istio Sidecar 模型造成的影响。
-本文介绍了针对这些应用程序的注意事项以及启用 Istio 的具体要求。
+Istio はアプリケーションコード自体にほとんど影響を与えず、多くの機能を提供します。
+多くの Kubernetes アプリケーションは、Istio 有効クラスタに修正なしでデプロイできます。
+ただし、Istio Sidecar モデルの影響には注意が必要です。
+この記事では、これらのアプリケーションに関する注意点と、Istio 有効化のための要件を説明します。
 
-## Pod 要求 {#pod-requirements}
+## Pod 要件 {#pod-requirements}
 
-作为 Istio 服务网格中的一部分，Kubernetes 集群中的 Pod 和 Service 必须满足以下要求：
+Istio サービスメッシュの一部として、Kubernetes クラスタ内の Pod および Service は以下の要件を満たす必要があります：
 
-- **应用 UID**：确保您的 Pod 不会被 ID（UID）为 `1337` 的用户运行应用，因为 `1337` 是为 Sidecar 代理保留的。
+- **アプリケーション UID**：Pod で UID `1337` のユーザーでアプリケーションを実行しないでください。`1337` は Sidecar プロキシ用に予約されています。
 
-- **`NET_ADMIN` 和 `NET_RAW` 权限**：如果您的集群[强制执行](https://kubernetes.io/zh-cn/docs/concepts/policy/pod-security-policy/#enabling-pod-security-policies)了
-  [Pod 安全策略](https://kubernetes.io/zh-cn/docs/concepts/policy/pod-security-policy/)，
-  必须给 Pod 配置 `NET_ADMIN` 和 `NET_RAW` 权限。如果您使用
-  [Istio CNI 插件](/zh/docs/setup/additional-setup/cni/)，可以不配置。
+- **`NET_ADMIN` および `NET_RAW` 権限**：クラスタで[Pod セキュリティポリシー](https://kubernetes.io/ja/docs/concepts/policy/pod-security-policy/)が[強制されている](https://kubernetes.io/ja/docs/concepts/policy/pod-security-policy/#enabling-pod-security-policies)場合、Pod に `NET_ADMIN` および `NET_RAW` 権限を付与する必要があります。[Istio CNI プラグイン](/ja/docs/setup/additional-setup/cni/)を使用している場合は不要です。
 
-    要检查您的 Pod 是否有 `NET_ADMIN` 和 `NET_RAW` 权限，您需要检查这些 Pod
-    的[服务账户](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/)是否有
-    `NET_ADMIN` 和 `NET_RAW` 权限的 Pod 安全策略。如果您没有在 Pod 部署中指定服务账户，
-    Pod 会使用其命名空间中的默认服务账户运行。
+  Pod に `NET_ADMIN` および `NET_RAW` 権限があるか確認するには、Pod の[サービスアカウント](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-service-account/)がこれらの権限を持つ Pod セキュリティポリシーを持っているか確認します。Pod デプロイでサービスアカウントを指定していない場合、Pod はネームスペースのデフォルトサービスアカウントで実行されます。
 
-    要列出服务账户的权限，请在下面的命令中用您的值替换 `<your namespace>` 和
-    `<your service account>`。
+  サービスアカウントの権限を一覧表示するには、以下のコマンドで `<your namespace>` と `<your service account>` を置き換えてください。
 
-    {{< text bash >}}
-    $ for psp in $(kubectl get psp -o jsonpath="{range .items[*]}{@.metadata.name}{'\n'}{end}"); do if [ $(kubectl auth can-i use psp/$psp --as=system:serviceaccount:<your namespace>:<your service account>) = yes ]; then kubectl get psp/$psp --no-headers -o=custom-columns=NAME:.metadata.name,CAPS:.spec.allowedCapabilities; fi; done
-    {{< /text >}}
+  {{< text bash >}}
+  $ for psp in $(kubectl get psp -o jsonpath="{range .items[*]}{@.metadata.name}{'\n'}{end}"); do if [ $(kubectl auth can-i use psp/$psp --as=system:serviceaccount:<your namespace>:<your service account>) = yes ]; then kubectl get psp/$psp --no-headers -o=custom-columns=NAME:.metadata.name,CAPS:.spec.allowedCapabilities; fi; done
+  {{< /text >}}
 
-    例如，要检查 `default` 命名空间中的 `default` 服务账户，运行以下命令：
+  例：`default` ネームスペースの `default` サービスアカウントを確認するには：
 
-    {{< text bash >}}
-    $ for psp in $(kubectl get psp -o jsonpath="{range .items[*]}{@.metadata.name}{'\n'}{end}"); do if [ $(kubectl auth can-i use psp/$psp --as=system:serviceaccount:default:default) = yes ]; then kubectl get psp/$psp --no-headers -o=custom-columns=NAME:.metadata.name,CAPS:.spec.allowedCapabilities; fi; done
-    {{< /text >}}
+  {{< text bash >}}
+  $ for psp in $(kubectl get psp -o jsonpath="{range .items[*]}{@.metadata.name}{'\n'}{end}"); do if [ $(kubectl auth can-i use psp/$psp --as=system:serviceaccount:default:default) = yes ]; then kubectl get psp/$psp --no-headers -o=custom-columns=NAME:.metadata.name,CAPS:.spec.allowedCapabilities; fi; done
+  {{< /text >}}
 
-    如果您在服务账户的允许策略的功能列表中看到 `NET_ADMIN`、`NET_RAW` 或 `*`，
-    则您的 Pod 有权限运行 Istio Init 容器。否则，
-    您将需要[提供权限](https://kubernetes.io/zh-cn/docs/concepts/security/pod-security-policy)。
+  サービスアカウントの許可ポリシーの機能リストに `NET_ADMIN`、`NET_RAW`、または `*` があれば、Pod は Istio Init コンテナを実行できます。なければ[権限を付与](https://kubernetes.io/ja/docs/concepts/security/pod-security-policy)してください。
 
-- **Pod 标签（label）**：我们建议使用 Pod 标签显式声明带有应用程序标识符和版本的 Pod。
-  这些标签将上下文信息添加到 Istio 收集的指标和遥测数据中。
-  每个值都是从多个标签中读取的，按优先级从最高到最低的顺序排列：
+- **Pod ラベル**：Pod にはアプリケーション識別子やバージョンを明示するラベルを付与することを推奨します。
+  これらのラベルは、Istio が収集するメトリクスやテレメトリーにコンテキスト情報を追加します。
+  各値は複数のラベルから優先順位順に取得されます：
 
-    - 应用程序名称：`service.istio.io/canonical-name`、`app.kubernetes.io/name` 或 `app`。
-    - 应用程序版本：`service.istio.io/canonical-revision`、`app.kubernetes.io/version` 或 `version`。
+  - アプリ名：`service.istio.io/canonical-name`、`app.kubernetes.io/name`、`app`
+  - アプリバージョン：`service.istio.io/canonical-revision`、`app.kubernetes.io/version`、`version`
 
-- **已命名 Service 端口**：可以选择已命名 Service 端口用于显式指定协议。
-  更多详细信息请参见[协议选择](/zh/docs/ops/configuration/traffic-management/protocol-selection/)。
-  如果一个 Pod 属于多个 [Kubernetes Service](https://kubernetes.io/zh-cn/docs/concepts/services-networking/service/)，
-  这些 Service 不能对不同的协议（例如 HTTP 和 TCP）使用相同的端口号。
+- **名前付き Service ポート**：Service ポートに名前を付けてプロトコルを明示指定できます。
+  詳細は[プロトコル選択](/ja/docs/ops/configuration/traffic-management/protocol-selection/)を参照してください。
+  1 つの Pod が複数の [Kubernetes Service](https://kubernetes.io/ja/docs/concepts/services-networking/service/) に属する場合、異なるプロトコル（例：HTTP と TCP）で同じポート番号を使うことはできません。
 
-## Istio 使用的端口 {#ports-used-by-Istio}
+## Istio が使用するポート {#ports-used-by-Istio}
 
-Istio Sidecar 代理（Envoy）使用以下端口和协议。
+Istio Sidecar プロキシ（Envoy）は以下のポートとプロトコルを使用します。
 
 {{< warning >}}
-为避免与 Sidecar 发生端口冲突，应用程序不应使用 Envoy 所使用的任何端口。
+Sidecar とのポート競合を避けるため、アプリケーションは Envoy が使用するポートを利用しないでください。
 {{< /warning >}}
 
-| 端口 | 协议 | 描述 | 仅限 Pod 内部 |
-|----|----|----|----|
-| 15000 | TCP  | Envoy 管理端口（命令/诊断） | 是 |
-| 15001 | TCP  | Envoy 出站 | 否 |
-| 15002 | TCP  | 故障检测侦听端口 | 是 |
-| 15004 | HTTP | 调试端口 | 是 |
-| 15006 | TCP  | Envoy 入站 | 否 |
-| 15008 | H2   | HBONE mTLS 隧道端口 | 否 |
-| 15020 | HTTP | 从 Istio 代理、Envoy 和应用程序合并的 Prometheus 遥测 | 否 |
-| 15021 | HTTP | 健康检查 | 否 |
-| 15053 | DNS  | DNS 端口，如果启用了捕获 | 是 |
-| 15090 | HTTP | Envoy Prometheus 遥测 | 否 |
+| ポート | プロトコル | 説明                                                                  | Pod 内部のみ |
+| ------ | ---------- | --------------------------------------------------------------------- | ------------ |
+| 15000  | TCP        | Envoy 管理ポート（コマンド/診断）                                     | はい         |
+| 15001  | TCP        | Envoy アウトバウンド                                                  | いいえ       |
+| 15002  | TCP        | ヘルスチェックリスナーポート                                          | はい         |
+| 15004  | HTTP       | デバッグポート                                                        | はい         |
+| 15006  | TCP        | Envoy インバウンド                                                    | いいえ       |
+| 15008  | H2         | HBONE mTLS トンネルポート                                             | いいえ       |
+| 15020  | HTTP       | Istio プロキシ、Envoy、アプリケーションからの Prometheus テレメトリー | いいえ       |
+| 15021  | HTTP       | ヘルスチェック                                                        | いいえ       |
+| 15053  | DNS        | DNS ポート（キャプチャ有効時）                                        | はい         |
+| 15090  | HTTP       | Envoy Prometheus テレメトリー                                         | いいえ       |
 
-Istio 控制平面（istiod）使用以下端口和协议。
+Istio コントロールプレーン（istiod）は以下のポートとプロトコルを使用します。
 
-| 端口 | 协议 | 描述 | 仅限本地主机 |
-|----|----|----|----|
-| 443   | HTTPS | Webhook 服务端口 | 否 |
-| 8080  | HTTP  | 调试接口（已弃用，仅限容器端口） | 否 |
-| 15010 | GRPC  | XDS 和 CA 服务（纯文本，仅用于安全网络） | 否 |
-| 15012 | GRPC  | XDS 和 CA 服务（TLS 和 mTLS，推荐用于生产）| 否 |
-| 15014 | HTTP  | 控制平面监控 | 否 |
-| 15017 | HTTPS | Webhook 容器端口，从 443 转发 | 否 |
+| ポート | プロトコル | 説明                                                               | ローカルホストのみ |
+| ------ | ---------- | ------------------------------------------------------------------ | ------------------ |
+| 443    | HTTPS      | Webhook サービス用ポート                                           | いいえ             |
+| 8080   | HTTP       | デバッグインターフェース（非推奨、コンテナポートのみ）             | いいえ             |
+| 15010  | GRPC       | XDS および CA サービス（プレーンテキスト、安全なネットワークのみ） | いいえ             |
+| 15012  | GRPC       | XDS および CA サービス（TLS/mTLS、本番推奨）                       | いいえ             |
+| 15014  | HTTP       | コントロールプレーン監視                                           | いいえ             |
+| 15017  | HTTPS      | Webhook コンテナポート（443 から転送）                             | いいえ             |
 
-## 服务器优先协议 {#server-first-protocols}
+## サーバーファーストプロトコル {#server-first-protocols}
 
-一些协议是 “服务器优先” 协议，这意味着服务器将发送第一个字节。这可能会对
-[`PERMISSIVE`](/zh/docs/reference/config/security/peer_authentication/#PeerAuthentication-MutualTLS-Mode)
-mTLS 和[自动协议选择](/zh/docs/ops/configuration/traffic-management/protocol-selection/#automatic-protocol-selection)产生影响。
+一部のプロトコルは「サーバーファースト」プロトコルで、サーバーが最初のバイトを送信します。これは、
+[`PERMISSIVE`](/ja/docs/reference/config/security/peer_authentication/#PeerAuthentication-MutualTLS-Mode)
+mTLS や[自動プロトコル選択](/ja/docs/ops/configuration/traffic-management/protocol-selection/#automatic-protocol-selection)に影響します。
 
-这两个功能都通过检查连接的初始字节来确定协议，这与服务器优先协议不兼容。
+これらの機能はどちらも、接続の最初のバイトを検査してプロトコルを判定しますが、サーバーファーストプロトコルとは互換性がありません。
 
-为了支持这些情况，
-请按照[显式协议选择](/zh/docs/ops/configuration/traffic-management/protocol-selection/#explicit-protocol-selection)步骤将应用程序的协议声明为 `TCP`。
+このような場合は、
+[明示的なプロトコル選択](/ja/docs/ops/configuration/traffic-management/protocol-selection/#explicit-protocol-selection)の手順に従い、アプリケーションのプロトコルを `TCP` として宣言してください。
 
-已知以下端口通常承载服务器优先协议，并自动假定为 `TCP`：
+以下のポートはサーバーファーストプロトコルであることが多く、自動的に `TCP` とみなされます：
 
-| 协议    | 端口  |
-| ------- | ----- |
-| SMTP    | 25    |
-| DNS     | 53    |
-| MySQL   | 3306  |
-| MongoDB | 27017 |
+| プロトコル | ポート |
+| ---------- | ------ |
+| SMTP       | 25     |
+| DNS        | 53     |
+| MySQL      | 3306   |
+| MongoDB    | 27017  |
 
-因为 TLS 通信不是服务器优先的，所以 TLS 加密的服务器优先流量将与自动协议检测一起使用，只要您确保所有经过 TLS 嗅探的流量都已加密：
+TLS 通信はサーバーファーストではないため、TLS で暗号化されたサーバーファーストトラフィックは自動プロトコル検出と併用できます。
+TLS スニッフィング対象のトラフィックがすべて暗号化されていることを確認してください：
 
-1. 将服务器的 `mTLS` 模式设置为 `STRICT`。这将对所有请求强制执行 TLS 加密。
-1. 将服务器的 `mTLS` 模式设置为 `DISABLE`。这将禁用 TLS 嗅探，允许使用服务器优先协议。
-1. 配置所有客户端发送 `TLS` 流量，通常通过
-   [`DestinationRule`](/zh/docs/reference/config/networking/destination-rule/#ClientTLSSettings)
-   或依赖自动 mTLS。
-1. 将您的应用程序配置为直接发送 TLS 流量。
+1. サーバーの `mTLS` モードを `STRICT` に設定します。これによりすべてのリクエストで TLS 暗号化が強制されます。
+1. サーバーの `mTLS` モードを `DISABLE` に設定します。これにより TLS スニッフィングが無効化され、サーバーファーストプロトコルが許可されます。
+1. すべてのクライアントが `TLS` トラフィックを送信するよう設定します（通常は
+   [`DestinationRule`](/ja/docs/reference/config/networking/destination-rule/#ClientTLSSettings)
+   または自動 mTLS を利用）。
+1. アプリケーションを直接 TLS トラフィック送信に設定します。
 
-## 出站流量 {#outbound-traffic}
+## アウトバウンドトラフィック {#outbound-traffic}
 
-为了支持 Istio 的流量路由功能，离开 Pod 的流量可能与未部署 Sidecar 时的流量不同。
+Istio のトラフィックルーティング機能をサポートするため、Pod から出るトラフィックは Sidecar 未導入時と異なる場合があります。
 
-对基于 HTTP 的流量，流量根据 `Host` 标头进行路由。如果目标 IP 和 `Host`
-标头未对齐，这可能会导致意外行为。例如，`curl 1.2.3.4 -H "Host: httpbin.default"`
-请求将被路由到 `httpbin` 服务，而不是 `1.2.3.4`。
+HTTP ベースのトラフィックは `Host` ヘッダーでルーティングされます。宛先 IP と `Host`
+ヘッダーが一致しない場合、予期しない動作になることがあります。たとえば、`curl 1.2.3.4 -H "Host: httpbin.default"`
+は `1.2.3.4` ではなく `httpbin` サービスにルーティングされます。
 
-对不基于 HTTP 的流量（包括 HTTPS），Istio 无法访问 `Host` 标头，
-因此路由决策基于服务 IP 地址。
+HTTP 以外のトラフィック（HTTPS など）では、Istio は `Host` ヘッダーにアクセスできないため、サービス IP アドレスでルーティングします。
 
-这意味着直接调用 Pod（例如，`curl <POD_IP>`），而不匹配 Service。
-虽然流量可以[通过](/zh/docs/tasks/traffic-management/egress/egress-control/#envoy-passthrough-to-external-services)，
-但它不会获得 mTLS 加密、流量路由和遥测等完整的 Istio 功能。
+つまり、Pod を直接呼び出す（例：`curl <POD_IP>`）場合、Service にはマッチしません。
+この場合、トラフィックは[パススルー](/ja/docs/tasks/traffic-management/egress/egress-control/#envoy-passthrough-to-external-services)されますが、mTLS 暗号化やトラフィックルーティング、テレメトリーなど Istio の機能は利用できません。
 
-相关的更多信息，请参阅[流量路由](/zh/docs/ops/configuration/traffic-management/traffic-routing)页面。
+詳細は[トラフィックルーティング](/ja/docs/ops/configuration/traffic-management/traffic-routing)ページを参照してください。

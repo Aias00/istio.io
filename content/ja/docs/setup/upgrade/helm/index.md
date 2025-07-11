@@ -1,102 +1,101 @@
 ---
-title: 使用 Helm 升级
-description: 使用 Helm 升级 Istio 的说明。
+title: Helm でのアップグレード
+description: Helm を使った Istio アップグレード手順。
 weight: 27
-keywords: [kubernetes,helm]
+keywords: [kubernetes, helm]
 owner: istio/wg-environments-maintainers
 test: yes
 ---
 
-请参阅本指南使用 [Helm](https://helm.sh/docs/) 升级和配置 Istio 网格。
-本指南假设您已经[使用 Helm 安装](/zh/docs/setup/install/helm)了 Istio 的前一个次要版本或补丁版本。
+このガイドでは [Helm](https://helm.sh/docs/) を使って Istio メッシュをアップグレード・設定する方法を説明します。
+このガイドは、Istio の前のマイナーバージョンまたはパッチバージョンを[Helm でインストール](/ja/docs/setup/install/helm)済みであることを前提としています。
 
 {{< boilerplate helm-preamble >}}
 
 {{< boilerplate helm-prereqs >}}
 
-## 升级步骤 {#upgrade-steps}
+## アップグレード手順 {#upgrade-steps}
 
-升级 Istio 之前，推荐运行 `istioctl x precheck` 命令以确保升级能与您的环境兼容。
+Istio をアップグレードする前に、`istioctl x precheck` コマンドを実行して、アップグレードが環境と互換性があるか確認することを推奨します。
 
 {{< text bash >}}
 $ istioctl x precheck
 ✔ No issues found when checking the cluster. Istio is safe to install or upgrade!
-  To get started, check out <https://istio.io/latest/docs/setup/getting-started/>
+To get started, check out <https://istio.io/latest/docs/setup/getting-started/>
 {{< /text >}}
 
-### 金丝雀升级（推荐） {#canary-upgrade}
+### カナリアアップグレード（推奨） {#canary-upgrade}
 
-您可以使用以下步骤，安装金丝雀版本的 Istio 控制平面来校验新版本是否与您现有的配置和数据平面兼容：
+以下の手順でカナリアバージョンの Istio コントロールプレーンをインストールし、新バージョンが既存の設定やデータプレーンと互換性があるか検証できます：
 
 {{< warning >}}
-请注意，当您安装一个金丝雀版本的 `istiod` 服务时，
-可以在主要安装和金丝雀安装之间共享来自 Base Chart 的底层集群范围资源。
+カナリアバージョンの `istiod` サービスをインストールする場合、Base Chart からのクラスタスコープリソースはメインインストールとカナリアインストールで共有されます。
 {{< /warning >}}
 
 {{< boilerplate crd-upgrade-123 >}}
 
-1. 升级 Istio Base Chart，以确保所有集群范围的资源都是最新的：
+1. Istio Base Chart をアップグレードし、すべてのクラスタスコープリソースを最新にします：
 
-    {{< text bash >}}
-    $ helm upgrade istio-base istio/base -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm upgrade istio-base istio/base -n istio-system
+   {{< /text >}}
 
-1. 通过设置修订版的值来安装金丝雀版本的 Istio 发现 Chart：
+1. revision 値を設定してカナリアバージョンの Istio Discovery Chart をインストールします：
 
-    {{< text bash >}}
-    $ helm install istiod-canary istio/istiod \
-        --set revision=canary \
-        -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm install istiod-canary istio/istiod \
+    --set revision=canary \
+    -n istio-system
+   {{< /text >}}
 
-1. 验证您已经将两个 `istiod` 版本安装到了您的集群中：
+1. 2 つの `istiod` バージョンがクラスタにインストールされていることを確認します：
 
-    {{< text bash >}}
-    $ kubectl get pods -l app=istiod -L istio.io/rev -n istio-system
-      NAME                            READY   STATUS    RESTARTS   AGE   REV
-      istiod-5649c48ddc-dlkh8         1/1     Running   0          71m   default
-      istiod-canary-9cc9fd96f-jpc7n   1/1     Running   0          34m   canary
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl get pods -l app=istiod -L istio.io/rev -n istio-system
+   NAME READY STATUS RESTARTS AGE REV
+   istiod-5649c48ddc-dlkh8 1/1 Running 0 71m default
+   istiod-canary-9cc9fd96f-jpc7n 1/1 Running 0 34m canary
+   {{< /text >}}
 
-1. 如果您正在使用 [Istio Gateway](/zh/docs/setup/additional-setup/gateway/#deploying-a-gateway)，
-    可通过设置 revision 的值来安装金丝雀修订版的 Gateway Chart：
+1. [Istio Gateway](/ja/docs/setup/additional-setup/gateway/#deploying-a-gateway) を利用している場合、
+   revision 値を設定してカナリアリビジョンの Gateway Chart をインストールします：
 
-    {{< text bash >}}
-    $ helm install istio-ingress-canary istio/gateway \
-        --set revision=canary \
-        -n istio-ingress
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm install istio-ingress-canary istio/gateway \
+    --set revision=canary \
+    -n istio-ingress
+   {{< /text >}}
 
-1. 验证您已将两个 `istio-ingress gateway` 版本安装到了集群中：
+1. 2 つの `istio-ingress gateway` バージョンがクラスタにインストールされていることを確認します：
 
-    {{< text bash >}}
-    $ kubectl get pods -L istio.io/rev -n istio-ingress
-      NAME                                    READY   STATUS    RESTARTS   AGE     REV
-      istio-ingress-754f55f7f6-6zg8n          1/1     Running   0          5m22s   default
-      istio-ingress-canary-5d649bd644-4m8lp   1/1     Running   0          3m24s   canary
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl get pods -L istio.io/rev -n istio-ingress
+   NAME READY STATUS RESTARTS AGE REV
+   istio-ingress-754f55f7f6-6zg8n 1/1 Running 0 5m22s default
+   istio-ingress-canary-5d649bd644-4m8lp 1/1 Running 0 3m24s canary
+   {{< /text >}}
 
-    参见[升级 Gateway](/zh/docs/setup/additional-setup/gateway/#canary-upgrade-advanced)了解有关 Gateway 金丝雀升级的深度解析文档。
+   [Gateway アップグレード](/ja/docs/setup/additional-setup/gateway/#canary-upgrade-advanced) も参照してください。
 
-1. 遵循[此处](/zh/docs/setup/upgrade/canary/#data-plane)的步骤来测试和迁移现有工作负载，以使用金丝雀控制平面。
+1. [こちら](/ja/docs/setup/upgrade/canary/#data-plane)の手順に従って、既存ワークロードをテストし、カナリアコントロールプレーンへ移行します。
 
-1. 一旦您已验证并迁移工作负载以使用金丝雀控制平面，您就可以卸载旧的控制平面：
+1. カナリアコントロールプレーンでの動作を確認し、ワークロードを移行し終えたら、旧コントロールプレーンをアンインストールします：
 
-    {{< text bash >}}
-    $ helm delete istiod -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm delete istiod -n istio-system
+   {{< /text >}}
 
-1. 再次升级 Istio Base Chart，这次将新的 `canary` 修订版本设为集群范围的默认版本。
+1. Istio Base Chart を再度アップグレードし、新しい `canary` リビジョンをクラスタスコープのデフォルトバージョンに設定します：
 
-    {{< text bash >}}
-    $ helm upgrade istio-base istio/base --set defaultRevision=canary -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm upgrade istio-base istio/base --set defaultRevision=canary -n istio-system
+   {{< /text >}}
 
-### 稳定修订标签（实验特性） {#stable-revision-labels}
+### 安定リビジョンラベル（実験的機能） {#stable-revision-labels}
 
 {{< boilerplate revision-tags-preamble >}}
 
-#### 用法 {#usage}
+#### 使い方 {#usage}
 
 {{< boilerplate revision-tags-usage >}}
 
@@ -106,8 +105,8 @@ $ helm template istiod istio/istiod -s templates/revision-tags.yaml --set revisi
 {{< /text >}}
 
 {{< warning >}}
-这些命令将在您的集群中创建新的 `MutatingWebhookConfiguration` 资源，由于是通过 `kubectl` 手动应用这些模板，
-所以这些资源不属于任何 Helm Chart。参见以下指示说明来卸载修订标记。
+これらのコマンドは新しい `MutatingWebhookConfiguration` リソースをクラスタに作成しますが、
+kubectl で手動適用するため、これらのリソースは Helm Chart に属しません。アンインストール方法は下記を参照してください。
 {{< /warning >}}
 
 {{< boilerplate revision-tags-middle >}}
@@ -118,7 +117,7 @@ $ helm template istiod istio/istiod -s templates/revision-tags.yaml --set revisi
 
 {{< boilerplate revision-tags-prologue >}}
 
-#### 默认标记 {#default-tag}
+#### デフォルトタグ {#default-tag}
 
 {{< boilerplate revision-tags-default-intro >}}
 
@@ -128,34 +127,34 @@ $ helm template istiod istio/istiod -s templates/revision-tags.yaml --set revisi
 
 {{< boilerplate revision-tags-default-outro >}}
 
-### 原地升级 {#in-place-upgrade}
+### インプレースアップグレード {#in-place-upgrade}
 
-您可以使用 Helm 升级工作流在您的集群中对 Istio 执行原地升级。
+Helm アップグレードワークフローを使って、クラスタ内の Istio をインプレースアップグレードできます。
 
 {{< warning >}}
-将您的重载值文件或自定义选项添加到以下命令，以在 Helm 升级期间保留您的自定义配置。
+Helm アップグレード時にカスタム設定を保持するには、上記コマンドにオーバーライド値ファイルやカスタムオプションを追加してください。
 {{< /warning >}}
 
 {{< boilerplate crd-upgrade-123 >}}
 
-1. 升级 Istio Base Chart：
+1. Istio Base Chart をアップグレードします：
 
-    {{< text bash >}}
-    $ helm upgrade istio-base istio/base -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm upgrade istio-base istio/base -n istio-system
+   {{< /text >}}
 
-1. 升级 Istio Discovery Chart：
+1. Istio Discovery Chart をアップグレードします：
 
-    {{< text bash >}}
-    $ helm upgrade istiod istio/istiod -n istio-system
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm upgrade istiod istio/istiod -n istio-system
+   {{< /text >}}
 
-1. （可选）升级任何集群中安装的 Gateway Chart：
+1. （オプション）クラスタにインストールされている Gateway Chart もアップグレードします：
 
-    {{< text bash >}}
-    $ helm upgrade istio-ingress istio/gateway -n istio-ingress
-    {{< /text >}}
+   {{< text bash >}}
+   $ helm upgrade istio-ingress istio/gateway -n istio-ingress
+   {{< /text >}}
 
-## 卸载 {#uninstall}
+## アンインストール {#uninstall}
 
-请参阅 [Helm 安装指南](/zh/docs/setup/install/helm/#uninstall)中的卸载章节。
+[Helm インストールガイド](/ja/docs/setup/install/helm/#uninstall) のアンインストール手順を参照してください。

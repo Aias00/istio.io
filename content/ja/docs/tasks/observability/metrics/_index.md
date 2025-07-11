@@ -1,8 +1,8 @@
 ---
-title: 指标
-description: 演示 Istio 中指标的收集和查询。
+title: メトリクス
+description: Istio におけるメトリクスの収集とクエリ方法を紹介します。
 weight: 1
 aliases:
- - /zh/docs/tasks/telemetry/metrics/
+  - /zh/docs/tasks/telemetry/metrics/
 test: n/a
 ---

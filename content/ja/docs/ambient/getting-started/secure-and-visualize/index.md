@@ -65,7 +65,7 @@ Kiali の **Namespace** ドロップダウンメニューで **default** 名前�
 
 ダッシュボード上の2つのサービスを接続する線をクリックすると、Istio が収集したインバウンドおよびアウトバウンドトラフィック指標を確認できます。
 
-{{< image link="./kiali-tcp-traffic.png" caption="L4 流量" >}}
+{{< image link="./kiali-tcp-traffic.png" caption="L4 トラフィック" >}}
 
 TCP 指標以外に、Istio は各サービスに強力な ID を作成します：
 SPIFFE ID。この ID は認証ポリシーを作成するために使用できます。

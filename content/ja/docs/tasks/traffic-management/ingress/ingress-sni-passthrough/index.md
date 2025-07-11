@@ -1,58 +1,50 @@
 ---
-title: 无 TLS 终止的 Ingress Gateway
-description: 如何为一个 Ingress Gateway 配置 SNI 透传。
+title: TLS 終端なしの Ingress Gateway
+description: Ingress Gateway で SNI パススルーを構成する方法。
 weight: 30
-keywords: [traffic-management,ingress,https]
+keywords: [traffic-management, ingress, https]
 aliases:
   - /zh/docs/examples/advanced-gateways/ingress-sni-passthrough/
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-[安全网关](/zh/docs/tasks/traffic-management/ingress/secure-ingress/)说明了如何为
-HTTP 服务配置 HTTPS 访问入口。而本示例将说明如何为 HTTPS 服务配置 HTTPS 访问入口，
-即配置 Ingress Gateway 以执行 SNI 透传，而不是对传入请求进行 TLS 终止。
+[セキュアゲートウェイ](/ja/docs/tasks/traffic-management/ingress/secure-ingress/) では、HTTP サービスの HTTPS アクセスエントリの構成方法を説明しています。本例では、HTTPS サービスの HTTPS アクセスエントリの構成、すなわち Ingress Gateway で TLS 終端を行わず SNI パススルーを構成する方法を説明します。
 
-本任务中的 HTTPS 示例服务是一个简单的
-[NGINX](https://www.nginx.com) 服务。在接下来的步骤中，
-您首先在 Kubernetes 集群中创建一个 NGINX 服务。接着，
-通过网关给这个服务配置一个域名是 `nginx.example.com` 的访问入口。
+このタスクの HTTPS サンプルサービスはシンプルな [NGINX](https://www.nginx.com) サービスです。以下の手順で、まず Kubernetes クラスタに NGINX サービスを作成し、次にこのサービスに `nginx.example.com` というドメイン名でアクセスできるようにゲートウェイを構成します。
 
 {{< boilerplate gateway-api-gamma-experimental >}}
 
-## 准备工作 {#before-you-begin}
+## 準備 {#before-you-begin}
 
-按照[安装指南](/zh/docs/setup/)部署 Istio。
+[インストールガイド](/ja/docs/setup/) に従って Istio をデプロイしてください。
 
-## 生成客户端和服务端的证书和密钥 {#generate-client-and-server-certificates-and-keys}
+## クライアントおよびサーバー証明書と鍵の生成 {#generate-client-and-server-certificates-and-keys}
 
-对于此任务，您可以使用自己喜欢的工具来生成证书和密钥。以下命令使用
-[openssl](https://man.openbsd.org/openssl.1)：
+このタスクでは、お好みのツールで証明書と鍵を生成できます。以下のコマンドは [openssl](https://man.openbsd.org/openssl.1) を使用しています：
 
-1. 创建根证书和私钥来为您的服务签名证书：
+1. サービス証明書の署名用にルート証明書と秘密鍵を作成します：
 
-    {{< text bash >}}
-    $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
-    {{< /text >}}
+   {{< text bash >}}
+   $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
+   {{< /text >}}
 
-1. 为 `nginx.example.com` 创建证书和私钥：
+1. `nginx.example.com` 用の証明書と秘密鍵を作成します：
 
-    {{< text bash >}}
-    $ openssl req -out nginx.example.com.csr -newkey rsa:2048 -nodes -keyout nginx.example.com.key -subj "/CN=nginx.example.com/O=some organization"
-    $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in nginx.example.com.csr -out nginx.example.com.crt
-    {{< /text >}}
+   {{< text bash >}}
+   $ openssl req -out nginx.example.com.csr -newkey rsa:2048 -nodes -keyout nginx.example.com.key -subj "/CN=nginx.example.com/O=some organization"
+   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in nginx.example.com.csr -out nginx.example.com.crt
+   {{< /text >}}
 
-## 部署一个 NGINX 服务 {#deploy-an-nginx-server}
+## NGINX サービスのデプロイ {#deploy-an-nginx-server}
 
-1. 创建一个 Kubernetes 的
-   [Secret](https://kubernetes.io/zh-cn/docs/concepts/configuration/secret/)
-   资源来保存服务的证书：
+1.  サービスの証明書を保存する Kubernetes の [Secret](https://kubernetes.io/ja/docs/concepts/configuration/secret/) リソースを作成します：
 
     {{< text bash >}}
     $ kubectl create secret tls nginx-server-certs --key nginx.example.com.key --cert nginx.example.com.crt
     {{< /text >}}
 
-1. 为 NGINX 服务创建一个配置文件：
+1.  NGINX サービス用の設定ファイルを作成します：
 
     {{< text bash >}}
     $ cat <<\EOF > ./nginx.conf
@@ -60,14 +52,14 @@ HTTP 服务配置 HTTPS 访问入口。而本示例将说明如何为 HTTPS 服�
     }
 
     http {
-      log_format main '$remote_addr - $remote_user [$time_local]  $status '
+    log_format main '$remote_addr - $remote_user [$time_local] $status '
       '"$request" $body_bytes_sent "$http_referer" '
-      '"$http_user_agent" "$http_x_forwarded_for"';
-      access_log /var/log/nginx/access.log main;
-      error_log  /var/log/nginx/error.log;
+    '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log /var/log/nginx/access.log main;
+    error_log /var/log/nginx/error.log;
 
-      server {
-        listen 443 ssl;
+    server {
+    listen 443 ssl;
 
         root /usr/share/nginx/html;
         index index.html;
@@ -75,93 +67,87 @@ HTTP 服务配置 HTTPS 访问入口。而本示例将说明如何为 HTTPS 服�
         server_name nginx.example.com;
         ssl_certificate /etc/nginx-server-certs/tls.crt;
         ssl_certificate_key /etc/nginx-server-certs/tls.key;
-      }
+
+    }
     }
     EOF
     {{< /text >}}
 
-1. 创建一个 Kubernetes 的
-   [ConfigMap](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-pod-configmap/)
-   资源来保存 NGINX 服务的配置：
+1.  NGINX サービスの設定を保存する Kubernetes の [ConfigMap](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-pod-configmap/) リソースを作成します：
 
     {{< text bash >}}
     $ kubectl create configmap nginx-configmap --from-file=nginx.conf=./nginx.conf
     {{< /text >}}
 
-1. 部署 NGINX 服务：
+1.  NGINX サービスをデプロイします：
 
     {{< text bash >}}
     $ cat <<EOF | istioctl kube-inject -f - | kubectl apply -f -
     apiVersion: v1
     kind: Service
     metadata:
-      name: my-nginx
-      labels:
-        run: my-nginx
+    name: my-nginx
+    labels:
+    run: my-nginx
     spec:
-      ports:
-      - port: 443
-        protocol: TCP
+    ports:
+
+    - port: 443
+      protocol: TCP
       selector:
-        run: my-nginx
-    ---
+      run: my-nginx
+
+    ***
+
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      name: my-nginx
+    name: my-nginx
     spec:
-      selector:
-        matchLabels:
-          run: my-nginx
-      replicas: 1
-      template:
-        metadata:
-          labels:
-            run: my-nginx
-        spec:
-          containers:
-          - name: my-nginx
-            image: nginx
-            ports:
-            - containerPort: 443
-            volumeMounts:
-            - name: nginx-config
-              mountPath: /etc/nginx
-              readOnly: true
-            - name: nginx-server-certs
-              mountPath: /etc/nginx-server-certs
-              readOnly: true
-          volumes:
-          - name: nginx-config
-            configMap:
-              name: nginx-configmap
-          - name: nginx-server-certs
-            secret:
-              secretName: nginx-server-certs
+    selector:
+    matchLabels:
+    run: my-nginx
+    replicas: 1
+    template:
+    metadata:
+    labels:
+    run: my-nginx
+    spec:
+    containers: - name: my-nginx
+    image: nginx
+    ports: - containerPort: 443
+    volumeMounts: - name: nginx-config
+    mountPath: /etc/nginx
+    readOnly: true - name: nginx-server-certs
+    mountPath: /etc/nginx-server-certs
+    readOnly: true
+    volumes: - name: nginx-config
+    configMap:
+    name: nginx-configmap - name: nginx-server-certs
+    secret:
+    secretName: nginx-server-certs
     EOF
     {{< /text >}}
 
-1. 要测试 NGINX 服务是否已成功部署，需要从其 Sidecar 代理发送请求，
-   并忽略检查服务端的证书（使用 `curl` 的 `-k` 选项）。
-   确保正确打印服务端的证书，即 `common name (CN)` 等于 `nginx.example.com`。
+1.  NGINX サービスが正しくデプロイされたかをテストするには、Sidecar プロキシからリクエストを送り、サーバ証明書の検証をスキップします（`curl` の `-k` オプションを使用）。サーバ証明書の `common name (CN)` が `nginx.example.com` であることを確認してください。
 
     {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod  -l run=my-nginx -o jsonpath={.items..metadata.name})" -c istio-proxy -- curl -sS -v -k --resolve nginx.example.com:443:127.0.0.1 https://nginx.example.com
+    $ kubectl exec "$(kubectl get pod -l run=my-nginx -o jsonpath={.items..metadata.name})" -c istio-proxy -- curl -sS -v -k --resolve nginx.example.com:443:127.0.0.1 https://nginx.example.com
     ...
     SSL connection using TLSv1.2 / ECDHE-RSA-AES256-GCM-SHA384
     ALPN, server accepted to use http/1.1
     Server certificate:
-      subject: CN=nginx.example.com; O=some organization
-      start date: May 27 14:18:47 2020 GMT
-      expire date: May 27 14:18:47 2021 GMT
-      issuer: O=example Inc.; CN=example.com
-      SSL certificate verify result: unable to get local issuer certificate (20), continuing anyway.
+    subject: CN=nginx.example.com; O=some organization
+    start date: May 27 14:18:47 2020 GMT
+    expire date: May 27 14:18:47 2021 GMT
+    issuer: O=example Inc.; CN=example.com
+    SSL certificate verify result: unable to get local issuer certificate (20), continuing anyway.
 
     > GET / HTTP/1.1
     > User-Agent: curl/7.58.0
     > Host: nginx.example.com
-    ...
-    < HTTP/1.1 200 OK
+    > ...
+    > < HTTP/1.1 200 OK
 
     < Server: nginx/1.17.10
     ...
@@ -172,103 +158,97 @@ HTTP 服务配置 HTTPS 访问入口。而本示例将说明如何为 HTTPS 服�
     ...
     {{< /text >}}
 
-## 配置 Ingress Gateway {#configure-an-ingress-gateway}
+## Ingress Gateway の構成 {#configure-an-ingress-gateway}
 
-1. 定义一个 `server` 部分的端口为 443 的 `Gateway`。
-   注意，`PASSTHROUGH tls` TLS 模式，
-   该模式指示 Gateway 以 AS IS 方式传递入口流量，而不终止 TLS。
+1. ポート 443 の `server` セクションを持つ `Gateway` を定義します。`PASSTHROUGH tls` TLS モードに注意してください。このモードは Gateway が入口トラフィックをそのまま（AS IS）パススルーし、TLS 終端を行わないことを示します。
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: networking.istio.io/v1
-    kind: Gateway
-    metadata:
-      name: mygateway
-    spec:
-      selector:
-        istio: ingressgateway # 使用 istio 默认的入口网关
-      servers:
-      - port:
-          number: 443
-          name: https
-          protocol: HTTPS
-        tls:
-          mode: PASSTHROUGH
-        hosts:
-        - nginx.example.com
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: networking.istio.io/v1
+   kind: Gateway
+   metadata:
+   name: mygateway
+   spec:
+   selector:
+   istio: ingressgateway # istio デフォルトの入口ゲートウェイを使用
+   servers:
 
-1. 为通过 `Gateway` 进入的流量配置路由：
+   - port:
+     number: 443
+     name: https
+     protocol: HTTPS
+     tls:
+     mode: PASSTHROUGH
+     hosts: - nginx.example.com
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: networking.istio.io/v1
-    kind: VirtualService
-    metadata:
-      name: nginx
-    spec:
-      hosts:
-      - nginx.example.com
-      gateways:
-      - mygateway
-      tls:
-      - match:
-        - port: 443
-          sniHosts:
-          - nginx.example.com
-        route:
-        - destination:
-            host: my-nginx
-            port:
-              number: 443
-    EOF
-    {{< /text >}}
+1. `Gateway` 経由で入ってくるトラフィックのルーティングを構成します：
 
-1. 根据[确定 Ingress IP 和端口](/zh/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-i-p-and-ports)中的指令来定义环境变量
-   `SECURE_INGRESS_PORT` 和 `INGRESS_HOST`。
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: networking.istio.io/v1
+   kind: VirtualService
+   metadata:
+   name: nginx
+   spec:
+   hosts:
 
-1. 从集群外访问 NGINX 服务。注意，服务端返回了正确的证书，
-   并且该证书已成功验证（输出了 **SSL certificate verify ok**）。
+   - nginx.example.com
+     gateways:
+   - mygateway
+     tls:
+   - match: - port: 443
+     sniHosts: - nginx.example.com
+     route: - destination:
+     host: my-nginx
+     port:
+     number: 443
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ curl -v --resolve "nginx.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" --cacert example.com.crt "https://nginx.example.com:$SECURE_INGRESS_PORT"
-    Server certificate:
-      subject: CN=nginx.example.com; O=some organization
-      start date: Wed, 15 Aug 2018 07:29:07 GMT
-      expire date: Sun, 25 Aug 2019 07:29:07 GMT
-      issuer: O=example Inc.; CN=example.com
-      SSL certificate verify ok.
+1. [Ingress IP とポートの確認](/ja/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-i-p-and-ports) の指示に従い、`SECURE_INGRESS_PORT` と `INGRESS_HOST` の環境変数を定義します。
 
-      < HTTP/1.1 200 OK
-      < Server: nginx/1.15.2
-      ...
-      <html>
-      <head>
-      <title>Welcome to nginx!</title>
-    {{< /text >}}
+1. クラスタ外から NGINX サービスにアクセスします。サーバ証明書が正しく返され、証明書が正常に検証されたこと（**SSL certificate verify ok** の出力）が確認できます。
 
-## 清除 {#cleanup}
+   {{< text bash >}}
+   $ curl -v --resolve "nginx.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" --cacert example.com.crt "https://nginx.example.com:$SECURE_INGRESS_PORT"
+   Server certificate:
+   subject: CN=nginx.example.com; O=some organization
+   start date: Wed, 15 Aug 2018 07:29:07 GMT
+   expire date: Sun, 25 Aug 2019 07:29:07 GMT
+   issuer: O=example Inc.; CN=example.com
+   SSL certificate verify ok.
 
-1. 删除已创建的 Kubernetes 资源：
+   < HTTP/1.1 200 OK
+   < Server: nginx/1.15.2
+   ...
+     <html>
+     <head>
+     <title>Welcome to nginx!</title>
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete secret nginx-server-certs
-    $ kubectl delete configmap nginx-configmap
-    $ kubectl delete service my-nginx
-    $ kubectl delete deployment my-nginx
-    $ kubectl delete gateway mygateway
-    $ kubectl delete virtualservice nginx
-    {{< /text >}}
+## クリーンアップ {#cleanup}
 
-1. 删除证书和密钥：
+1. 作成した Kubernetes リソースを削除します：
 
-    {{< text bash >}}
-    $ rm example.com.crt example.com.key nginx.example.com.crt nginx.example.com.key nginx.example.com.csr
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete secret nginx-server-certs
+   $ kubectl delete configmap nginx-configmap
+   $ kubectl delete service my-nginx
+   $ kubectl delete deployment my-nginx
+   $ kubectl delete gateway mygateway
+   $ kubectl delete virtualservice nginx
+   {{< /text >}}
 
-1. 删除本示例中生成的配置文件：
+1. 証明書と鍵を削除します：
 
-    {{< text bash >}}
-    $ rm ./nginx.conf
-    {{< /text >}}
+   {{< text bash >}}
+   $ rm example.com.crt example.com.key nginx.example.com.crt nginx.example.com.key nginx.example.com.csr
+   {{< /text >}}
+
+1. 本サンプルで生成した設定ファイルを削除します：
+
+   {{< text bash >}}
+   $ rm ./nginx.conf
+   {{< /text >}}

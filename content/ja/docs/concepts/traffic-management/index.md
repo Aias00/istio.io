@@ -1,652 +1,509 @@
 ---
-title: 流量管理
-description: 描述 Istio 多样的流量路由和控制特性。
+title: トラフィック管理
+description: Istio の多様なトラフィックルーティングと制御機能について説明します。
 weight: 20
-keywords: [traffic-management, pilot, envoy-proxies, service-discovery, load-balancing]
+keywords:
+  [traffic-management, pilot, envoy-proxies, service-discovery, load-balancing]
 aliases:
-    - /zh/docs/concepts/traffic-management/pilot
-    - /zh/docs/concepts/traffic-management/rules-configuration
-    - /zh/docs/concepts/traffic-management/fault-injection
-    - /zh/docs/concepts/traffic-management/handling-failures
-    - /zh/docs/concepts/traffic-management/load-balancing
-    - /zh/docs/concepts/traffic-management/request-routing
-    - /zh/docs/concepts/traffic-management/pilot.html
-    - /zh/docs/concepts/traffic-management/overview.html
+  - /zh/docs/concepts/traffic-management/pilot
+  - /zh/docs/concepts/traffic-management/rules-configuration
+  - /zh/docs/concepts/traffic-management/fault-injection
+  - /zh/docs/concepts/traffic-management/handling-failures
+  - /zh/docs/concepts/traffic-management/load-balancing
+  - /zh/docs/concepts/traffic-management/request-routing
+  - /zh/docs/concepts/traffic-management/pilot.html
+  - /zh/docs/concepts/traffic-management/overview.html
 owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-Istio 的流量路由规则可以让您很容易的控制服务之间的流量和 API 调用。
-Istio 简化了服务级别属性的配置，比如熔断器、超时和重试，并且能轻松的设置重要的任务，
-如 A/B 测试、金丝雀发布、基于流量百分比切分的分阶段发布等。它还提供了开箱即用的故障恢复特性，
-有助于增强应用的健壮性，从而更好地应对被依赖的服务或网络发生故障的情况。
+Istio のトラフィックルーティングルールを使うと、サービス間のトラフィックや API コールを簡単に制御できます。Istio はサービスレベルの属性（サーキットブレーカー、タイムアウト、リトライなど）の設定を簡素化し、A/B テスト、カナリアリリース、トラフィックのパーセンテージ分割による段階的リリースなどの重要なタスクも容易に設定できます。また、堅牢性を高めるための障害復旧機能も標準で備えており、依存サービスやネットワーク障害時にもアプリケーションの健全性を維持できます。
 
-Istio 的流量管理模型源于和服务一起部署的 {{< gloss >}}Envoy{{</ gloss >}} 代理。
-网格内服务发送和接收的所有 {{< gloss >}}data plane{{</ gloss >}} 流量都经由 Envoy 代理，
-这让控制网格内的流量变得异常简单，而且不需要对服务做任何的更改。
+Istio のトラフィック管理モデルは、サービスとともにデプロイされる {{< gloss >}}Envoy{{</ gloss >}} プロキシに基づいています。メッシュ内のサービスが送受信するすべての {{< gloss >}}データプレーン{{</ gloss >}} トラフィックは Envoy プロキシを経由するため、サービスの変更なしにメッシュ内トラフィックを簡単に制御できます。
 
-本节中描述的功能特性，如果您对它们是如何工作的感兴趣的话，
-可以在[架构概述](/zh/docs/ops/deployment/architecture/)中找到关于 Istio
-的流量管理实现的更多信息。本部分只介绍 Istio 的流量管理特性。
+本セクションで説明する機能の仕組みに興味がある場合は、[アーキテクチャ概要](/ja/docs/ops/deployment/architecture/)で Istio のトラフィック管理実装の詳細を参照してください。本セクションでは Istio のトラフィック管理機能のみを紹介します。
 
-## Istio 流量管理介绍 {#introducing-Istio-traffic-management}
+## Istio トラフィック管理の概要 {#introducing-Istio-traffic-management}
 
-为了在网格中导流，Istio 需要知道所有的 endpoint 在哪以及它们属于哪些服务。
-为了定位到 {{< gloss >}}service registry{{</ gloss >}}（服务注册中心），
-Istio 会连接到一个服务发现系统。例如，如果您在 Kubernetes 集群上安装了 Istio，
-那么它将自动检测该集群中的服务和 endpoint。
+メッシュ内でトラフィックを制御するには、Istio がすべてのエンドポイントの場所と、それらが属するサービスを把握する必要があります。Istio は {{< gloss >}}サービスレジストリ{{</ gloss >}}（サービス登録センター）に接続し、サービスディスカバリシステムと連携します。たとえば、Kubernetes クラスタ上に Istio をインストールすると、Istio はそのクラスタ内のサービスやエンドポイントを自動検出します。
 
-使用此服务注册中心，Envoy 代理可以将流量定向到相关服务。大多数基于微服务的应用程序，
-每个服务的工作负载都有多个实例来处理流量，称为负载均衡池。默认情况下，
-Envoy 代理基于轮询调度模型在服务的负载均衡池内分发流量，按顺序将请求发送给池中每个成员，
-一旦所有服务实例均接收过一次请求后，就重新回到第一个池成员。
+このサービスレジストリを利用して、Envoy プロキシはトラフィックを適切なサービスにルーティングできます。多くのマイクロサービスアプリケーションでは、各サービスのワークロードが複数のインスタンス（負荷分散プール）でトラフィックを処理します。デフォルトでは、Envoy プロキシはラウンドロビン方式でサービスのインスタンス間にトラフィックを分配し、順番に各インスタンスへリクエストを送信します。
 
-Istio 基本的服务发现和负载均衡能力为您提供了一个可用的服务网格，
-但它能做到的远比这多的多。在许多情况下，您可能希望对网格的流量情况进行更细粒度的控制。
-作为 A/B 测试的一部分，您可能想将特定百分比的流量定向到新版本的服务，
-或者为特定的服务实例子集应用不同的负载均衡策略。您可能还想对进出网格的流量应用特殊的规则，
-或者将网格的外部依赖项添加到服务注册中心。通过使用 Istio 的流量管理 API 将流量配置添加到 Istio，
-就可以完成所有这些甚至更多的工作。
+Istio の基本的なサービスディスカバリと負荷分散機能だけでもサービスメッシュとして利用できますが、Istio にはさらに多くの機能があります。たとえば、A/B テストの一環として特定の割合のトラフィックを新バージョンのサービスに送ったり、特定のサービスインスタンスサブセットに異なる負荷分散戦略を適用したり、メッシュ外部の依存先をサービスレジストリに追加したりできます。Istio のトラフィック管理 API を使ってトラフィック設定を追加することで、これらすべて、さらにはそれ以上のことが可能です。
 
-和其他 Istio 配置一样，这些 API 也使用 Kubernetes 的自定义资源定义
-（{{< gloss >}}CRD{{</ gloss >}}）来声明，您可以像示例中看到的那样使用
-YAML 进行配置。
+他の Istio 設定と同様、これらの API も Kubernetes のカスタムリソース定義（{{< gloss >}}CRD{{</ gloss >}}）で宣言され、YAML で設定できます。
 
-本章节的其余部分将分别介绍每个流量管理 API 以及如何使用它们。这些资源包括：
+この章の残りでは、各トラフィック管理 API とその使い方を個別に説明します。これらのリソースには以下が含まれます：
 
-- [虚拟服务](#virtual-services)
-- [目标规则](#destination-rules)
-- [网关](#gateways)
-- [服务入口](#service-entries)
-- [Sidecar](#sidecars)
+- [VirtualService（仮想サービス）](#virtual-services)
+- [DestinationRule（目標ルール）](#destination-rules)
+- [Gateway（ゲートウェイ）](#gateways)
+- [ServiceEntry（サービスエントリ）](#service-entries)
+- [Sidecar（サイドカー）](#sidecars)
 
-指南也对 API 资源内构建的[网络弹性和测试](#network-resilience-and-testing)做了概述。
+また、API リソースで構成できる[ネットワークレジリエンスとテスト](#network-resilience-and-testing)についても概説します。
 
-## 虚拟服务 {#virtual-services}
+## 仮想サービス {#virtual-services}
 
-[虚拟服务（Virtual Service）](/zh/docs/reference/config/networking/virtual-service/#VirtualService)
-和[目标规则（Destination Rule）](#destination-rules) 是 Istio 流量路由功能的核心构建模块。
-基于 Istio 和您的平台提供的基本连通性及服务发现能力，虚拟服务允许您配置请求如何路由到特定的服务。
-每个虚拟服务包含一组按顺序评估的路由规则，通过这些规则，Istio 将每个到虚拟服务的给定请求匹配到特定的、真实的目标地址。
-根据您的使用场景，您的服务网格可以有多个虚拟服务或者不需要虚拟服务。
+[仮想サービス（Virtual Service）](/ja/docs/reference/config/networking/virtual-service/#VirtualService)と[目標ルール（Destination Rule）](#destination-rules)は、Istio のトラフィックルーティング機能の中核となる構成要素です。Istio とプラットフォームが提供する基本的な接続性とサービスディスカバリ機能を基に、仮想サービスを使うことでリクエストがどのサービスにルーティングされるかを柔軟に設定できます。各仮想サービスは順番に評価されるルーティングルールのセットを持ち、Istio は各リクエストを特定の実際のターゲットアドレスにマッチさせます。ユースケースによっては、サービスメッシュ内に複数の仮想サービスを持つことも、仮想サービスが不要な場合もあります。
 
-### 为什么使用虚拟服务？ {#why-use-virtual-services}
+### なぜ仮想サービスを使うのか？ {#why-use-virtual-services}
 
-虚拟服务在增强 Istio 流量管理的灵活性和有效性方面，发挥着至关重要的作用，
-实现方式是解耦客户端请求的目标地址与实际响应请求的目标工作负载。
-虚拟服务同时提供了丰富的方式，为发送至这些工作负载的流量指定不同的路由规则。
+仮想サービスは、クライアントリクエストのターゲットアドレスと実際にリクエストを処理するワークロードを分離することで、Istio のトラフィック管理の柔軟性と有効性を大きく高めます。仮想サービスは、これらのワークロードに送信されるトラフィックに対して多様なルーティングルールを指定できます。
 
-为什么这如此有用？就像在介绍中所说，如果没有虚拟服务，
-Envoy 会在所有的服务实例中使用轮询的负载均衡策略分发请求。
-您可以用您对工作负载的了解来改善这种行为。例如，有些可能代表不同的版本。
-这在 A/B 测试中可能有用，您可能希望在其中配置基于不同服务版本的流量百分比路由，
-或指引从内部用户到特定实例集的流量。
+なぜこれが重要なのでしょうか？前述の通り、仮想サービスがなければ、Envoy はすべてのサービスインスタンスにラウンドロビンでリクエストを分配します。ワークロードのバージョンなどの知識を活用して、この挙動を改善できます。たとえば、A/B テストで異なるサービスバージョンごとにトラフィックの割合を変えたり、特定のユーザーからのリクエストを特定のインスタンスグループに誘導したりできます。
 
-使用虚拟服务，您可以为一个或多个主机名指定流量行为。在虚拟服务中使用路由规则，
-告诉 Envoy 如何发送虚拟服务的流量到适当的目标。路由目标地址可以是同一服务的不同版本，
-也可以是完全不同的服务。
+仮想サービスを使うと、1 つまたは複数のホスト名に対してトラフィックの挙動を指定できます。仮想サービスのルーティングルールで、Envoy に対して仮想サービスのトラフィックをどのターゲットに送るかを指示します。ターゲットは同じサービスの異なるバージョンでも、まったく別のサービスでも構いません。
 
-一个典型的用例是将流量发送到被指定为服务子集的服务的不同版本。
-客户端将虚拟服务视为一个单一实体，将请求发送至虚拟服务主机，
-然后 Envoy 根据虚拟服务规则把流量路由到不同的版本。例如，
-“20% 的调用转发到新版本”或“将这些用户的调用转发到版本 2”。
-这允许您创建一个金丝雀发布，逐步增加发送到新版本服务的流量百分比。
-流量路由完全独立于实例部署，这意味着实现新版本服务的实例可以根据流量的负载来伸缩，
-完全不影响流量路由。相比之下，像 Kubernetes 这样的容器编排平台只支持基于实例缩放的流量分发，
-这会让情况变得复杂。您可以在[使用 Istio 进行金丝雀部署](/zh/blog/2017/0.1-canary/)的文章里阅读到更多用虚拟服务实现金丝雀部署的内容。
+典型的なユースケースは、サービスの異なるバージョン（サブセット）にトラフィックを分配することです。クライアントは仮想サービスを単一のエンティティとして扱い、リクエストを仮想サービスのホストに送信します。その後、Envoy が仮想サービスのルールに従ってトラフィックを異なるバージョンにルーティングします。たとえば「20% のリクエストを新バージョンへ」「このユーザーのリクエストは v2 へ」などです。これにより、カナリアリリースで新バージョンへのトラフィック割合を段階的に増やすことができます。トラフィックルーティングはインスタンスのデプロイとは独立しているため、新バージョンのインスタンス数をトラフィック量に応じてスケールさせても、ルーティングには影響しません。Kubernetes などのオーケストレーションプラットフォームではインスタンス数に基づくトラフィック分配しかできず、複雑になりがちです。仮想サービスによるカナリアリリースの詳細は[Istio でのカナリアリリース](/ja/blog/2017/0.1-canary/)をご覧ください。
 
-虚拟服务可以让您：
+仮想サービスの利点：
 
-- 通过单个虚拟服务处理多个应用程序服务。如果您的网格使用 Kubernetes，
-  可以配置一个虚拟服务处理特定命名空间中的所有服务。映射单一的虚拟服务到多个“真实”服务特别有用，
-  可以在不需要客户适应转换的情况下，将单体应用转换为微服务构建的复合应用系统。
-  您的路由规则可以指定为“对 `monolith.com` 的 URI 调用转发到 `microservice A`” 等等。
-  您可以在[下面的一个示例](#more-about-routing-rules)看到它是如何工作的。
-- 和[网关](/zh/docs/concepts/traffic-management/#gateways)整合并配置流量规则来控制出入流量。
+- 1 つの仮想サービスで複数のアプリケーションサービスを扱える。Kubernetes を使っている場合、特定のネームスペース内のすべてのサービスを 1 つの仮想サービスで管理できます。単一の仮想サービスを複数の「実サービス」にマッピングすることで、モノリシックアプリをマイクロサービスに段階的に移行する際にも便利です。ルーティングルールで「`monolith.com` への URI は `microservice A` へ」などと指定できます。[下記の例](#more-about-routing-rules)も参照してください。
+- [ゲートウェイ](/ja/docs/concepts/traffic-management/#gateways)と連携し、入出力トラフィックの制御ルールを設定できる。
 
-在某些情况下，您还需要配置目标规则来使用这些特性，因为这是指定服务子集的地方。
-在一个单独的对象中指定服务子集和其它特定目标策略，有利于在虚拟服务之间更简洁地重用这些规则。
-在下一章节您可以找到更多关于目标规则的内容。
+これらの機能を使うには、サービスサブセットの指定などのために目標ルールの設定も必要な場合があります。サブセットやターゲット固有の戦略を別オブジェクトで定義することで、複数の仮想サービス間でルールを再利用しやすくなります。詳細は次章の目標ルールを参照してください。
 
-### 虚拟服务示例 {#virtual-service-example}
+### 仮想サービスの例 {#virtual-service-example}
 
-下面的虚拟服务根据请求是否来自特定的用户，把它们路由到服务的不同版本。
+以下の仮想サービスは、特定ユーザーからのリクエストをサービスの異なるバージョンにルーティングします。
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: reviews
+name: reviews
 spec:
-  hosts:
-  - reviews
+hosts:
+
+- reviews
   http:
-  - match:
-    - headers:
-        end-user:
-          exact: jason
+- match:
+  - headers:
+    end-user:
+    exact: jason
     route:
-    - destination:
-        host: reviews
-        subset: v2
-  - route:
-    - destination:
-        host: reviews
-        subset: v3
-{{< /text >}}
+  - destination:
+    host: reviews
+    subset: v2
+- route: - destination:
+  host: reviews
+  subset: v3
+  {{< /text >}}
 
-#### hosts 字段 {#the-hosts-field}
+#### hosts フィールド {#the-hosts-field}
 
-使用 `hosts` 字段列举虚拟服务的主机——即用户指定的目标或是路由规则设定的目标。
-这是客户端向服务发送请求时使用的一个或多个地址。
+`hosts` フィールドで仮想サービスのホスト（ユーザーが指定するターゲットやルーティングルールで指定するターゲット）を列挙します。これはクライアントがサービスにリクエストを送る際に使う 1 つ以上のアドレスです。
 
 {{< text yaml >}}
 hosts:
+
 - reviews
-{{< /text >}}
+  {{< /text >}}
 
-虚拟服务主机名可以是 IP 地址、DNS 名称，或者依赖于平台的一个简称（例如 Kubernetes
-服务的短名称），隐式或显式地指向一个完全限定域名（FQDN）。您也可以使用通配符（“\*”）前缀，
-创建一组匹配所有服务的路由规则。虚拟服务的 `hosts` 字段实际上不必是 Istio
-服务注册的一部分，它只是虚拟的目标地址。这让您可以为没有路由到网格内部的虚拟主机建模。
+仮想サービスのホスト名は IP アドレス、DNS 名、またはプラットフォーム依存の短縮名（Kubernetes サービスの短縮名など）で、FQDN（完全修飾ドメイン名）を暗黙的または明示的に指すことができます。ワイルドカード（「\*」）プレフィックスも使え、複数サービスにマッチするルールも作成可能です。`hosts` フィールドは Istio サービスレジストリに登録されていなくてもよく、仮想的なターゲットアドレスとして使えます。これにより、メッシュ外の仮想ホストもモデル化できます。
 
-#### 路由规则 {#routing-rules}
+#### ルーティングルール {#routing-rules}
 
-在 `http` 字段包含了虚拟服务的路由规则，用来描述匹配条件和路由行为，
-它们把 HTTP/1.1、HTTP2 和 gRPC 等流量发送到 hosts 字段指定的目标（您也可以用
-`tcp` 和 `tls` 片段为 [TCP](/zh/docs/reference/config/networking/virtual-service/#TCPRoute)
-和未终止的 [TLS](/zh/docs/reference/config/networking/virtual-service/#TLSRoute)
-流量设置路由规则。一个路由规则包含了指定的请求要流向哪个目标地址，具有 0
-或多个匹配条件，取决于您的使用场景。
+`http` フィールドには仮想サービスのルーティングルールが含まれ、マッチ条件やルーティング動作を記述します。これにより HTTP/1.1、HTTP2、gRPC などのトラフィックを hosts で指定したターゲットに送信できます（`tcp` や `tls` セクションで [TCP](/ja/docs/reference/config/networking/virtual-service/#TCPRoute) や未終端 [TLS](/ja/docs/reference/config/networking/virtual-service/#TLSRoute) トラフィックのルールも設定可能）。ルーティングルールは、リクエストをどのターゲットアドレスに送るかを指定し、0 個以上のマッチ条件を持てます。
 
-##### 匹配条件 {#match-condition}
+##### マッチ条件 {#match-condition}
 
-示例中的第一个路由规则有一个条件，因此以 `match` 字段开始。在本例中，
-您希望此路由应用于来自 ”jason“ 用户的所有请求，所以使用 `headers`、
-`end-user` 和 `exact` 字段选择适当的请求。
+例の最初のルーティングルールには 1 つの条件があり、`match` フィールドで始まります。この例では「jason」ユーザーからのリクエストにこのルールを適用したいので、`headers`、`end-user`、`exact` で該当リクエストを選択します。
 
 {{< text yaml >}}
+
 - match:
-   - headers:
-       end-user:
-         exact: jason
-{{< /text >}}
+  - headers:
+    end-user:
+    exact: jason
+    {{< /text >}}
 
 ##### Destination {#destination}
 
-route 部分的 `destination` 字段指定了符合此条件的流量的实际目标地址。
-与虚拟服务的 `hosts` 不同，destination 的 host 必须是存在于 Istio
-服务注册中心的实际目标地址，否则 Envoy 不知道该将请求发送到哪里。
-可以是一个有代理的服务网格，或者是一个通过服务入口（service entry）被添加进来的非网格服务。
-本示例运行在 Kubernetes 环境中，host 名为一个 Kubernetes 服务名：
+`route` セクションの `destination` フィールドで、条件に一致したトラフィックの実際のターゲットアドレスを指定します。仮想サービスの `hosts` と異なり、destination の host は Istio サービスレジストリに存在する実際のターゲットでなければなりません。プロキシ付きサービスやサービスエントリで追加した外部サービスなどが該当します。この例では Kubernetes サービス名を使っています：
 
 {{< text yaml >}}
 route:
-- destination:
-    host: reviews
-    subset: v2
-{{< /text >}}
 
-请注意，在该示例和本页其它示例中，为了简单，我们使用 Kubernetes 的短名称设置
-destination 的 host。在评估此规则时，Istio 会添加一个基于虚拟服务命名空间的域后缀，
-这个虚拟服务包含要获取主机的完全限定名的路由规则。
-在我们的示例中使用短名称也意味着您可以复制并在任何喜欢的命名空间中尝试它们。
+- destination:
+  host: reviews
+  subset: v2
+  {{< /text >}}
+
+この例や他の例では簡単のため Kubernetes の短縮名を使っていますが、Istio は仮想サービスのネームスペースに基づいて FQDN を補完します。短縮名はどのネームスペースでも使えますが、
 
 {{< warning >}}
-只有在目标主机和虚拟服务位于相同的 Kubernetes 命名空间时才可以使用这样的短名称。
-因为使用 Kubernetes 的短名称容易导致配置出错，我们建议您在生产环境中指定完全限定的主机名。
+Kubernetes の短縮名は、ターゲットホストと仮想サービスが同じネームスペースにある場合のみ有効です。短縮名は設定ミスの原因になりやすいため、本番環境では FQDN の指定を推奨します。
 {{< /warning >}}
 
-destination 片段还指定了 Kubernetes 服务的子集，将符合此规则条件的请求转入其中。
-在本例中子集名称是 v2。您可以在[目标规则](#destination-rules)章节中看到如何定义服务子集。
+destination セクションでは Kubernetes サービスのサブセットも指定でき、条件に一致したリクエストをそのサブセットにルーティングします。この例ではサブセット名は v2 です。サブセットの定義方法は[目標ルール](#destination-rules)で説明します。
 
-#### 路由规则优先级 {#routing-rule-precedence}
+#### ルーティングルールの優先順位 {#routing-rule-precedence}
 
-**路由规则**按从上到下的顺序选择，虚拟服务中定义的第一条规则有最高优先级。本示例中，
-不满足第一个路由规则的流量均流向一个默认的目标，该目标在第二条规则中指定。因此，
-第二条规则没有 match 条件，直接将流量导向 v3 子集。
+**ルーティングルール**は上から順に評価され、仮想サービスで最初に定義されたルールが最も優先されます。この例では、最初のルールに一致しないトラフィックは 2 番目のルール（デフォルトターゲット）に送られます。2 番目のルールは match 条件がなく、すべてのトラフィックを v3 サブセットに送ります。
 
 {{< text yaml >}}
+
 - route:
   - destination:
-      host: reviews
-      subset: v3
-{{< /text >}}
+    host: reviews
+    subset: v3
+    {{< /text >}}
 
-我们建议提供一个默认的“无条件”或基于权重的规则（见下文）作为每一个虚拟服务的最后一条规则，
-如案例所示，从而确保流经虚拟服务的流量至少能够匹配一条路由规则。
+各仮想サービスの最後に「無条件」または重み付きのデフォルトルールを追加することを推奨します。これにより、すべてのトラフィックが必ず何らかのルールに一致します。
 
-### 路由规则的更多内容 {#more-about-routing-rules}
+### ルーティングルールの詳細 {#more-about-routing-rules}
 
-正如上面所看到的，路由规则是将特定流量子集路由到指定目标地址的强大工具。
-您可以在流量端口、header 字段、URI 等内容上设置匹配条件。例如，
-这个虚拟服务让用户发送请求到两个独立的服务：ratings 和 reviews，
-就好像它们是 `http://bookinfo.com/` 这个更大的虚拟服务的一部分。
-虚拟服务规则根据请求的 URI 和指向适当服务的请求匹配流量。
+ルーティングルールは、特定のトラフィックサブセットを指定ターゲットにルーティングする強力なツールです。トラフィックのポート、ヘッダー、URI などでマッチ条件を設定できます。たとえば、次の仮想サービスは `http://bookinfo.com/` の一部として ratings と reviews という 2 つの独立したサービスにリクエストを送ります。ルールは URI に基づいて適切なサービスにトラフィックを振り分けます。
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: bookinfo
+name: bookinfo
 spec:
-  hosts:
-    - bookinfo.com
-  http:
-  - match:
-    - uri:
-        prefix: /reviews
+hosts: - bookinfo.com
+http:
+
+- match:
+  - uri:
+    prefix: /reviews
     route:
-    - destination:
-        host: reviews
-  - match:
-    - uri:
-        prefix: /ratings
-    route:
-    - destination:
-        host: ratings
-{{< /text >}}
+  - destination:
+    host: reviews
+- match: - uri:
+  prefix: /ratings
+  route: - destination:
+  host: ratings
+  {{< /text >}}
 
-有些匹配条件可以使用精确的值，如前缀或正则。
+マッチ条件にはプレフィックスや正規表現なども使えます。
 
-您可以使用 AND 向同一个 `match` 块添加多个匹配条件，或者使用 OR 向同一个规则添加多个 `match` 块。
-对于任何给定的虚拟服务也可以有多个路由规则。这可以在单个虚拟服务中使路由条件变得随您所愿的复杂或简单。
-匹配条件字段和备选值的完整列表可以在
-[`HTTPMatchRequest` 参考](/zh/docs/reference/config/networking/virtual-service/#HTTPMatchRequest)中找到。
+同じ `match` ブロックに複数の条件を AND で追加したり、1 つのルールに複数の `match` ブロックを OR で追加したりできます。仮想サービスごとに複数のルーティングルールも設定可能です。これにより、ルーティング条件の複雑さを自由に調整できます。マッチ条件や値の詳細は [`HTTPMatchRequest` リファレンス](/ja/docs/reference/config/networking/virtual-service/#HTTPMatchRequest) を参照してください。
 
-另外，使用匹配条件您可以按百分比”权重“分发请求。这在 A/B 测试和金丝雀发布中非常有用：
+また、マッチ条件を使ってリクエストをパーセンテージ（重み）で分割することもできます。これは A/B テストやカナリアリリースに便利です：
 
 {{< text yaml >}}
 spec:
-  hosts:
-  - reviews
+hosts:
+
+- reviews
   http:
-  - route:
-    - destination:
-        host: reviews
-        subset: v1
-      weight: 75
-    - destination:
-        host: reviews
-        subset: v2
-      weight: 25
-{{< /text >}}
+- route: - destination:
+  host: reviews
+  subset: v1
+  weight: 75 - destination:
+  host: reviews
+  subset: v2
+  weight: 25
+  {{< /text >}}
 
-您也可以使用路由规则在流量上执行一些操作，例如：
+ルーティングルールでは、トラフィックに対して以下のような操作も可能です：
 
--   添加或删除 header。
--   重写 URL。
--   为调用这一目标地址的请求设置[重试策略](#retries)。
+- ヘッダーの追加・削除
+- URL の書き換え
+- ターゲットへのリクエストに[リトライポリシー](#retries)を設定
 
-想了解如何利用这些操作，查看 [`HTTPRoute` 参考](/zh/docs/reference/config/networking/virtual-service/#HTTPRoute)。
+これらの操作の詳細は [`HTTPRoute` リファレンス](/ja/docs/reference/config/networking/virtual-service/#HTTPRoute) を参照してください。
 
-## 目标规则 {#destination-rules}
+## 目標ルール {#destination-rules}
 
-与[虚拟服务](#virtual-services)一样，
-[目标规则](/zh/docs/reference/config/networking/destination-rule/#DestinationRule)也是
-Istio 流量路由功能的关键部分。您可以将虚拟服务视为将流量如何路由到给定目标地址，
-然后使用目标规则来配置该目标的流量。在评估虚拟服务路由规则之后，
-目标规则将应用于流量的“真实”目标地址。
+[仮想サービス](#virtual-services)と同様に、[目標ルール](/ja/docs/reference/config/networking/destination-rule/#DestinationRule)も Istio のトラフィックルーティングの重要な構成要素です。仮想サービスがトラフィックをどのターゲットにルーティングするかを定義するのに対し、目標ルールはそのターゲットのトラフィック制御を設定します。仮想サービスのルーティングルール評価後、目標ルールが「実際の」ターゲットアドレスに適用されます。
 
-特别是，您可以使用目标规则来指定命名的服务子集，例如按版本为所有给定服务的实例分组。
-然后可以在虚拟服务的路由规则中使用这些服务子集来控制到服务不同实例的流量。
+特に、目標ルールを使うと、バージョンごとなどでサービスインスタンスをサブセット化し、仮想サービスのルーティングルールでこれらサブセットを使ってトラフィックを制御できます。
 
-目标规则还允许您在调用整个目的地服务或特定服务子集时定制 Envoy 的流量策略，
-比如您喜欢的负载均衡模型、TLS 安全模式或熔断器设置。
-在[目标规则参考](/zh/docs/reference/config/networking/destination-rule/)中可以看到目标规则选项的完整列表。
+また、目標ルールでは、ターゲットサービスやサブセットごとに Envoy のトラフィックポリシー（負荷分散モデル、TLS モード、サーキットブレーカーなど）をカスタマイズできます。詳細は[目標ルールリファレンス](/ja/docs/reference/config/networking/destination-rule/)を参照してください。
 
-### 负载均衡选项 {#load-balancing-options}
+### 負荷分散オプション {#load-balancing-options}
 
-默认情况下，Istio 使用轮询的负载均衡策略，实例池中的每个实例依次获取请求。Istio 同时支持如下的负载均衡模型，
-可以在 `DestinationRule` 中为流向某个特定服务或服务子集的流量指定这些模型。
+デフォルトでは、Istio はラウンドロビン方式の負荷分散を行い、インスタンスプール内の各インスタンスに順番にリクエストを送ります。`DestinationRule` で特定サービスやサブセットへのトラフィックに対して以下の負荷分散モデルを指定できます。
 
--   随机：请求以随机的方式转发到池中的实例。
--   权重：请求根据指定的百分比转发到池中的实例。
--   最少请求：请求被转发到最少被访问的实例。
--   一致性哈希：根据 HTTP 标头、Cookie 或其他属性提供软会话亲和性。
--   环形哈希：使用 [Ketama 算法](https://www.metabrew.com/article/libketama-consistent-hashing-algo-memcached-clients)实现对上游主机的一致性哈希。
--   Maglev：按照 [Maglev 论文](https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/)中的描述，实现对上游主机的一致性哈希。
+- ランダム：リクエストをランダムにインスタンスへ転送
+- 重み付き：指定したパーセンテージでインスタンスへ転送
+- 最小リクエスト：最もリクエスト数が少ないインスタンスへ転送
+- 一貫性ハッシュ：HTTP ヘッダーや Cookie などでソフトなセッションアフィニティを実現
+- リングハッシュ：[Ketama アルゴリズム](https://www.metabrew.com/article/libketama-consistent-hashing-algo-memcached-clients)による一貫性ハッシュ
+- Maglev：[Maglev 論文](https://research.google/pubs/maglev-a-fast-and-reliable-software-network-load-balancer/)に基づく一貫性ハッシュ
 
-查看 [Envoy 负载均衡文档](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancers)获取这部分的更多信息。
+詳細は [Envoy の負荷分散ドキュメント](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/load_balancing/load_balancers) を参照してください。
 
-### 目标规则示例 {#destination-rule-example}
+### 目標ルールの例 {#destination-rule-example}
 
-在下面的示例中，目标规则为 `my-svc` 目标服务配置了 3 个具有不同负载均衡策略的子集：
+以下の例では、`my-svc` サービスに対して異なる負荷分散戦略を持つ 3 つのサブセットを設定しています：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: my-destination-rule
+name: my-destination-rule
 spec:
-  host: my-svc
+host: my-svc
+trafficPolicy:
+loadBalancer:
+simple: RANDOM
+subsets:
+
+- name: v1
+  labels:
+  version: v1
+- name: v2
+  labels:
+  version: v2
   trafficPolicy:
-    loadBalancer:
-      simple: RANDOM
-  subsets:
-  - name: v1
-    labels:
-      version: v1
-  - name: v2
-    labels:
-      version: v2
-    trafficPolicy:
-      loadBalancer:
-        simple: ROUND_ROBIN
-  - name: v3
-    labels:
-      version: v3
-{{< /text >}}
+  loadBalancer:
+  simple: ROUND_ROBIN
+- name: v3
+  labels:
+  version: v3
+  {{< /text >}}
 
-每个子集都是基于一个或多个 `labels` 定义的，在 Kubernetes 中它是附加到像 Pod
-这种对象上的键/值对。这些标签应用于 Kubernetes 服务的 Deployment 并作为
-`metadata` 来识别不同的版本。
+各サブセットは 1 つ以上の `labels` で定義され、Kubernetes では Pod などのオブジェクトに付与されるキー/バリューのペアです。これらのラベルは Kubernetes サービスの Deployment に適用され、`metadata` で異なるバージョンを識別します。
 
-除了定义子集之外，此目标规则对于所有子集都有默认的流量策略，而对于该子集，
-则有特定于子集的策略覆盖它。定义在 `subsets` 上的默认策略，为 `v1` 和 `v3`
-子集设置了一个简单的随机负载均衡器。在 `v2` 策略中，轮询负载均衡器被指定在相应的子集字段上。
+サブセットの定義に加え、この目標ルールはすべてのサブセットにデフォルトのトラフィックポリシーを適用し、v2 サブセットには個別のポリシーで上書きしています。
 
-## 网关 {#gateways}
+## ゲートウェイ {#gateways}
 
-使用[网关](/zh/docs/reference/config/networking/gateway/#Gateway)来管理网格的入站和出站流量，
-可以让您指定要进入或离开网格的流量。网关配置被用于运行在网格边缘的独立 Envoy 代理，
-而不是与服务工作负载一起运行的 Sidecar Envoy 代理。
+[ゲートウェイ](/ja/docs/reference/config/networking/gateway/#Gateway)を使うと、メッシュの入出力トラフィックを制御できます。ゲートウェイ設定はメッシュのエッジで動作する独立した Envoy プロキシに適用され、サービスワークロードとともに動作する Sidecar Envoy とは異なります。
 
-与 Kubernetes Ingress API 这种控制进入系统流量的其他机制不同，
-Istio 网关让您充分利用流量路由的强大能力和灵活性。
-您可以这么做的原因是 Istio 的网关资源可以配置 4-6 层的负载均衡属性，
-如对外暴露的端口、TLS 设置等。然后，您无需将应用层流量路由 (L7) 添加到同一 API 资源，
-而是将常规 Istio [虚拟服务](#virtual-services)绑定到网关。
-这让您可以像管理网格中其他数据平面的流量一样去管理网关流量。
+Kubernetes Ingress API などの他のトラフィック制御メカニズムと異なり、Istio のゲートウェイはトラフィックルーティングの強力な機能と柔軟性を最大限に活用できます。Istio のゲートウェイリソースでは L4 ～ L6 の負荷分散属性（公開ポートや TLS 設定など）を設定でき、L7 のルーティングは通常の [仮想サービス](#virtual-services) で管理します。これにより、他のデータプレーンと同様にゲートウェイトラフィックも管理できます。
 
-网关主要用于管理进入的流量，但您也可以配置出口网关。出口网关让您为离开网格的流量配置一个专用的出口节点，
-这可以限制哪些服务可以或应该访问外部网络，
-或者启用[出口流量安全控制](/zh/blog/2019/egress-traffic-control-in-istio-part-1/)增强网格安全性。
-您也可以使用网关配置一个纯粹的内部代理。
+ゲートウェイは主にインバウンドトラフィックの管理に使いますが、アウトバウンドゲートウェイも設定できます。アウトバウンドゲートウェイを使うと、メッシュ外へのトラフィックを専用ノード経由に限定したり、外部ネットワークへのアクセス制御や[出口トラフィックのセキュリティ強化](/ja/blog/2019/egress-traffic-control-in-istio-part-1/)が可能です。内部専用プロキシとしても利用できます。
 
-Istio 提供了一些预先配置好的网关代理部署（`istio-ingressgateway` 和 `istio-egressgateway`）
-供您使用——如果使用 [demo 配置文件安装](/zh/docs/setup/getting-started/)它们都已经部署好了；
-如果使用的是 [default 配置文件](/zh/docs/setup/additional-setup/config-profiles/)则只部署了入口网关。
-可以将您自己的网关配置应用到这些部署或配置您自己的网关代理。
+Istio には事前構成済みのゲートウェイデプロイメント（`istio-ingressgateway` と `istio-egressgateway`）が用意されており、[デモ構成ファイル](/ja/docs/setup/getting-started/)で両方、[default 構成ファイル](/ja/docs/setup/additional-setup/config-profiles/)では入口ゲートウェイのみがデプロイされます。これらのデプロイメントに独自のゲートウェイ設定を適用したり、独自のゲートウェイプロキシを構成したりできます。
 
-### Gateway 示例 {#gateway-example}
+### Gateway の例 {#gateway-example}
 
-下面的示例展示了一个外部 HTTPS 入口流量的网关配置：
+以下は外部 HTTPS インバウンドトラフィック用のゲートウェイ設定例です：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
-  name: ext-host-gwy
+name: ext-host-gwy
 spec:
-  selector:
-    app: my-gateway-controller
-  servers:
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    hosts:
-    - ext-host.example.com
-    tls:
-      mode: SIMPLE
-      credentialName: ext-host-cert
-{{< /text >}}
+selector:
+app: my-gateway-controller
+servers:
 
-这个网关配置让 HTTPS 流量从 `ext-host.example.com` 通过 443 端口流入网格，
-但没有为请求指定任何路由规则。要指定路由并让网关按预期工作，您必须把网关绑定到虚拟服务上。
-正如下面的示例所示，使用虚拟服务的 `gateways` 字段进行设置：
+- port:
+  number: 443
+  name: https
+  protocol: HTTPS
+  hosts: - ext-host.example.com
+  tls:
+  mode: SIMPLE
+  credentialName: ext-host-cert
+  {{< /text >}}
+
+このゲートウェイ設定により、`ext-host.example.com` への HTTPS トラフィックが 443 番ポートでメッシュに流入しますが、リクエストのルーティングルールはまだ指定されていません。ルーティングを指定しゲートウェイを機能させるには、ゲートウェイを仮想サービスにバインドする必要があります。以下の例のように、仮想サービスの `gateways` フィールドで設定します：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: virtual-svc
+name: virtual-svc
 spec:
-  hosts:
-  - ext-host.example.com
-  gateways:
-    - ext-host-gwy
-{{< /text >}}
+hosts:
 
-然后就可以为出口流量配置带有路由规则的虚拟服务。
+- ext-host.example.com
+  gateways: - ext-host-gwy
+  {{< /text >}}
 
-## 服务入口 {#service-entries}
+この後、アウトバウンドトラフィックにもルーティングルール付きの仮想サービスを設定できます。
 
-使用[服务入口（Service Entry）](/zh/docs/reference/config/networking/service-entry/#ServiceEntry)
-来添加一个入口到 Istio 内部维护的服务注册中心。添加了服务入口后，Envoy 代理可以向服务发送流量，
-就好像它是网格内部的服务一样。配置服务入口允许您管理运行在网格外的服务的流量，它包括以下几种能力：
+## サービスエントリ {#service-entries}
 
--   为外部目标重定向和转发请求，例如来自 Web 端的 API 调用，或者流向遗留老系统的服务。
--   为外部目标定义[重试](#retries)、[超时](#timeouts)和[故障注入](#fault-injection)策略。
--   添加一个运行在虚拟机的服务来[扩展您的网格](/zh/docs/examples/virtual-machines/single-network/#running-services-on-the-added-VM)。
+[サービスエントリ（Service Entry）](/ja/docs/reference/config/networking/service-entry/#ServiceEntry)を使うと、Istio が内部で管理するサービスレジストリに新たなエントリを追加できます。サービスエントリを追加すると、Envoy プロキシはそのサービスをメッシュ内サービスのように扱い、トラフィックを送信できます。サービスエントリを設定することで、メッシュ外サービスへのトラフィックも制御でき、以下のようなことが可能です：
 
-您不需要为网格服务要使用的每个外部服务都添加服务入口。
-默认情况下，Istio 配置 Envoy 代理将请求传递给未知服务。
-但是，您不能使用 Istio 的特性来控制没有在网格中注册的目标流量。
+- 外部ターゲットへのリダイレクトやフォワード（Web API コールやレガシーシステムへのトラフィックなど）
+- 外部ターゲットに対する[リトライ](#retries)、[タイムアウト](#timeouts)、[フォールトインジェクション](#fault-injection)の設定
+- 仮想マシン上のサービスを[メッシュに追加](/ja/docs/examples/virtual-machines/single-network/#running-services-on-the-added-VM)
 
-### 服务入口示例 {#service-entry-example}
+すべての外部サービスにサービスエントリを追加する必要はありません。デフォルトでは、Istio は未知のサービスへのリクエストをそのまま転送します。ただし、サービスレジストリに登録されていないターゲットへのトラフィックは Istio の機能で制御できません。
 
-下面示例的 mesh-external 服务入口将 `ext-svc.example.com` 外部依赖项添加到
-Istio 的服务注册中心：
+### サービスエントリの例 {#service-entry-example}
+
+以下の mesh-external サービスエントリは、`ext-svc.example.com` という外部依存先を Istio のサービスレジストリに追加します：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: svc-entry
+name: svc-entry
 spec:
-  hosts:
-  - ext-svc.example.com
+hosts:
+
+- ext-svc.example.com
   ports:
-  - number: 443
-    name: https
-    protocol: HTTPS
+- number: 443
+  name: https
+  protocol: HTTPS
   location: MESH_EXTERNAL
   resolution: DNS
-{{< /text >}}
+  {{< /text >}}
 
-您指定的外部资源使用 `hosts` 字段。可以使用完全限定名或通配符作为前缀域名。
+外部リソースは `hosts` フィールドで指定します。FQDN やワイルドカードプレフィックスも利用可能です。
 
-您可以配置虚拟服务和目标规则，以更细粒度的方式控制到服务入口的流量，
-这与网格中的任何其他服务配置流量的方式相同。例如，
-下面的目标规则调整了使用服务入口配置的 `ext-svc.example.com` 外部服务的连接超时：
+サービスエントリへのトラフィックも仮想サービスや目標ルールで細かく制御できます。たとえば、以下の目標ルールはサービスエントリで設定した `ext-svc.example.com` 外部サービスの接続タイムアウトを調整しています：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: ext-res-dr
+name: ext-res-dr
 spec:
-  host: ext-svc.example.com
-  trafficPolicy:
-    connectionPool:
-      tcp:
-        connectTimeout: 1s
+host: ext-svc.example.com
+trafficPolicy:
+connectionPool:
+tcp:
+connectTimeout: 1s
 {{< /text >}}
 
-查看[服务入口参考](/zh/docs/reference/config/networking/service-entry)获取更多可能的配置项。
+詳細は[サービスエントリリファレンス](/ja/docs/reference/config/networking/service-entry)を参照してください。
 
 ## Sidecar {#sidecars}
 
-默认情况下，Istio 让每个 Envoy 代理都可以访问来自和它关联的工作负载的所有端口的请求，
-然后转发到对应的工作负载。您可以使用 [Sidecar](/zh/docs/reference/config/networking/sidecar/#Sidecar)
-配置去做下面的事情：
+デフォルトでは、Istio は各 Envoy プロキシが関連ワークロードのすべてのポートへのリクエストを受け付け、適切なワークロードに転送できるようにします。[Sidecar](/ja/docs/reference/config/networking/sidecar/#Sidecar) 設定を使うと、以下のことが可能です：
 
--   微调 Envoy 代理接受的端口和协议集。
--   限制 Envoy 代理可以访问的服务集合。
+- Envoy プロキシが受け付けるポートやプロトコルの微調整
+- Envoy プロキシがアクセスできるサービスの範囲を制限
 
-您可能希望在较庞大的应用程序中限制这样的 Sidecar 可达性，
-配置每个代理能访问网格中的任意服务可能会因为高内存使用量而影响网格的性能。
+大規模なアプリケーションでは、Sidecar の到達範囲を制限することで、各プロキシがメッシュ内のすべてのサービスにアクセスできる場合に比べてメモリ使用量を抑え、パフォーマンスを向上できます。
 
-您可以指定将 Sidecar 配置应用于特定命名空间中的所有工作负载，或者使用
-`workloadSelector` 选择特定的工作负载。例如，下面的 Sidecar 配置将
-`bookinfo` 命名空间中的所有服务配置为仅能访问运行在相同命名空间和 Istio
-控制平面中的服务（Istio 的 Egress 和遥测功能需要使用）：
+Sidecar 設定は特定のネームスペース内のすべてのワークロードに適用したり、`workloadSelector` で特定ワークロードだけに適用したりできます。以下の例では、`bookinfo` ネームスペース内のすべてのサービスが同じネームスペースと Istio コントロールプレーン（Egress やテレメトリ機能用）内のサービスだけにアクセスできるようにしています：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: Sidecar
 metadata:
-  name: default
-  namespace: bookinfo
+name: default
+namespace: bookinfo
 spec:
-  egress:
-  - hosts:
-    - "./*"
-    - "istio-system/*"
-{{< /text >}}
+egress:
 
-查阅 [Sidecar 参考](/zh/docs/reference/config/networking/sidecar/)获取详细信息。
+- hosts: - "./_" - "istio-system/_"
+  {{< /text >}}
 
-## 网络弹性和测试 {#network-resilience-and-testing}
+詳細は [Sidecar リファレンス](/ja/docs/reference/config/networking/sidecar/) を参照してください。
 
-除了为您的网格导流之外，Istio 还提供了可选的故障恢复和故障注入功能，
-您可以在运行时动态配置这些功能。使用这些特性可以让您的应用程序运行稳定，
-确保服务网格能够容忍故障节点，并防止局部故障级联影响到其他节点。
+## ネットワークレジリエンスとテスト {#network-resilience-and-testing}
 
-### 超时 {#timeouts}
+トラフィック制御に加え、Istio には障害復旧やフォールトインジェクションの機能もあり、これらはランタイムで動的に設定できます。これらの機能を使うことで、アプリケーションの安定稼働や、サービスメッシュが障害ノードに耐え、障害の連鎖を防ぐことができます。
 
-超时是 Envoy 代理等待来自给定服务的答复的时间量，以确保服务不会因为等待答复而无限期的挂起，
-并在可预测的时间范围内调用成功或失败。HTTP 请求的默认超时时间是 15 秒，
-这意味着如果服务在 15 秒内没有响应，调用将失败。
+### タイムアウト {#timeouts}
 
-对于某些应用程序和服务，Istio 的缺省超时可能不合适。例如，超时太长可能会由于等待失败服务的回复而导致过度的延迟；
-而超时过短则可能在等待涉及多个服务返回的操作时触发不必要的失败。为了找到并使用最佳超时设置，
-Istio 允许您使用[虚拟服务](#virtual-services)按服务轻松地动态调整超时，而不必修改您的业务代码。
-下面的示例是一个虚拟服务，它对 ratings 服务的 v1 子集的调用指定 10 秒超时：
+タイムアウトは、Envoy プロキシがサービスからの応答を待つ最大時間を指定し、サービスが無限に応答を待たされることを防ぎます。HTTP リクエストのデフォルトタイムアウトは 15 秒で、15 秒以内に応答がなければ呼び出しは失敗します。
+
+アプリやサービスによっては、Istio のデフォルトタイムアウトが適切でない場合もあります。タイムアウトが長すぎると失敗サービスの応答待ちで遅延が増え、短すぎると複数サービスをまたぐ操作で不要な失敗が発生します。最適なタイムアウトを見つけて使うために、Istio では[仮想サービス](#virtual-services)でサービスごとにタイムアウトを動的に調整できます。以下は ratings サービスの v1 サブセットへの呼び出しに 10 秒のタイムアウトを指定する例です：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: ratings
+name: ratings
 spec:
-  hosts:
-  - ratings
+hosts:
+
+- ratings
   http:
-  - route:
-    - destination:
-        host: ratings
-        subset: v1
-    timeout: 10s
-{{< /text >}}
+- route: - destination:
+  host: ratings
+  subset: v1
+  timeout: 10s
+  {{< /text >}}
 
-### 重试 {#retries}
+### リトライ {#retries}
 
-重试设置指定如果初始调用失败，Envoy 代理尝试连接服务的最大次数。
-重试可以通过确保调用不会由于暂时性问题（例如临时过载的服务或网络）而永久失败，
-从而提高服务可用性和应用程序性能。重试之间的间隔（25ms+）是可变的，由 Istio 自动确定，
-防止被调用的服务被请求淹没。HTTP 请求的默认重试行为是在返回错误之前重试两次。
+リトライ設定では、初回呼び出しが失敗した場合に Envoy プロキシがサービスへの接続を再試行する最大回数を指定します。リトライは、一時的な障害（サービスやネットワークの一時的な過負荷など）による恒久的な失敗を防ぎ、サービスの可用性やアプリのパフォーマンスを向上させます。リトライ間隔（25ms 以上）は可変で、Istio が自動的に決定し、呼び出し先サービスの過負荷を防ぎます。HTTP リクエストのデフォルトリトライ回数は 2 回です。
 
-与超时一样，Istio 默认的重试行为在延迟方面可能不适合您的应用程序需求（对失败的服务进行过多的重试会降低速度）或可用性。
-您可以在[虚拟服务](#virtual-services)中按服务调整重试设置，而不必修改业务代码。
-您还可以通过添加每次重试的超时来进一步细化重试行为，指定您希望等待每次重试成功连接到服务的时间量。
-下面的示例配置了在初始调用失败后最多重试 3 次来连接到服务子集，每个重试都有 2 秒的超时。
+タイムアウトと同様、Istio のデフォルトリトライ動作がアプリの要件に合わない場合もあります（失敗サービスへの過剰なリトライで遅延が増えるなど）。[仮想サービス](#virtual-services)でサービスごとにリトライ設定を調整でき、アプリコードの変更は不要です。各リトライのタイムアウトも指定でき、リトライごとにサービス接続を待つ時間を細かく制御できます。以下は初回失敗後に最大 3 回リトライし、各リトライのタイムアウトを 2 秒に設定する例です：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: ratings
+name: ratings
 spec:
-  hosts:
-  - ratings
+hosts:
+
+- ratings
   http:
-  - route:
-    - destination:
-        host: ratings
-        subset: v1
-    retries:
-      attempts: 3
-      perTryTimeout: 2s
-{{< /text >}}
+- route: - destination:
+  host: ratings
+  subset: v1
+  retries:
+  attempts: 3
+  perTryTimeout: 2s
+  {{< /text >}}
 
-### 熔断器 {#circuit-breakers}
+### サーキットブレーカー {#circuit-breakers}
 
-熔断器是 Istio 为创建具有弹性的微服务应用提供的另一个有用的机制。在熔断器中，
-设置一个对服务中的单个主机调用的限制，例如并发连接的数量或对该主机调用失败的次数。
-一旦限制被触发，熔断器就会“跳闸”并停止连接到该主机。
-使用熔断模式可以快速失败而不必让客户端尝试连接到过载或有故障的主机。
+サーキットブレーカーは、Istio がレジリエントなマイクロサービスアプリを構築するための有用な仕組みです。サーキットブレーカーでは、サービスの各ホストへの呼び出しに制限（同時接続数や失敗回数など）を設け、制限を超えると「遮断」してそのホストへの接続を停止します。これにより、過負荷や障害ホストへの接続をクライアントが繰り返すことなく、すぐに失敗させることができます。
 
-熔断适用于在负载均衡池中的“真实”网格目标地址，您可以在[目标规则](#destination-rules)中配置熔断器阈值，
-让配置应用于服务中的每个主机。下面的示例将 v1 子集的 `reviews` 服务工作负载的并发连接数限制为 100：
+サーキットブレーカーは負荷分散プール内の「実際の」ターゲットアドレスに適用され、[目標ルール](#destination-rules)で各ホストごとに閾値を設定できます。以下は reviews サービスの v1 サブセットのワークロードで同時接続数を 100 に制限する例です：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: reviews
+name: reviews
 spec:
-  host: reviews
-  subsets:
-  - name: v1
-    labels:
-      version: v1
-    trafficPolicy:
-      connectionPool:
-        tcp:
-          maxConnections: 100
-{{< /text >}}
+host: reviews
+subsets:
 
-您可以在[熔断](/zh/docs/tasks/traffic-management/circuit-breaking/)中查看更多相关信息。
+- name: v1
+  labels:
+  version: v1
+  trafficPolicy:
+  connectionPool:
+  tcp:
+  maxConnections: 100
+  {{< /text >}}
 
-### 故障注入 {#fault-injection}
+詳細は[サーキットブレーカー](/ja/docs/tasks/traffic-management/circuit-breaking/)を参照してください。
 
-在配置了网络，包括故障恢复策略之后，可以使用 Istio 的故障注入机制来为整个应用程序测试故障恢复能力。
-故障注入是一种将错误引入系统以确保系统能够承受并从错误条件中恢复的测试方法。
-使用故障注入特别有用，能确保故障恢复策略不至于不兼容或者太严格，这会导致关键服务不可用。
+### フォールトインジェクション {#fault-injection}
+
+ネットワークや障害復旧戦略を設定した後、Istio のフォールトインジェクション機能でアプリ全体の障害復旧力をテストできます。フォールトインジェクションは、システムに意図的に障害を注入し、システムが障害から回復できるかを検証するテスト手法です。これにより、障害復旧戦略が互換性を損なったり厳しすぎて重要サービスが利用不能になることを防げます。
 
 {{< warning >}}
-目前，故障注入配置不能与同一个虚拟服务上的重试或超时配置相结合，
-请参见[流量管理问题](/zh/docs/ops/common-problems/network-issues/#virtual-service-with-fault-injection-and-retrytimeout-policies-not-working-as-expected)。
+現時点では、同じ仮想サービスでフォールトインジェクションとリトライやタイムアウト設定を併用できません。詳細は[トラフィック管理の問題](/ja/docs/ops/common-problems/network-issues/#virtual-service-with-fault-injection-and-retrytimeout-policies-not-working-as-expected)を参照してください。
 {{< /warning >}}
 
-与其他错误注入机制（如延迟数据包或在网络层杀掉 Pod）不同，Istio 允许在应用层注入错误。
-这使您可以注入更多相关的故障，例如 HTTP 错误码，以获得更多相关的结果。
+他の障害注入手法（パケット遅延やネットワーク層での Pod 強制終了など）と異なり、Istio ではアプリケーション層で障害を注入できます。これにより、HTTP エラーコードなど、より意味のある障害を注入し、現実的なテストが可能です。
 
-您可以注入两种故障，它们都使用[虚拟服务](#virtual-services)配置：
+フォールトインジェクションには 2 種類あり、どちらも[仮想サービス](#virtual-services)で設定します：
 
-- 延迟：延迟是时间故障。它们模拟增加的网络延迟或一个超载的上游服务。
+- 遅延：ネットワーク遅延や過負荷サービスを模擬する時間的障害
+- 終了：上流サービスの障害を模擬するクラッシュ障害。通常は HTTP エラーコードや TCP 接続失敗として現れます。
 
-- 终止：终止是崩溃失败。他们模仿上游服务的失败。终止通常以 HTTP 错误码或
-  TCP 连接失败的形式出现。
-
-例如，下面的虚拟服务为千分之一的访问 `ratings` 服务的请求配置了一个 5 秒的延迟：
+以下の仮想サービスは、ratings サービスへのリクエストの 0.1% に 5 秒の遅延を注入します：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: ratings
+name: ratings
 spec:
-  hosts:
-  - ratings
+hosts:
+
+- ratings
   http:
-  - fault:
-      delay:
-        percentage:
-          value: 0.1
-        fixedDelay: 5s
-    route:
-    - destination:
-        host: ratings
-        subset: v1
-{{< /text >}}
+- fault:
+  delay:
+  percentage:
+  value: 0.1
+  fixedDelay: 5s
+  route: - destination:
+  host: ratings
+  subset: v1
+  {{< /text >}}
 
-有关如何配置延迟和终止的详细信息请参考[故障注入](/zh/docs/tasks/traffic-management/fault-injection/)。
+遅延や終了の詳細な設定方法は[フォールトインジェクション](/ja/docs/tasks/traffic-management/fault-injection/)を参照してください。
 
-### 和您的应用程序一起运行 {#working-with-your-applications}
+### アプリケーションとの連携 {#working-with-your-applications}
 
-Istio 故障恢复功能对应用程序来说是完全透明的。在返回响应之前，
-应用程序不知道 Envoy Sidecar 代理是否正在处理被调用服务的故障。这意味着，
-如果在应用程序代码中设置了故障恢复策略，那么您需要记住这两个策略都是独立工作的，
-否则会发生冲突。例如，假设您设置了两个超时，一个在虚拟服务中配置，
-另一个在应用程序中配置。应用程序为服务的 API 调用设置了 2 秒超时。
-而您在虚拟服务中配置了一个 3 秒超时和重试。在这种情况下，应用程序的超时会先生效，
-因此 Envoy 的超时和重试尝试会失效。
+Istio の障害復旧機能はアプリケーションからは完全に透過的です。レスポンスが返るまで、アプリケーションは Envoy Sidecar プロキシが障害を処理しているかどうかを知りません。したがって、アプリケーションコードで障害復旧戦略を設定している場合は、両者が独立して動作することを考慮しないと競合が発生します。たとえば、アプリで 2 秒のタイムアウトを設定し、仮想サービスで 3 秒のタイムアウトとリトライを設定した場合、アプリのタイムアウトが先に発動し、Envoy のタイムアウトやリトライは無効になります。
 
-虽然 Istio 故障恢复特性提高了网格中服务的可靠性和可用性，
-但应用程序必须处理故障或错误并采取适当的回退操作。
-例如，当负载均衡中的所有实例都失败时，Envoy 返回一个 `HTTP 503` 代码。
-应用程序必须实现回退逻辑来处理 `HTTP 503` 错误代码。
+Istio の障害復旧機能はサービスの信頼性と可用性を高めますが、アプリケーション側でも障害やエラーを適切に処理し、フォールバック動作を実装する必要があります。たとえば、負荷分散先のすべてのインスタンスが失敗した場合、Envoy は `HTTP 503` を返します。アプリケーションは `HTTP 503` エラーコードを受けてフォールバック処理を実装する必要があります。

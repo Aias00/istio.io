@@ -1,6 +1,6 @@
 ---
 title: 概念
-description: 一些概念，理解它们有助于您更好地了解 Istio 系统的不同部分及其使用的抽象。
+description: これらの概念を理解することで、Istio システムの各部分やその抽象の使い方をより深く理解できます。
 weight: 10
 test: table-of-contents
 ---

@@ -1,11 +1,11 @@
 ---
-title: 复制 JWT 声明到 HTTP 头
-description: 展示用户如何能将 JWT 声明复制到 HTTP 头。
+title: HTTP ヘッダーへの JWT クレームのコピー
+description: ユーザーが JWT クレームを HTTP ヘッダーにコピーする方法を示します。
 weight: 30
-keywords: [security,authentication,JWT,claim]
+keywords: [security, authentication, JWT, claim]
 aliases:
-    - /zh/docs/tasks/security/istio-auth.html
-    - /zh/docs/tasks/security/authn-policy/
+  - /zh/docs/tasks/security/istio-auth.html
+  - /zh/docs/tasks/security/authn-policy/
 owner: istio/wg-security-maintainers
 test: yes
 status: Experimental
@@ -13,99 +13,97 @@ status: Experimental
 
 {{< boilerplate experimental >}}
 
-本任务向您展示通过 Istio 请求身份验证策略成功完成 JWT 身份验证之后如何将
-JWT 声明复制到 HTTP 头。
+このタスクでは、Istio のリクエスト認証ポリシーによって JWT 認証が正常に完了した後、
+JWT クレームを HTTP ヘッダーにコピーする方法を紹介します。
 
 {{< warning >}}
-仅支持 string、boolean 和 integer 类型的声明。此时不支持 array 类型的声明。
+サポートされているのは string、boolean、integer 型のクレームのみです。現時点では array 型のクレームはサポートされていません。
 {{< /warning >}}
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-开始此任务之前，请做好以下准备：
+このタスクを始める前に、以下の準備をしてください：
 
-* 熟悉 [Istio 终端用户身份验证](/zh/docs/tasks/security/authentication/authn-policy/#end-user-authentication)支持。
+- [Istio エンドユーザー認証](/ja/docs/tasks/security/authentication/authn-policy/#end-user-authentication)のサポートに慣れていること。
 
-* 使用 [Istio 安装指南](/zh/docs/setup/install/istioctl/)安装 Istio。
+- [Istio インストールガイド](/ja/docs/setup/install/istioctl/)を使用して Istio をインストールしていること。
 
-* 在已启用 Sidecar 注入的命名空间 `foo` 中部署 `httpbin` 和 `curl`
-  工作负载。使用以下命令部署命名空间和工作负载示例：
+- Sidecar インジェクションが有効な名前空間 `foo` に `httpbin` と `curl` のワークロードをデプロイします。以下のコマンドで名前空間とワークロードのサンプルをデプロイします：
 
-    {{< text bash >}}
-    $ kubectl create ns foo
-    $ kubectl label namespace foo istio-injection=enabled
-    $ kubectl apply -f @samples/httpbin/httpbin.yaml@ -n foo
-    $ kubectl apply -f @samples/curl/curl.yaml@ -n foo
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl create ns foo
+  $ kubectl label namespace foo istio-injection=enabled
+  $ kubectl apply -f @samples/httpbin/httpbin.yaml@ -n foo
+  $ kubectl apply -f @samples/curl/curl.yaml@ -n foo
+  {{< /text >}}
 
-* 使用以下命令验证 `curl` 是否成功与 `httpbin` 通信：
+- 以下のコマンドで `curl` が `httpbin` と正常に通信できることを確認します：
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-    200
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+  200
+  {{< /text >}}
 
-    {{< warning >}}
-    如果您未看到预期的输出，几秒后重试。缓冲和传播可能会造成延迟。
-    {{< /warning >}}
+  {{< warning >}}
+  期待される出力が表示されない場合は、数秒後に再試行してください。バッファリングや伝播の遅延が原因の場合があります。
+  {{< /warning >}}
 
-## 允许具有有效 JWT 和列表类型声明的请求 {#allow-requests-with-valid-jwt-and-list-type-claims}
+## 有効な JWT とリスト型クレームを持つリクエストを許可する {#allow-requests-with-valid-jwt-and-list-type-claims}
 
-1. 以下命令为 `foo` 命名空间中的 `httpbin` 工作负载创建 `jwt-example` 请求身份验证策略。
-   此策略接受 `testing@secure.istio.io` 签发的 JWT，并将声明 `foo` 的值复制到一个 HTTP 头
-   `X-Jwt-Claim-Foo`：
+1. 以下のコマンドは、`foo` 名前空間の `httpbin` ワークロードに `jwt-example` リクエスト認証ポリシーを作成します。
+   このポリシーは `testing@secure.istio.io` によって発行された JWT を受け入れ、クレーム `foo` の値を HTTP ヘッダー `X-Jwt-Claim-Foo` にコピーします：
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: RequestAuthentication
-    metadata:
-      name: "jwt-example"
-      namespace: foo
-    spec:
-      selector:
-        matchLabels:
-          app: httpbin
-      jwtRules:
-      - issuer: "testing@secure.istio.io"
-        jwksUri: "{{< github_file >}}/security/tools/jwt/samples/jwks.json"
-        outputClaimToHeaders:
-        - header: "x-jwt-claim-foo"
-          claim: "foo"
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: RequestAuthentication
+   metadata:
+   name: "jwt-example"
+   namespace: foo
+   spec:
+   selector:
+   matchLabels:
+   app: httpbin
+   jwtRules:
 
-1. 确认带有无效 JWT 的请求被拒绝：
+   - issuer: "testing@secure.istio.io"
+     jwksUri: "{{< github_file >}}/security/tools/jwt/samples/jwks.json"
+     outputClaimToHeaders: - header: "x-jwt-claim-foo"
+     claim: "foo"
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer invalidToken" -w "%{http_code}\n"
-    401
-    {{< /text >}}
+1. 無効な JWT を持つリクエストが拒否されることを確認します：
 
-1. 获取 `testing@secure.istio.io` 签发的且有一个声明的键是 `foo` 的 JWT。
+   {{< text bash >}}
+   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer invalidToken" -w "%{http_code}\n"
+   401
+   {{< /text >}}
 
-    {{< text syntax="bash" expandlinks="false" >}}
-    $ TOKEN=$(curl {{< github_file >}}/security/tools/jwt/samples/demo.jwt -s) && echo "$TOKEN" | cut -d '.' -f2 - | base64 --decode -
-    {"exp":4685989700,"foo":"bar","iat":1532389700,"iss":"testing@secure.istio.io","sub":"testing@secure.istio.io"}
-    {{< /text >}}
+1. `testing@secure.istio.io` によって発行され、`foo` というキーのクレームを持つ JWT を取得します。
 
-1. 确认允许带有有效 JWT 的请求：
+   {{< text syntax="bash" expandlinks="false" >}}
+   $ TOKEN=$(curl {{< github_file >}}/security/tools/jwt/samples/demo.jwt -s) && echo "$TOKEN" | cut -d '.' -f2 - | base64 --decode -
+   {"exp":4685989700,"foo":"bar","iat":1532389700,"iss":"testing@secure.istio.io","sub":"testing@secure.istio.io"}
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
-    200
-    {{< /text >}}
+1. 有効な JWT を持つリクエストが許可されることを確認します：
 
-1. 确认请求包含有效的 HTTP 头且这个头具有 JWT 声明值：
+   {{< text bash >}}
+   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
+   200
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -H "Authorization: Bearer $TOKEN" | jq '.headers["X-Jwt-Claim-Foo"][0]'
-    "bar"
-    {{< /text >}}
+1. リクエストに有効な HTTP ヘッダーが含まれ、そのヘッダーに JWT クレーム値があることを確認します：
 
-## 清理 {#clean-up}
+   {{< text bash >}}
+   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -H "Authorization: Bearer $TOKEN" | jq '.headers["X-Jwt-Claim-Foo"][0]'
+   "bar"
+   {{< /text >}}
 
-移除命名空间 `foo`：
+## クリーンアップ {#clean-up}
+
+名前空間 `foo` を削除します：
 
 {{< text bash >}}
 $ kubectl delete namespace foo

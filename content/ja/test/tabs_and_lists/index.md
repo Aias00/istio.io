@@ -1,80 +1,87 @@
 ---
-title: Tabs and Lists
-description: Composing tabs and lists.
+title: タブとリスト
+description: タブとリストの組み合わせ。
 skip_sitemap: true
 ---
 
 {{< tabset category-name="test" >}}
 
 {{< tab name="One" category-value="one" >}}
-1. One paragraph in a list in a tab
-{{< /tab >}}
+
+1. タブ内のリストの 1 つの段落
+   {{< /tab >}}
 
 {{< tab name="Two" category-value="two" >}}
-1. Three
 
-1. separate
+1.  3 つの
 
-1. bullets in a list in a tab
+1.  別々の
 
-    This last bullet with two paragraphs
-{{< /tab >}}
+1.  タブ内のリストの箇条書き
+
+        最後の箇条書きは2つの段落があります
+
+    {{< /tab >}}
 
 {{< tab name="Three" category-value="three" >}}
-1. Simple text in a list in a tab
 
-    A paragraph
+1. タブ内のリストのシンプルなテキスト
 
-    {{< warning >}}
-    Warning in a list in a tab
-    {{< /warning >}}
+   段落
 
-    And another
+   {{< warning >}}
+   タブ内のリストの警告
+   {{< /warning >}}
 
-1. Second bullet
+   そしてもう一つ
 
-1. Third bullet
-{{< /tab >}}
+1. 2 つ目の箇条書き
+
+1. 3 つ目の箇条書き
+   {{< /tab >}}
 
 {{< tab name="Four" category-value="four" >}}
-1. Simple text with _markdown_ in a list in a tab
 
-    {{< warning >}}
-    Warning in a list in a tab
-    {{< /warning >}}
-{{< /tab >}}
+1.  タブ内のリストの _マークダウン_ を含むシンプルなテキスト
+
+        {{< warning >}}
+        タブ内のリストの警告
+        {{< /warning >}}
+
+    {{< /tab >}}
 
 {{< tab name="Five" category-value="five" >}}
-1. Simple text in a list in a tab
 
-    {{< text plain >}}
-    Text block in a list in a tab
-    {{< /text >}}
+1. タブ内のリストのシンプルなテキスト
+
+   {{< text plain >}}
+   タブ内のリストのテキストブロック
+   {{< /text >}}
 
 {{< /tab >}}
 
 {{< tab name="Six" category-value="six" >}}
-1. Simple text with _markdown_ in a list in a tab
 
-    {{< warning >}}
-    Warning with _markdown_ in a list in a tab
-    {{< /warning >}}
+1. タブ内のリストの _マークダウン_ を含むシンプルなテキスト
 
-1. Second bullet
-{{< /tab >}}
+   {{< warning >}}
+   タブ内のリストの _マークダウン_ を含む警告
+   {{< /warning >}}
+
+1. 2 つ目の箇条書き
+   {{< /tab >}}
 
 {{< tab name="Seven" category-value="seven" >}}
-1. Simple text with _markdown_ in a list in a tab
 
-    {{< text bash >}}
-    $ NoIndent:
-        FourIndent:
-            - EightIndent
-        FourIndentAgain:
-            - EightIndentAgain
-    {{< /text >}}
+1. タブ内のリストの _マークダウン_ を含むシンプルなテキスト
 
-1. Second bullet
-{{< /tab >}}
+   {{< text bash >}}
+   $ インデントなし：
+   4 つインデント： - 8 つインデント
+   再び 4 つインデント： - 再び 8 つインデント
+   {{< /text >}}
+
+1. 2 つ目の箇条書き
+   {{< /tab >}}
 
 {{< /tabset >}}

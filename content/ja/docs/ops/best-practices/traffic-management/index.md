@@ -1,6 +1,6 @@
 ---
-title: 流量管理最佳实践
-description: 避免网络或流量管理问题的配置最佳实践。
+title: トラフィック管理のベストプラクティス
+description: ネットワークやトラフィック管理の問題を回避するための設定ベストプラクティス。
 force_inline_toc: true
 weight: 20
 aliases:
@@ -11,281 +11,288 @@ owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-本节提供特定的部署或配置准则，以避免网络或流量管理问题。
+このセクションでは、ネットワークやトラフィック管理の問題を回避するための、特定のデプロイや設定ガイドラインを提供します。
 
-## 为服务设置默认路由 {#set-default-routes-for-services}
+## サービスにデフォルトルートを設定する {#set-default-routes-for-services}
 
-尽管默认的 Istio 行为就可以在没有配置任何规则的情况下，将任何来源的流量发送到目标服务的所有版本。
-但是，在 Istio 里的最佳做法是，从一开始就为每一个服务创建具有默认路由的 `VirtualService`。
+Istio のデフォルト動作では、ルールを何も設定しなくても、あらゆる発信元からのトラフィックが対象サービスのすべてのバージョンに送信されます。
+しかし、Istio でのベストプラクティスは、最初から各サービスにデフォルトルートを持つ `VirtualService` を作成することです。
 
-即使最初您的服务只有一个版本，但是一旦您想要部署第二个版本，为了防止其以不受控制的方式接收流量，
-您需要在启用新版本**之前**配置路由规则。
+最初はサービスが 1 バージョンしかなくても、2 つ目のバージョンをデプロイしたい場合、
+新バージョンが無制御にトラフィックを受け取るのを防ぐため、**新バージョンを有効化する前に**ルートルールを設定しておく必要があります。
 
-依赖 Istio 默认循环路由的另一个潜在问题，在于 Istio 的 `DestinationRule` 评估算法的微妙之处。
-路由请求时，Envoy 首先评估 `VirtualService` 中的路由规则，以决定是否路由特定子集。
-当且仅当这样才能激活与该子集相对应的 `DestinationRule` 策略。因此，如果您将流量**明确地**路由到相应的子集，
-则 Istio 应该只应用您为特定子集定义的策略。
+Istio のデフォルトのラウンドロビンルーティングに依存するもう 1 つの潜在的な問題は、
+Istio の `DestinationRule` 評価アルゴリズムの微妙な挙動にあります。
+リクエストのルーティング時、Envoy はまず `VirtualService` のルートルールを評価し、特定のサブセットにルーティングするかどうかを決定します。
+このときのみ、そのサブセットに対応する `DestinationRule` ポリシーが有効になります。
+したがって、トラフィックを**明示的に**該当サブセットにルーティングした場合のみ、Istio はそのサブセット用に定義したポリシーを適用します。
 
-例如，将以下 `DestinationRule` 视为 **reviews** 服务定义的唯一配置，
-即相应的 `VirtualService` 定义中没有路由规则：
-
-{{< text yaml >}}
-apiVersion: networking.istio.io/v1
-kind: DestinationRule
-metadata:
-  name: reviews
-spec:
-  host: reviews
-  subsets:
-  - name: v1
-    labels:
-      version: v1
-    trafficPolicy:
-      connectionPool:
-        tcp:
-          maxConnections: 100
-{{< /text >}}
-
-即使 Istio 的默认轮询路由有时会调用 `v1` 实例，即使 `v1` 永远是唯一运行的版本，也永远不会调用上述流量策略。
-
-您可以通过以下两种方法之一来修复上面的示例。您可以在 `DestinationRule` 中将流量策略上移以使其适用于任何版本：
+たとえば、以下の `DestinationRule` が **reviews** サービスの唯一の設定で、
+対応する `VirtualService` にはルートルールがないとします：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: reviews
+name: reviews
 spec:
-  host: reviews
+host: reviews
+subsets:
+
+- name: v1
+  labels:
+  version: v1
   trafficPolicy:
-    connectionPool:
-      tcp:
-        maxConnections: 100
-  subsets:
-  - name: v1
-    labels:
-      version: v1
-{{< /text >}}
+  connectionPool:
+  tcp:
+  maxConnections: 100
+  {{< /text >}}
 
-更好的方法是，在 `VirtualService` 定义中为服务定义适当的路由规则。
-例如，为 `reviews:v1` 添加一个简单的路由规则：
+Istio のデフォルトのラウンドロビンルーティングが `v1` インスタンスを呼び出すことがあっても、
+`v1` が唯一の稼働バージョンであっても、上記のトラフィックポリシーは決して適用されません。
+
+この例を修正するには、2 つの方法があります。1 つは `DestinationRule` でトラフィックポリシーを上位に移動し、すべてのバージョンに適用する方法です：
+
+{{< text yaml >}}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+name: reviews
+spec:
+host: reviews
+trafficPolicy:
+connectionPool:
+tcp:
+maxConnections: 100
+subsets:
+
+- name: v1
+  labels:
+  version: v1
+  {{< /text >}}
+
+より良い方法は、`VirtualService` でサービスに適切なルートルールを定義することです。
+たとえば、`reviews:v1` へのシンプルなルートルール：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: reviews
+name: reviews
 spec:
-  hosts:
-  - reviews
+hosts:
+
+- reviews
   http:
-  - route:
-    - destination:
-        host: reviews
-        subset: v1
-{{< /text >}}
+- route: - destination:
+  host: reviews
+  subset: v1
+  {{< /text >}}
 
-## 控制配置在命名空间之间的共享 {#cross-namespace-configuration}
+## 設定の名前空間間共有の制御 {#cross-namespace-configuration}
 
-您可以在一个命名空间中定义 `VirtualService`，`DestinationRule` 或 `ServiceEntry`，
-然后将它们导出到其他命名空间，然后在其他命名空间中重用它们。
-Istio 默认情况下会将所有流量管理资源导出到所有命名空间，但是您可以使用 `exportTo`
-控制其跨命名空间的可见性。例如，只有相同命名空间中的客户端可以使用以下 `VirtualService`：
+1 つの名前空間で `VirtualService`、`DestinationRule`、`ServiceEntry` を定義し、
+それらを他の名前空間にエクスポートして再利用できます。
+Istio はデフォルトですべてのトラフィック管理リソースを全名前空間にエクスポートしますが、
+`exportTo` を使って名前空間間の可視性を制御できます。たとえば、同じ名前空間のクライアントだけが以下の `VirtualService` を利用できます：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myservice
+name: myservice
 spec:
-  hosts:
-  - myservice.com
+hosts:
+
+- myservice.com
   exportTo:
-  - "."
+- "."
   http:
-  - route:
-    - destination:
-        host: myservice
-{{< /text >}}
+- route: - destination:
+  host: myservice
+  {{< /text >}}
 
 {{< tip >}}
-您可以像使用 `networking.istio.io/exportTo` 批注一样控制 Kubernetes `Service` 的可见性。
+Kubernetes の `Service` も `networking.istio.io/exportTo` アノテーションで可視性を制御できます。
 {{< /tip >}}
 
-在特定命名空间中设置 `DestinationRule` 的可见性并不能保证会使用该规则。
-将 `DestinationRule` 导出到其他命名空间可以使您在其它命名空间中使用它，
-但是要在请求时真正应用该 `DestinationRule`，命名空间也必须位于 `DestinationRule` 查找路径上：
+特定の名前空間で `DestinationRule` の可視性を設定しても、そのルールが必ず使われるとは限りません。
+`DestinationRule` を他の名前空間にエクスポートすると、その名前空間で利用できますが、
+実際にリクエスト時にその `DestinationRule` が適用されるには、名前空間が `DestinationRule` の検索パス上にある必要があります：
 
-1. 客户端命名空间
-1. 服务命名空间
-1. Istio 根配置命名空间（默认是 `istio-system`）
+1. クライアントの名前空間
+1. サービスの名前空間
+1. Istio ルート設定の名前空間（デフォルトは `istio-system`）
 
-例如，有以下 `DestinationRule`：
+たとえば、以下の `DestinationRule`：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: myservice
+name: myservice
 spec:
-  host: myservice.default.svc.cluster.local
-  trafficPolicy:
-    connectionPool:
-      tcp:
-        maxConnections: 100
+host: myservice.default.svc.cluster.local
+trafficPolicy:
+connectionPool:
+tcp:
+maxConnections: 100
 {{< /text >}}
 
-假设您在命名空间 `ns1` 中创建此 `DestinationRule`。
+これを `ns1` 名前空間で作成したとします。
 
-如果从 `ns1` 中的客户端向 `myservice` 服务发送请求，则将应用该 `DestinationRule`，
-因为它在查找路径的第一个命名空间中，即在客户端命名空间中。
+`ns1` のクライアントから `myservice` サービスにリクエストすると、
+検索パスの最初（クライアントの名前空間）にあるため、この `DestinationRule` が適用されます。
 
-如果现在从另一个命名空间（例如 `ns2`）发送请求，则客户端将不再与 `DestinationRule` 处于相同的命名空间，
-即 `ns1`。因为相应的服务 `myservice.default.svc.cluster.local` 也不在 `ns1` 中，
-而是在 `default` 命名空间中，所以在查找路径的第二个命名空间中也找不到 `DestinationRule`，即服务命名空间。
+今度は別の名前空間（例：`ns2`）からリクエストすると、クライアントは `ns1` とは異なる名前空間にいるため、
+`DestinationRule` は検索パスのどこにも存在しません。
+サービス `myservice.default.svc.cluster.local` も `ns1` ではなく `default` 名前空間にあるため、
+検索パスの 2 番目（サービスの名前空間）にも `DestinationRule` はありません。
 
-即使将 `myservice` 服务导出到所有命名空间，并因此在 `ns2` 中可见，
-并且 `DestinationRule` 也导出到包括 `ns2` 在内的所有命名空间。来自 `ns2`
-的请求依然不会应用该规则，因为它不在查找路径上的任何命名空间中。
+たとえ `myservice` サービスを全名前空間にエクスポートし、`DestinationRule` も全名前空間にエクスポートしても、
+`ns2` からのリクエストにはこのルールは適用されません。検索パス上にないからです。
 
-您可以通过在与相应服务相同的命名空间（在此示例中为 `default`）中创建 `DestinationRule` 来避免此问题。
-然后，它将应用于任何命名空间中的客户端请求。您也可以将 `DestinationRule` 移至 `istio-system` 命名空间，
-即查找路径上的第三个命名空间，尽管不建议这样做，除非 `DestinationRule` 是适用于所有命名空间的全局配置，
-并且这需要管理员权限。
+この問題を回避するには、該当サービスと同じ名前空間（この例では `default`）で `DestinationRule` を作成します。
+これで、どの名前空間のクライアントからのリクエストにも適用されます。
+または、`DestinationRule` を `istio-system` 名前空間に移動することもできますが、
+これは全名前空間に適用するグローバル設定の場合のみ推奨され、管理者権限が必要です。
 
-Istio 使用这种受限制的 `DestinationRule` 查找路径有两个原因：
+Istio がこのような制限付きの `DestinationRule` 検索パスを採用している理由は 2 つあります：
 
-1. 防止定义覆盖完全不相关的命名空间中的服务行为的 `DestinationRule`。
-1. 当同一 host 有多个 `DestinationRule` 时，可以有一个清晰的查找顺序。
+1. 無関係な名前空間のサービス動作を上書きする `DestinationRule` の定義を防ぐため。
+1. 同じ host に複数の `DestinationRule` がある場合、明確な検索順序を持たせるため。
 
-## 将大型 `VirtualService` 和 `DestinationRule` 拆分为多个资源 {#split-virtual-services}
+## 大きな `VirtualService` や `DestinationRule` を複数リソースに分割する {#split-virtual-services}
 
-当不方便在单个 `VirtualService` 或 `DestinationRule` 资源中为特定 host 定义完整的路由规则或策略集时，
-最好在多个资源中递增指定 host 的配置。如果将这些 `DestinationRule` 绑定到网关，
-控制面会合并这些 `DestinationRule` 和 `VirtualService`。
+特定の host のルートルールやポリシーセットを 1 つの `VirtualService` や `DestinationRule` で定義するのが困難な場合、
+複数のリソースで段階的に host の設定を指定するのがベストです。
+これらの `DestinationRule` をゲートウェイにバインドすると、コントロールプレーンはそれらの `DestinationRule` や `VirtualService` をマージします。
 
-考虑一下这种情况，一个 `VirtualService` 绑定到入口网关上，并将应用的 host 暴露出来，
-该 host 基于路径代理了多个服务，如下所示：
+たとえば、1 つの `VirtualService` が Ingress Gateway にバインドされ、
+host に基づいて複数のサービスにパスベースでプロキシしている場合：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp
+name: myapp
 spec:
-  hosts:
-  - myapp.com
+hosts:
+
+- myapp.com
   gateways:
-  - myapp-gateway
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /service1
+- match:
+  - uri:
+    prefix: /service1
     route:
-    - destination:
-        host: service1.default.svc.cluster.local
-  - match:
-    - uri:
-        prefix: /service2
+  - destination:
+    host: service1.default.svc.cluster.local
+- match:
+  - uri:
+    prefix: /service2
     route:
-    - destination:
-        host: service2.default.svc.cluster.local
-  - match:
-    ...
-{{< /text >}}
+  - destination:
+    host: service2.default.svc.cluster.local
+- match:
+  ...
+  {{< /text >}}
 
-这种配置的缺点是，任何底层微服务的其他配置（例如，路由规则）也需要包含在这个配置文件中，
-而不是包含在与各个服务团队关联或可能由各个服务团队拥有的单独资源中。有关详细信息，
-请参见[路由规则没有对 ingress gateway 请求生效](/zh/docs/ops/common-problems/network-issues/#route-rules-have-no-effect-on-ingress-gateway-requests)。
+この構成の欠点は、下層のマイクロサービスの他の設定（ルートルールなど）もこの設定ファイルに含める必要があり、
+各サービスチームが所有する個別リソースに分離できないことです。詳細は[Ingress Gateway リクエストでルートルールが効かない](/ja/docs/ops/common-problems/network-issues/#route-rules-have-no-effect-on-ingress-gateway-requests)を参照してください。
 
-为避免此问题，最好将 `myapp.com` 的配置分解为多个 `VirtualService`，每个后端服务一个。例如：
+この問題を回避するには、`myapp.com` の設定を各バックエンドサービスごとに複数の `VirtualService` に分割するのがベストです。例：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp-service1
+name: myapp-service1
 spec:
-  hosts:
-  - myapp.com
+hosts:
+
+- myapp.com
   gateways:
-  - myapp-gateway
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /service1
+- match:
+  - uri:
+    prefix: /service1
     route:
-    - destination:
-        host: service1.default.svc.cluster.local
+  - destination:
+    host: service1.default.svc.cluster.local
+
 ---
+
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp-service2
+name: myapp-service2
 spec:
-  hosts:
-  - myapp.com
+hosts:
+
+- myapp.com
   gateways:
-  - myapp-gateway
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /service2
+- match:
+  - uri:
+    prefix: /service2
     route:
-    - destination:
-        host: service2.default.svc.cluster.local
+  - destination:
+    host: service2.default.svc.cluster.local
+
 ---
+
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp-...
+name: myapp-...
 {{< /text >}}
 
-当为已存在的 host 创建第二个及更多的 `VirtualService`时，`istiod` 会将额外的路由规则合并到
-host 现有配置中。但是，在使用此功能时，有一些注意事项。
+既存の host に 2 つ目以降の `VirtualService` を作成すると、`istiod` は追加のルートルールを host の既存設定にマージします。
+ただし、この機能を使う際には注意点があります。
 
-1. 尽管会保留任何给定源 `VirtualService` 中规则的评估顺序，但跨资源的顺序是不确定的。
-   换句话说，无法保证片段配置中规则的评估顺序，因此，只有在片段规则之间没有冲突的规则或者顺序依赖性时，
-   它才具有可预测的行为。
-1. 片段中应该只有一个 `catch-all` 规则（即与任何请求路径或 header 都匹配的规则）。所有这些
-   `catch-all` 规则将在合并配置中移至列表的末尾，但是由于它们捕获了所有请求，因此，首先应用的那个规则，
-   实际上会覆盖并禁用其它的规则。
-1. 如果想将 `VirtualService` 绑定到网关，则只能以这种方式进行分段。Sidecar 不支持 host 合并。
+1. 各 `VirtualService` 内のルール評価順序は保持されますが、リソース間の順序は不定です。
+   つまり、分割設定間でルールの順序依存や競合がある場合、予測できない動作になります。
+1. 各分割設定には `catch-all` ルール（すべてのリクエストパスやヘッダにマッチするルール）は 1 つだけにしてください。
+   すべての `catch-all` ルールはマージ後リストの末尾に移動しますが、最初に適用されたものが他を上書きします。
+1. `VirtualService` をゲートウェイにバインドする場合のみ分割が可能です。Sidecar では host のマージはサポートされません。
 
-也可以使用类似的合并语义和限制将 `DestinationRule` 分段。
+同様のマージ動作と制限は `DestinationRule` の分割にも適用されます。
 
-1. 在这里，它应该只是同一 host 的多个 `DestinationRule` 中任何给定子集的一种定义。如果有多个同名，
-   则使用第一个定义，并丢弃随后的所有重复项。不支持子集内容的合并。
-1. 同一 host 只能有一个顶级的 `trafficPolicy`。在多个 `DestinationRule` 中定义了顶级 `trafficPolicy`
-   时，将使用第一个策略。之后的所有顶级 `trafficPolicy` 配置都将被丢弃。
-1. 与 `VirtualService` 合并不同，`DestinationRule` 合并在 Sidecar 和 gateway 中均有效。
+1. 同じ host の複数の `DestinationRule` で、任意のサブセットは 1 つだけ定義してください。複数ある場合は最初の定義が使われ、以降は無視されます。サブセット内容のマージはサポートされません。
+1. 同じ host にはトップレベルの `trafficPolicy` は 1 つだけです。複数の `DestinationRule` で定義した場合、最初のものが使われ、以降は無視されます。
+1. `VirtualService` のマージと異なり、`DestinationRule` のマージは Sidecar と gateway の両方で有効です。
 
-## 避免重新配置服务路由时出现 503 错误 {#avoid-5-0-3-errors-while-reconfiguring-service-routes}
+## サービスルート再設定時の 503 エラー回避 {#avoid-5-0-3-errors-while-reconfiguring-service-routes}
 
-在设置路由规则以将流量定向到服务的某个版本（子集）时，必须注意确保子集在路由中使用之前是可用的。
-否则，在重新配置期间，对服务的调用可能返回 503 错误。
+トラフィックをサービスの特定バージョン（サブセット）にルーティングするルールを設定する際は、
+ルートで使うサブセットが事前に利用可能であることを必ず確認してください。
+そうしないと、再設定中にサービス呼び出しが 503 エラーになることがあります。
 
-使用单个 `kubectl` 调用（例如，`kubectl apply -f myVirtualServiceAndDestinationRule.yaml`）
-创建定义相应子集的 `VirtualServices` 和 `DestinationRules` 是不够的，
-因为资源（是从配置服务器传播的，即 Kubernetes API 服务器）以最终一致的方式添加到 istiod 实例的。
-如果 `VirtualService` 在定义的子集 `DestinationRule` 到达之前使用了子集，则 istiod 生成的 Envoy
-配置将引用不存在的上游池。结果就是出现 HTTP 503 错误，直到对于 istiod 来说所有配置对象都是可用的。
+`kubectl` の 1 回のコマンド（例：`kubectl apply -f myVirtualServiceAndDestinationRule.yaml`）で
+該当サブセットを定義する `VirtualService` と `DestinationRule` を作成しても不十分です。
+なぜなら、リソースは（Kubernetes API サーバーから）最終的整合性で istiod に伝播されるためです。
+`VirtualService` がサブセットを参照する前に `DestinationRule` が到達していない場合、
+istiod が生成する Envoy 設定は存在しない上流プールを参照し、HTTP 503 エラーが発生します。
+すべての設定オブジェクトが istiod で利用可能になるまで、このエラーは続きます。
 
-为保证服务在配置带有子集的路由时的停机时间为零，请按照下述“先接后断”的流程进行操作：
+サブセット付きルートの設定時にダウンタイムゼロを保証するには、以下の「先付け後外し」手順に従ってください：
 
-* 添加新子集时：
+- 新しいサブセットを追加する場合：
 
-    1. 更新 `DestinationRules`，首先添加一个新的子集，然后更新会使用它的所有 `VirtualServices`，
-       再使用 `kubectl` 或平台对应的工具应用规则。
+  1. まず `DestinationRule` を更新して新しいサブセットを追加し、その後それを使うすべての `VirtualService` を更新し、`kubectl` などで適用します。
 
-    1. 等待几秒钟，使 `DestinationRule` 配置传播到 Envoy Sidecar。
+  1. 数秒待ち、`DestinationRule` 設定が Envoy Sidecar に伝播するのを待ちます。
 
-    1. 更新 `VirtualService` 以引用新添加的子集。
+  1. `VirtualService` を更新して新しいサブセットを参照させます。
 
-* 移除子集时：
+- サブセットを削除する場合：
 
-    1. 在从 `DestinationRule` 中删除子集之前，更新 `VirtualServices` 以删除对该子集的所有引用。
+  1. `DestinationRule` からサブセットを削除する前に、`VirtualService` からそのサブセットへの参照をすべて削除します。
 
-    1. 等待几秒钟，使 `VirtualService` 配置传播到 Envoy Sidecar。
+  1. 数秒待ち、`VirtualService` 設定が Envoy Sidecar に伝播するのを待ちます。
 
-    1. 更新 `DestinationRule` 以删除未使用的子集。
+  1. 未使用のサブセットを `DestinationRule` から削除します。

@@ -1,31 +1,30 @@
 ---
-title: Deployment 最佳实践
-description: 设置 Istio 服务网格时的最佳实践。
+title: Deployment のベストプラクティス
+description: Istio サービスメッシュをセットアップする際のベストプラクティス。
 force_inline_toc: true
 weight: 10
 aliases:
-  - /zh/docs/ops/prep/deployment
+  - /ja/docs/ops/prep/deployment
 owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-我们确定了以下大体原则，以帮助您充分利用 Istio Deployment。
-这些最佳实践旨在限制不良配置带来的影响，并使 Deployment 管理变得更加轻松。
+Istio Deployment を最大限に活用するために、以下の大まかな原則をまとめました。
+これらのベストプラクティスは、不適切な設定による影響を最小限に抑え、Deployment 管理を容易にすることを目的としています。
 
-## 部署较少的集群 {#deploy-fewer-clusters}
+## クラスタは少数大規模でデプロイする {#deploy-fewer-clusters}
 
-应该在少量的大型集群（而不是大量的小型集群）中部署 Istio。
-最好的做法是使用[命名空间租赁](/zh/docs/ops/deployment/deployment-models/#namespace-tenancy)来管理大型集群，
-而不是将集群添加到 Deployment 中。按照这种方法，您可以在每个区域或区域中的一两个集群上部署 Istio。
+Istio は多数の小規模クラスタではなく、少数の大規模クラスタにデプロイするのが望ましいです。
+最良の方法は、[名前空間テナンシー](/ja/docs/ops/deployment/deployment-models/#namespace-tenancy)を使って大規模クラスタを管理し、Deployment にクラスタを追加しないことです。この方法により、各リージョンまたはリージョン内の 1 ～ 2 個のクラスタに Istio をデプロイできます。
 
-然后，您可以在每个区域或区域的一个集群上部署控制平面，以提高可靠性。
+その後、各リージョンまたはリージョン内の 1 つのクラスタにコントロールプレーンをデプロイし、信頼性を高めます。
 
-## 在靠近用户的地方部署集群 {#deploy-clusters-near-your-users}
+## ユーザーの近くにクラスタをデプロイする {#deploy-clusters-near-your-users}
 
-在全球部署集群，实现**在地理位置上靠近终端用户**。
-这有助于降低 Deployment 的延迟。
+クラスタをグローバルにデプロイし、**エンドユーザーの地理的な近く**で運用します。
+これにより、Deployment のレイテンシを低減できます。
 
-## 跨多个可用区域进行部署 {#deploy-across-multiple-availability-zones}
+## 複数のアベイラビリティゾーンにまたがってデプロイする {#deploy-across-multiple-availability-zones}
 
-您的 Deployment 中包含在每个地理区域内的**跨多个可用区域**集群。
-这种方法可以限制 Deployment{{< gloss "failure domain" >}}故障域{{< /gloss >}}的大小，有助于避免全局故障。
+Deployment には、各地理的リージョン内で**複数のアベイラビリティゾーン**にまたがるクラスタを含めます。
+この方法は、Deployment の{{< gloss "failure domain" >}}障害ドメイン{{< /gloss >}}の範囲を制限し、全体的な障害を回避するのに役立ちます。

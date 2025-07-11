@@ -1,111 +1,102 @@
 ---
-title: 主从架构的安装
-description: 跨主从集群，安装 Istio 网格。
+title: プライマリ・リモート構成のインストール
+description: プライマリ・リモートクラスタにまたがる Istio メッシュのインストール。
 weight: 20
 icon: setup
-keywords: [kubernetes,multicluster]
+keywords: [kubernetes, multicluster]
 test: no
 owner: istio/wg-environments-maintainers
 ---
 
-按照本指南，在 `cluster1` {{< gloss "primary cluster" >}}主集群{{< /gloss >}}安装
-Istio 控制平面，并设置 `cluster2` {{< gloss "remote cluster" >}}从集群{{< /gloss >}}指向
-`cluster1` 的控制平面。两个集群都运行在 `network1` 网络上,
-所以两个集群的 Pod 之间，网络可直接连通。
+このガイドに従って、`cluster1` {{< gloss "primary cluster" >}}プライマリクラスタ{{< /gloss >}} に Istio コントロールプレーンをインストールし、`cluster2` {{< gloss "remote cluster" >}}リモートクラスタ{{< /gloss >}} を `cluster1` のコントロールプレーンに接続します。両方のクラスタは `network1` 上で動作しているため、両クラスタの Pod は直接通信できます。
 
-继续安装之前，请先确认完成了[准备工作](/zh/docs/setup/install/multicluster/before-you-begin)中的步骤。
+インストールを続行する前に、[事前準備](/ja/docs/setup/install/multicluster/before-you-begin)の手順を完了していることを確認してください。
 
 {{< boilerplate multi-cluster-with-metallb >}}
 
 {{< warning >}}
-这些说明不适用于 AWS EKS 主集群部署。
-这种不兼容性背后的原因是 AWS 负载均衡器（LB）以完全限定域名（FQDN）的形式呈现，
-而从集群则使用 Kubernetes 服务类型 'ExternalName'。
-但是，'ExternalName' 类型专门支持 IP 地址，不支持 FQDN。
+これらの手順は AWS EKS プライマリクラスタのデプロイには対応していません。
+この非互換性の理由は、AWS ロードバランサー（LB）が完全修飾ドメイン名（FQDN）として提供される一方、リモートクラスタは Kubernetes サービスタイプ 'ExternalName' を使用するためです。
+しかし、'ExternalName' タイプは IP アドレスのみをサポートし、FQDN には対応していません。
 {{< /warning >}}
 
-在此配置中，集群 `cluster1` 将监测两个集群 API Server 的服务端点。
-以这种方式，控制平面就能为两个集群中的工作负载提供服务发现。
+この構成では、`cluster1` が両方のクラスタ API サーバーのサービスエンドポイントを監視します。
+この方法により、コントロールプレーンは両方のクラスタのワークロードにサービスディスカバリを提供できます。
 
-服务的工作负载（Pod 到 Pod）可跨集群边界直接通讯。
+サービスのワークロード（Pod 間）はクラスタ間の境界を越えて直接通信します。
 
-`cluster2` 中的服务将通过专用的[东西向](https://en.wikipedia.org/wiki/East-west_traffic)网关流量访问
-`cluster1` 的控制平面。
+`cluster2` のサービスは、専用の[イーストウエスト](https://en.wikipedia.org/wiki/East-west_traffic)ゲートウェイ経由で `cluster1` のコントロールプレーンにトラフィックを送ります。
 
 {{< image width="75%"
     link="arch.svg"
-    caption="同一网络的主从集群"
+    caption="同一ネットワーク上のプライマリ・リモートクラスタ"
     >}}
 
-## 将 `cluster1` 设为主集群 {#configure-cluster1-as-a-primary}
+## `cluster1` をプライマリクラスタとして構成する {#configure-cluster1-as-a-primary}
 
-为 `cluster1` 创建 `istioctl` 配置：
+`cluster1` 用の `istioctl` 設定を作成します：
 
 {{< tabset category-name="multicluster-primary-remote-install-type-primary-cluster" >}}
 
 {{< tab name="IstioOperator" category-value="iop" >}}
 
-使用 istioctl 和 `IstioOperator` API 在 `cluster1` 中将 Istio 安装为主节点。
+istioctl と `IstioOperator` API を使用して、`cluster1` に Istio をプライマリとしてインストールします。
 
 {{< text bash >}}
 $ cat <<EOF > cluster1.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  values:
-    global:
-      meshID: mesh1
-      multiCluster:
-        clusterName: cluster1
-      network: network1
-      externalIstiod: true
+values:
+global:
+meshID: mesh1
+multiCluster:
+clusterName: cluster1
+network: network1
+externalIstiod: true
 EOF
 {{< /text >}}
 
-将配置文件应用到 `cluster1`：
+設定ファイルを `cluster1` に適用します：
 
 {{< text bash >}}
 $ istioctl install --context="${CTX_CLUSTER1}" -f cluster1.yaml
 {{< /text >}}
 
-需要注意的是，当 `values.global.externalIstiod` 被设置为 `true` 时，
-安装在 `cluster1` 上的控制平面也可以作为其他从集群的外部控制平面。
-当这个功能被启用时，`istiod` 将尝试获取领导权锁，
-并因此管理会附加到它的并且带有[适当注解的](#set-the-control-plane-cluster-for-cluster2)从集群
-（本例中为 `cluster2`）。
+`values.global.externalIstiod` を `true` に設定すると、`cluster1` 上のコントロールプレーンは他のリモートクラスタの外部コントロールプレーンとしても機能します。
+この機能が有効な場合、`istiod` はリーダーシップロックを取得し、[適切なアノテーション](#set-the-control-plane-cluster-for-cluster2)が付与されたリモートクラスタ（この例では `cluster2`）を管理します。
 
 {{< /tab >}}
 
 {{< tab name="Helm" category-value="helm" >}}
 
-使用以下 Helm 命令在 `cluster1` 中将 Istio 安装为主节点：
+以下の Helm コマンドを使用して、`cluster1` に Istio をプライマリとしてインストールします：
 
-在 `cluster1` 中安装 `base` Chart：
+`cluster1` に `base` Chart をインストールします：
 
 {{< text bash >}}
 $ helm install istio-base istio/base -n istio-system --kube-context "${CTX_CLUSTER1}"
 {{< /text >}}
 
-然后，使用以下多集群设置在 `cluster1` 中安装 `istiod` Chart：
+次に、以下のマルチクラスタ設定を使用して `cluster1` に `istiod` Chart をインストールします：
 
 {{< text bash >}}
 $ helm install istiod istio/istiod -n istio-system --kube-context "${CTX_CLUSTER1}" --set global.meshID=mesh1 --set global.externalIstiod=true --set global.multiCluster.clusterName=cluster1 --set global.network=network1
 {{< /text >}}
 
-请注意，`values.global.externalIstiod` 设置为 `true`。
-这使得安装在 `cluster1` 上的控制平面也可以用作其他远程集群的外部控制平面。
-启用此功能后，`istiod` 将尝试获取领导锁，
-从而管理连接到它的[适当注释的](#set-the-control-plane-cluster-for-cluster2)远程集群（在本例中为 `cluster2`）。
+`values.global.externalIstiod` を `true` に設定してください。
+これにより、`cluster1` 上のコントロールプレーンは他のリモートクラスタの外部コントロールプレーンとしても機能します。
+この機能が有効な場合、`istiod` はリーダーロックを取得し、[適切なアノテーション](#set-the-control-plane-cluster-for-cluster2)が付与されたリモートクラスタ（この例では `cluster2`）を管理します。
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-## 在 `cluster1` 安装东西向网关 {#install-the-east-west-gateway-in-cluster1}
+## `cluster1` にイーストウエストゲートウェイをインストールする {#install-the-east-west-gateway-in-cluster1}
 
-在 `cluster1` 中安装东西向流量专用网关，默认情况下，此网关将被公开到互联网上。
-生产环境可能需要增加额外的准入限制（即：通过防火墙规则）来防止外部攻击。
-咨询您的云供应商，了解可用的选项。
+`cluster1` にイーストウエストトラフィック専用のゲートウェイをインストールします。デフォルトでは、このゲートウェイはインターネットに公開されます。
+本番環境では、外部からの攻撃を防ぐために追加のアクセス制限（例：ファイアウォールルール）が必要な場合があります。
+ご利用のクラウドプロバイダーに、利用可能なオプションについてご相談ください。
 
 {{< tabset category-name="east-west-gateway-install-type-cluster-1" >}}
 
@@ -113,52 +104,49 @@ $ helm install istiod istio/istiod -n istio-system --kube-context "${CTX_CLUSTER
 
 {{< text bash >}}
 $ @samples/multicluster/gen-eastwest-gateway.sh@ \
-    --network network1 | \
-    istioctl --context="${CTX_CLUSTER1}" install -y -f -
+ --network network1 | \
+ istioctl --context="${CTX_CLUSTER1}" install -y -f -
 {{< /text >}}
 
 {{< warning >}}
-如果控制平面已经安装了一个修订版，可在 `gen-eastwest-gateway.sh` 命令中添加
-`--revision rev` 标志。
+コントロールプレーンがすでにリビジョン付きでインストールされている場合は、`gen-eastwest-gateway.sh` コマンドに `--revision rev` フラグを追加できます。
 {{< /warning >}}
 {{< /tab >}}
 {{< tab name="Helm" category-value="helm" >}}
 
-使用以下 Helm 命令在 `cluster1` 中安装东西网关：
+以下の Helm コマンドを使用して、`cluster1` にイーストウエストゲートウェイをインストールします：
 
 {{< text bash >}}
 $ helm install istio-eastwestgateway istio/gateway -n istio-system --kube-context "${CTX_CLUSTER1}" --set name=istio-eastwestgateway --set networkGateway=network1
 {{< /text >}}
 
 {{< warning >}}
-如果控制平面是使用修订版安装的，则必须在 Helm 安装命令中添加
-`--set revision=<my-revision>` 标志。
+コントロールプレーンがリビジョン付きでインストールされている場合は、Helm インストールコマンドに `--set revision=<my-revision>` フラグを追加する必要があります。
 {{< /warning >}}
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-等待东西向网关获取外部 IP 地址：
+イーストウエストゲートウェイに外部 IP アドレスが割り当てられるまで待ちます：
 
 {{< text bash >}}
 $ kubectl --context="${CTX_CLUSTER1}" get svc istio-eastwestgateway -n istio-system
-NAME                    TYPE           CLUSTER-IP    EXTERNAL-IP    PORT(S)   AGE
-istio-eastwestgateway   LoadBalancer   10.80.6.124   34.75.71.237   ...       51s
+NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+istio-eastwestgateway LoadBalancer 10.80.6.124 34.75.71.237 ... 51s
 {{< /text >}}
 
-## 在 `cluster1` 中开放控制平面 {#expose-the-control-plane-in-cluster1}
+## `cluster1` のコントロールプレーンを公開する {#expose-the-control-plane-in-cluster1}
 
-在安装 `cluster2` 之前，我们需要开放 `cluster1` 的控制平面，
-以便 `cluster2` 中的服务能访问到服务发现：
+`cluster2` をインストールする前に、`cluster1` のコントロールプレーンを公開し、`cluster2` のサービスがサービスディスカバリにアクセスできるようにします：
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_CLUSTER1}" -n istio-system -f \
-    @samples/multicluster/expose-istiod.yaml@
+ @samples/multicluster/expose-istiod.yaml@
 {{< /text >}}
 
 {{< warning >}}
-如果控制平面指定了版本 `rev`，需要改为执行以下命令：
+コントロールプレーンにバージョン `rev` を指定している場合は、次のコマンドを実行してください：
 
 {{< text bash >}}
 $ sed 's/{{.Revision}}/rev/g' @samples/multicluster/expose-istiod-rev.yaml.tmpl@ | kubectl apply --context="${CTX_CLUSTER1}" -n istio-system -f -
@@ -166,28 +154,27 @@ $ sed 's/{{.Revision}}/rev/g' @samples/multicluster/expose-istiod-rev.yaml.tmpl@
 
 {{< /warning >}}
 
-## 设置集群 `cluster2` 的控制平面 {#set-the-control-plane-cluster-for-cluster2}
+## `cluster2` のコントロールプレーンクラスタを設定する {#set-the-control-plane-cluster-for-cluster2}
 
-我们需要通过为 `istio-system` 命名空间添加注解来识别应管理集群
-`cluster2` 的外部控制平面：
+`istio-system` 名前空間にアノテーションを追加して、`cluster2` を管理する外部コントロールプレーンを識別します：
 
 {{< text bash >}}
 $ kubectl --context="${CTX_CLUSTER2}" create namespace istio-system
 $ kubectl --context="${CTX_CLUSTER2}" annotate namespace istio-system topology.istio.io/controlPlaneClusters=cluster1
 {{< /text >}}
 
-## 将 `cluster2` 设为从集群 {#configure-cluster2-as-a-remote}
+## `cluster2` をリモートクラスタとして構成する {#configure-cluster2-as-a-remote}
 
-保存 `cluster1` 东西向网关的地址。
+`cluster1` のイーストウエストゲートウェイのアドレスを保存します。
 
 {{< text bash >}}
 $ export DISCOVERY_ADDRESS=$(kubectl \
     --context="${CTX_CLUSTER1}" \
-    -n istio-system get svc istio-eastwestgateway \
-    -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+ -n istio-system get svc istio-eastwestgateway \
+ -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 {{< /text >}}
 
-现在，为 `cluster2` 创建一个从集群配置：
+次に、`cluster2` 用のリモートクラスタ設定を作成します：
 
 {{< tabset category-name="multicluster-primary-remote-install-type-remote-cluster" >}}
 
@@ -198,18 +185,18 @@ $ cat <<EOF > cluster2.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  profile: remote
-  values:
-    global:
-      meshID: mesh1
-      multiCluster:
-        clusterName: cluster2
-      network: network1
-      remotePilotAddress: ${DISCOVERY_ADDRESS}
+profile: remote
+values:
+global:
+meshID: mesh1
+multiCluster:
+clusterName: cluster2
+network: network1
+remotePilotAddress: ${DISCOVERY_ADDRESS}
 EOF
 {{< /text >}}
 
-将配置应用到`cluster2`：
+設定を `cluster2` に適用します：
 
 {{< text bash >}}
 $ istioctl install --context="${CTX_CLUSTER2}" -f cluster2.yaml
@@ -218,24 +205,22 @@ $ istioctl install --context="${CTX_CLUSTER2}" -f cluster2.yaml
 {{< /tab >}}
 {{< tab name="Helm" category-value="helm" >}}
 
-使用以下 Helm 命令在 `cluster2` 中将 Istio 作为远程安装：
+以下の Helm コマンドを使用して、`cluster2` に Istio をリモートとしてインストールします：
 
-在 `cluster2` 中安装 `base` Chart：
+`cluster2` に `base` Chart をインストールします：
 
 {{< text bash >}}
 $ helm install istio-base istio/base -n istio-system --set profile=remote --kube-context "${CTX_CLUSTER2}"
 {{< /text >}}
 
-然后，使用以下多集群设置在 `cluster2` 中安装 `istiod` Chart：
+次に、以下のマルチクラスタ設定を使用して `cluster2` に `istiod` Chart をインストールします：
 
 {{< text bash >}}
 $ helm install istiod istio/istiod -n istio-system --set profile=remote --set global.multiCluster.clusterName=cluster2 --set istiodRemote.injectionPath=/inject/cluster/cluster2/net/network1 --set global.configCluster=true --set global.remotePilotAddress="${DISCOVERY_ADDRESS}" --kube-context "${CTX_CLUSTER2}"
 {{< /text >}}
 
 {{< tip >}}
-
-仅从 Istio 版本 1.24 开始，才可以使用 `base` 和 `istiod` Helm Chart 的 `remote` 配置文件。
-
+Istio バージョン 1.24 以降でのみ、`base` および `istiod` Helm Chart の `remote` プロファイルが利用可能です。
 {{< /tip >}}
 
 {{< /tab >}}
@@ -243,62 +228,59 @@ $ helm install istiod istio/istiod -n istio-system --set profile=remote --set gl
 {{< /tabset >}}
 
 {{< tip >}}
-为了便于演示，在这里我们使用 `injectionPath` 和 `remotePilotAddress` 参数配置控制平面的位置。
-但在生产环境中，建议改为使用正确签名的 DNS 证书配置 `injectionURL` 参数，
-类似于[外部控制平面说明](/zh-cn/docs/setup/install/external-controlplane/#register-the-new-cluster)中的显示配置。
+デモのため、ここでは `injectionPath` と `remotePilotAddress` パラメータでコントロールプレーンの場所を指定していますが、本番環境では正しく署名された DNS 証明書を使って `injectionURL` パラメータを設定することを推奨します。
+詳細は[外部コントロールプレーンの説明](/ja/docs/setup/install/external-controlplane/#register-the-new-cluster)を参照してください。
 {{< /tip >}}
 
-## 附加 `cluster2` 作为 `cluster1` 的从集群 {#attach-cluster2-as-a-remote-cluster-of-cluster1}
+## `cluster2` を `cluster1` のリモートクラスタとして接続する {#attach-cluster2-as-a-remote-cluster-of-cluster1}
 
-为了将从集群连接到它的控制平面，我们让 `cluster1`
-中的控制平面访问 `cluster2` 中的 API 服务器。
-这将执行以下操作：
+リモートクラスタをコントロールプレーンに接続するため、`cluster1` のコントロールプレーンが `cluster2` の API サーバーにアクセスできるようにします。
+これにより、以下が可能になります：
 
-- 使控制平面能够验证来自在 `cluster2` 中运行的工作负载的连接请求。
-  如果没有 API Server 访问权限，控制平面将拒绝请求。
+- コントロールプレーンが `cluster2` で動作するワークロードからの接続リクエストを検証できるようになります。
+  API サーバーへのアクセス権がない場合、コントロールプレーンはリクエストを拒否します。
 
-- 启用在 `cluster2` 中运行的服务端点发现。
+- `cluster2` で動作するサービスエンドポイントのディスカバリが有効になります。
 
-因为它已包含在 `topology.istio.io/controlPlaneClusters` 命名空间注解中
-`cluster1` 上的控制平面也将：
+また、`topology.istio.io/controlPlaneClusters` 名前空間アノテーションに含まれているため、
+`cluster1` 上のコントロールプレーンは次のことも行います：
 
-- 修补 `cluster2` 中 Webhook 中的证书。
+- `cluster2` の Webhook 証明書を修正します。
 
-- 启动命名空间控制器，在 `cluster2` 的命名空间中写入 ConfigMap。
+- 名前空間コントローラーを起動し、`cluster2` の名前空間に ConfigMap を書き込みます。
 
-为了能让 API 服务器访问 `cluster2`，
-我们生成一个远程 Secret 并将其应用于 `cluster1`：
+API サーバーが `cluster2` にアクセスできるようにするため、リモート Secret を生成し、`cluster1` に適用します：
 
 {{< text bash >}}
 $ istioctl create-remote-secret \
-    --context="${CTX_CLUSTER2}" \
+ --context="${CTX_CLUSTER2}" \
     --name=cluster2 | \
     kubectl apply -f - --context="${CTX_CLUSTER1}"
 {{< /text >}}
 
-**恭喜!** 您已经成功地安装了跨主从集群的 Istio 网格！
+**おめでとうございます！** プライマリ・リモートクラスタにまたがる Istio メッシュのインストールに成功しました！
 
-## 后续步骤 {#next-steps}
+## 次のステップ {#next-steps}
 
-现在，您可以[验证此次安装](/zh/docs/setup/install/multicluster/verify)。
+これで、[インストールの検証](/ja/docs/setup/install/multicluster/verify)を行うことができます。
 
-## 清理 {#cleanup}
+## クリーンアップ {#cleanup}
 
-使用与安装 Istio 相同的机制（istioctl 或 Helm）从
-`cluster1` 和 `cluster2` 中卸载 Istio。
+Istio のインストールに使用したのと同じ方法（istioctl または Helm）で、
+`cluster1` および `cluster2` から Istio をアンインストールします。
 
 {{< tabset category-name="multicluster-uninstall-type-cluster-1" >}}
 
 {{< tab name="IstioOperator" category-value="iop" >}}
 
-在 `cluster1` 中卸载 Istio：
+`cluster1` から Istio をアンインストールします：
 
 {{< text syntax=bash snip_id=none >}}
 $ istioctl uninstall --context="${CTX_CLUSTER1}" -y --purge
 $ kubectl delete ns istio-system --context="${CTX_CLUSTER1}"
 {{< /text >}}
 
-在 `cluster2` 中卸载 Istio：
+`cluster2` から Istio をアンインストールします：
 
 {{< text syntax=bash snip_id=none >}}
 $ istioctl uninstall --context="${CTX_CLUSTER2}" -y --purge
@@ -309,7 +291,7 @@ $ kubectl delete ns istio-system --context="${CTX_CLUSTER2}"
 
 {{< tab name="Helm" category-value="helm" >}}
 
-从 `cluster1` 中删除 Istio Helm 安装：
+`cluster1` から Istio Helm インストールを削除します：
 
 {{< text syntax=bash >}}
 $ helm delete istiod -n istio-system --kube-context "${CTX_CLUSTER1}"
@@ -317,29 +299,29 @@ $ helm delete istio-eastwestgateway -n istio-system --kube-context "${CTX_CLUSTE
 $ helm delete istio-base -n istio-system --kube-context "${CTX_CLUSTER1}"
 {{< /text >}}
 
-从 `cluster1` 中删除 `istio-system` 命名空间：
+`cluster1` から `istio-system` 名前空間を削除します：
 
 {{< text syntax=bash >}}
 $ kubectl delete ns istio-system --context="${CTX_CLUSTER1}"
 {{< /text >}}
 
-从 `cluster2` 中删除 Istio Helm 安装：
+`cluster2` から Istio Helm インストールを削除します：
 
 {{< text syntax=bash >}}
 $ helm delete istiod -n istio-system --kube-context "${CTX_CLUSTER2}"
 $ helm delete istio-base -n istio-system --kube-context "${CTX_CLUSTER2}"
 {{< /text >}}
 
-从 `cluster2` 中删除 `istio-system` 命名空间：
+`cluster2` から `istio-system` 名前空間を削除します：
 
 {{< text syntax=bash >}}
 $ kubectl delete ns istio-system --context="${CTX_CLUSTER2}"
 {{< /text >}}
 
-（可选）删除 Istio 安装的 CRD：
+（オプション）Istio がインストールした CRD を削除します：
 
-删除 CRD 会永久删除您在集群中创建的所有 Istio 资源。
-要删除集群中安装的 Istio CRD，请执行以下操作：
+CRD を削除すると、クラスタ内で作成したすべての Istio リソースが完全に削除されます。
+クラスタにインストールされた Istio CRD を削除するには、以下のコマンドを実行します：
 
 {{< text syntax=bash snip_id=delete_crds >}}
 $ kubectl get crd -oname --context "${CTX_CLUSTER1}" | grep --color=never 'istio.io' | xargs kubectl delete --context "${CTX_CLUSTER1}"

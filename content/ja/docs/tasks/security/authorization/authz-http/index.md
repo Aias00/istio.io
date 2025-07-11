@@ -1,192 +1,185 @@
 ---
-title: HTTP 流量
-description: 展示如何设置 HTTP 流量访问控制。
+title: HTTP トラフィック
+description: HTTP トラフィックのアクセス制御の設定方法を紹介します。
 weight: 10
-keywords: [security,access-control,rbac,authorization]
+keywords: [security, access-control, rbac, authorization]
 aliases:
-    - /zh/docs/tasks/security/role-based-access-control.html
-    - /zh/docs/tasks/security/authz-http/
+  - /zh/docs/tasks/security/role-based-access-control.html
+  - /zh/docs/tasks/security/authz-http/
 owner: istio/wg-security-maintainers
 test: yes
 ---
 
-此任务向您展示了如何为 Istio 网格中的 HTTP 流量设置 `ALLOW` 操作的 Istio 授权策略。
+このタスクでは、Istio メッシュ内の HTTP トラフィックに対して `ALLOW` アクションの Istio 認可ポリシーを設定する方法を紹介します。
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-在开始此任务之前，请执行以下操作：
+このタスクを始める前に、以下を実施してください：
 
-* 阅读了 [Istio 授权概念](/zh/docs/concepts/security/#authorization)。
+- [Istio 認可の概念](/ja/docs/concepts/security/#authorization)を読んでください。
 
-* 遵照 [Istio 安装指南](/zh/docs/setup/install/istioctl/)安装完成 Istio 并启用了双向 TLS。
+- [Istio インストールガイド](/ja/docs/setup/install/istioctl/)に従って Istio をインストールし、双方向 TLS を有効にしてください。
 
-* 部署了 [Bookinfo](/zh/docs/examples/bookinfo/#deploying-the-application) 示例应用。
+- [Bookinfo](/ja/docs/examples/bookinfo/#deploying-the-application) サンプルアプリケーションをデプロイしてください。
 
-部署 Bookinfo 应用后通过 `http://$GATEWAY_URL/productpage` 访问 product 页面，可以看到如下内容：
+Bookinfo アプリをデプロイした後、`http://$GATEWAY_URL/productpage` で product ページにアクセスすると、次の内容が表示されます：
 
-* **Book Details** 位于页面的中间，其中包括：书籍类型、页数、出版商等。
-* **Book Reviews** 在页面底部。
+- **Book Details** はページ中央にあり、書籍の種類、ページ数、出版社などが含まれます。
+- **Book Reviews** はページ下部に表示されます。
 
-当刷新页面时，应用会在 product 页面中以轮询的方式显示不同版本的评论：如红色星标，黑色星标，或者没有星标。
+ページをリロードすると、product ページのレビュー部分に赤い星、黒い星、または星なしの異なるバージョンが順番に表示されます。
 
 {{< tip >}}
-如果没有在浏览器中看到预期的输出，请过几秒钟重试，因为缓存和其他传输开销会导致一些延迟。
+ブラウザで期待される出力が表示されない場合は、数秒後に再試行してください。キャッシュやその他の伝送オーバーヘッドにより遅延が発生することがあります。
 {{< /tip >}}
 
 {{< warning >}}
-此任务需要启用双向 TLS，因为以下示例使用策略中的主体和命名空间。
+このタスクでは、以下の例でポリシーのプリンシパルやネームスペースを使用するため、双方向 TLS の有効化が必要です。
 {{< /warning >}}
 
-## 为 HTTP 流量的工作负载配置访问控制 {#configure-access-control-for-workloads-using-http-traffic}
+## HTTP トラフィックのワークロードにアクセス制御を設定する {#configure-access-control-for-workloads-using-http-traffic}
 
-使用 Istio，您可以轻松地为网格中的 {{< gloss "workload" >}}workloads{{< /gloss >}} 设置访问控制。
-本任务向您展示如何使用 Istio 授权设置访问控制。首先，配置一个简单的 `allow-nothing` 策略，
-来拒绝工作负载的所有请求，然后逐渐地、增量地授予对工作负载更多的访问权。
+Istio を使うと、メッシュ内の {{< gloss "workload" >}}ワークロード{{< /gloss >}} に簡単にアクセス制御を設定できます。
+このタスクでは、Istio 認可を使ったアクセス制御の設定方法を紹介します。まず、シンプルな `allow-nothing` ポリシーを設定して、ワークロードへのすべてのリクエストを拒否し、その後、段階的にアクセス権を拡張していきます。
 
-1. 运行下面的命令在 `default` 命名空间里创建一个 `allow-nothing` 策略。
-   该策略没有 `selector` 字段，它会把策略应用于 `default` 命名空间中的每个工作负载。
-   `spec:` 字段为空值 `{}`，意思是不允许任何流量，有效地拒绝所有请求。
+1. 次のコマンドで `default` 名前空間に `allow-nothing` ポリシーを作成します。
+   このポリシーは `selector` フィールドがなく、`default` 名前空間内のすべてのワークロードに適用されます。
+   `spec:` フィールドが空 `{}` なので、すべてのトラフィックが許可されず、すべてのリクエストが拒否されます。
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: allow-nothing
-      namespace: default
-    spec:
-      {}
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: allow-nothing
+   namespace: default
+   spec:
+   {}
+   EOF
+   {{< /text >}}
 
-    打开浏览器访问 Bookinfo 的 `productpage` (`http://$GATEWAY_URL/productpage`) 页面。
-    您将会看到 `"RBAC: access denied"`。该错误表明配置的 `deny-all` 策略按期望生效了，
-    并且 Istio 没有任何规则允许对网格中的工作负载进行任何访问。
+   ブラウザで Bookinfo の `productpage` (`http://$GATEWAY_URL/productpage`) ページにアクセスします。
+   "RBAC: access denied" というエラーが表示されます。これは `deny-all` ポリシーが期待通りに動作し、
+   Istio によるワークロードへのアクセスがすべて拒否されていることを示します。
 
-1. 运行下面的命令创建一个 `productpage-viewer` 策略以容许通过 `GET` 方法访问 `productpage`
-   工作负载。该策略没有在 `rules` 中设置 `from` 字段，这意味着所有的请求源都被容许访问，
-   包括所有的用户和工作负载：
+1. 次のコマンドで `productpage-viewer` ポリシーを作成し、`productpage` ワークロードへの `GET` メソッドによるアクセスを許可します。
+   このポリシーの `rules` には `from` フィールドがないため、すべてのリクエスト元（ユーザーやワークロード）が許可されます：
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: "productpage-viewer"
-      namespace: default
-    spec:
-      selector:
-        matchLabels:
-          app: productpage
-      action: ALLOW
-      rules:
-      - to:
-        - operation:
-            methods: ["GET"]
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: "productpage-viewer"
+   namespace: default
+   spec:
+   selector:
+   matchLabels:
+   app: productpage
+   action: ALLOW
+   rules:
 
-    在浏览器里访问 Bookinfo 的 `productpage` (`http://$GATEWAY_URL/productpage`)。
-    您将看到 “Bookinfo Sample” 页面，但会发现页面中有如下的错误：
+   - to: - operation:
+     methods: ["GET"]
+     EOF
+     {{< /text >}}
 
-    * `Error fetching product details`
-    * `Error fetching product reviews`
+   ブラウザで Bookinfo の `productpage` (`http://$GATEWAY_URL/productpage`) にアクセスします。
+   "Bookinfo Sample" ページが表示されますが、次のようなエラーが表示されます：
 
-    这些错误是预期的，因为我们没有授权 `productpage` 工作负载去访问 `details` 和 `reviews`
-    工作负载。接下来，您需要配置一个策略来容许访问其他工作负载。
+   - `Error fetching product details`
+   - `Error fetching product reviews`
 
-1. 运行下面的命令创建一个 `details-viewer` 策略以容许 `productpage` 工作负载以 `GET` 方式，
-   通过使用 `cluster.local/ns/default/sa/bookinfo-productpage` ServiceAccount
-   去访问 `details` 工作负载：
+   これらのエラーは想定通りです。`productpage` ワークロードが `details` や `reviews` ワークロードへのアクセス権を持っていないためです。
+   次に、他のワークロードへのアクセスを許可するポリシーを設定します。
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: "details-viewer"
-      namespace: default
-    spec:
-      selector:
-        matchLabels:
-          app: details
-      action: ALLOW
-      rules:
-      - from:
-        - source:
-            principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
-        to:
-        - operation:
-            methods: ["GET"]
-    EOF
-    {{< /text >}}
+1. 次のコマンドで `details-viewer` ポリシーを作成し、`productpage` ワークロードが `GET` メソッドで
+   `cluster.local/ns/default/sa/bookinfo-productpage` ServiceAccount を使って `details` ワークロードへアクセスできるようにします：
 
-1. 运行下面的命令创建一个 `reviews-viewer` 策略以容许 `productpage` 工作负载以 `GET` 方式，
-   通过使用 `cluster.local/ns/default/sa/bookinfo-productpage` ServiceAccount 去访问
-   `reviews` 工作负载：
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: "details-viewer"
+   namespace: default
+   spec:
+   selector:
+   matchLabels:
+   app: details
+   action: ALLOW
+   rules:
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: "reviews-viewer"
-      namespace: default
-    spec:
-      selector:
-        matchLabels:
-          app: reviews
-      action: ALLOW
-      rules:
-      - from:
-        - source:
-            principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
-        to:
-        - operation:
-            methods: ["GET"]
-    EOF
-    {{< /text >}}
+   - from: - source:
+     principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
+     to: - operation:
+     methods: ["GET"]
+     EOF
+     {{< /text >}}
 
-    在浏览器访问 Bookinfo `productpage` (`http://$GATEWAY_URL/productpage`)。现在您将看到
-    “Bookinfo Sample” 页面，“Book Details” 在左下方，“Book Reviews” 在右下方。但是在 “Book Reviews”
-    部分有 `Ratings service currently unavailable` 的错误。
+1. 次のコマンドで `reviews-viewer` ポリシーを作成し、`productpage` ワークロードが `GET` メソッドで
+   `cluster.local/ns/default/sa/bookinfo-productpage` ServiceAccount を使って `reviews` ワークロードへアクセスできるようにします：
 
-    这是因为 `reviews` 工作负载没有权限访问 `ratings` 工作负载。为修复这个问题，您需要授权 `reviews`
-    工作负载可以访问 `ratings` 工作负载。下一步我们配置一个策略来容许 `reviews` 工作负载访问。
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: "reviews-viewer"
+   namespace: default
+   spec:
+   selector:
+   matchLabels:
+   app: reviews
+   action: ALLOW
+   rules:
 
-1. 运行下面的命令创建一个 `ratings-viewer` 策略以容许 `reviews` 工作负载以 `GET` 方式，通过
-   使用 `cluster.local/ns/default/sa/bookinfo-reviews` ServiceAccount 去访问 `ratings` 工作负载：
+   - from: - source:
+     principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
+     to: - operation:
+     methods: ["GET"]
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: "ratings-viewer"
-      namespace: default
-    spec:
-      selector:
-        matchLabels:
-          app: ratings
-      action: ALLOW
-      rules:
-      - from:
-        - source:
-            principals: ["cluster.local/ns/default/sa/bookinfo-reviews"]
-        to:
-        - operation:
-            methods: ["GET"]
-    EOF
-    {{< /text >}}
+   ブラウザで Bookinfo の `productpage` (`http://$GATEWAY_URL/productpage`) にアクセスします。
+   "Bookinfo Sample" ページの左下に "Book Details"、右下に "Book Reviews" が表示されます。
+   ただし "Book Reviews" 部分には `Ratings service currently unavailable` というエラーが表示されます。
 
-    在浏览器访问 Bookinfo `productpage` (`http://$GATEWAY_URL/productpage`)。您会在
-    “Book Reviews” 部分看到“黑色”和“红色”评分。
+   これは、`reviews` ワークロードが `ratings` ワークロードへのアクセス権を持っていないためです。
+   この問題を解決するには、`reviews` ワークロードが `ratings` ワークロードへアクセスできるようにポリシーを追加します。
 
-    **恭喜！** 您成功地应用了授权策略为使用 HTTP 流量的工作负载进行了访问控制。
+1. 次のコマンドで `ratings-viewer` ポリシーを作成し、`reviews` ワークロードが `GET` メソッドで
+   `cluster.local/ns/default/sa/bookinfo-reviews` ServiceAccount を使って `ratings` ワークロードへアクセスできるようにします：
 
-## 清除 {#clean-up}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: "ratings-viewer"
+   namespace: default
+   spec:
+   selector:
+   matchLabels:
+   app: ratings
+   action: ALLOW
+   rules:
 
-从您的配置中删除所有的授权策略：
+   - from: - source:
+     principals: ["cluster.local/ns/default/sa/bookinfo-reviews"]
+     to: - operation:
+     methods: ["GET"]
+     EOF
+     {{< /text >}}
+
+   ブラウザで Bookinfo の `productpage` (`http://$GATEWAY_URL/productpage`) にアクセスします。
+   "Book Reviews" 部分に「黒い星」と「赤い星」の評価が表示されます。
+
+   **おめでとうございます！** HTTP トラフィックを利用するワークロードに対して認可ポリシーによるアクセス制御を適用できました。
+
+## クリーンアップ {#clean-up}
+
+設定からすべての認可ポリシーを削除します：
 
 {{< text bash >}}
 $ kubectl delete authorizationpolicy.security.istio.io/allow-nothing

@@ -1,25 +1,25 @@
 ---
 title: OpenShift
-description: 在 OpenShift 集群上快速搭建 Istio 服务。
+description: OpenShift クラスタ上での Istio サービスのクイックセットアップ。
 weight: 55
 skip_seealso: true
 aliases:
   - /zh/docs/setup/kubernetes/prepare/platform-setup/openshift/
   - /zh/docs/setup/kubernetes/platform-setup/openshift/
-keywords: [platform-setup,openshift]
+keywords: [platform-setup, openshift]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-根据以下操作指南 为 Istio 准备一个 OpenShift 集群。
+以下の手順に従って、Istio 用の OpenShift クラスタを準備します。
 
-使用 OpenShift 配置文件进行安装 Istio：
+OpenShift プロファイルを使って Istio をインストールします：
 
 {{< text bash >}}
 $ istioctl install --set profile=openshift
 {{< /text >}}
 
-安装 Istio 完成后，通过以下命令为 Ingress Gateway 暴露 OpenShift 路由：
+Istio のインストールが完了したら、次のコマンドで Ingress Gateway 用の OpenShift ルートを公開します：
 
 {{< text bash >}}
 $ oc -n istio-system expose svc/istio-ingressgateway --port=http2

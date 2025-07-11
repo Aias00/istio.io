@@ -1,5 +1,5 @@
 ---
-title: 测试
-description: 网站基础设施的捆绑测试，此处无有用内容。
+title: テスト
+description: サイトインフラのバンドルテストであり、ここに有用な内容はありません。
 skip_sitemap: true
 ---

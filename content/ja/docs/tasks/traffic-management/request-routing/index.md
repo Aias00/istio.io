@@ -1,64 +1,58 @@
 ---
-title: 配置请求路由
-description: 如何将请求动态路由到微服务的多个版本。
+title: リクエストルーティングの設定
+description: リクエストをマイクロサービスの複数バージョンへ動的にルーティングする方法。
 weight: 10
 aliases:
-    - /zh/docs/tasks/request-routing.html
-keywords: [traffic-management,routing]
+  - /zh/docs/tasks/request-routing.html
+keywords: [traffic-management, routing]
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-此任务将展示如何将请求动态路由到微服务的多个版本。
+このタスクでは、リクエストをマイクロサービスの複数バージョンへ動的にルーティングする方法を紹介します。
 
 {{< boilerplate gateway-api-support >}}
 
-## 开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-* 按照[安装指南](/zh/docs/setup/)中的说明安装 Istio。
+- [インストールガイド](/ja/docs/setup/) の手順に従って Istio をインストールします。
 
-* 部署 [Bookinfo](/zh/docs/examples/bookinfo/) 示例应用程序。
+- [Bookinfo](/ja/docs/examples/bookinfo/) サンプルアプリケーションをデプロイします。
 
-* 查看[流量管理](/zh/docs/concepts/traffic-management)的概念文档。在尝试此任务之前，
-  您应该熟悉一些重要的术语，例如 **Destination Rule**、**Virtual Service** 和 **Subset**。
+- [トラフィック管理](/ja/docs/concepts/traffic-management) の概念ドキュメントを確認してください。このタスクを試す前に、**Destination Rule**、**Virtual Service**、**Subset** などの重要な用語に慣れておく必要があります。
 
-## 关于这个任务  {#about-this-task}
+## このタスクについて {#about-this-task}
 
-Istio [Bookinfo](/zh/docs/examples/bookinfo/) 示例包含四个独立的微服务，
-每个微服务都有多个版本。其中一个微服务 `reviews` 的三个不同版本已经部署并同时运行。
-为了说明这导致的问题，在浏览器中访问 Bookinfo 应用程序的 `/productpage` 并刷新几次。
-URL 是 `http://$GATEWAY_URL/productpage`，`$GATEWAY_URL` 是 Ingress 的外部访问 IP 地址，
-正如在 [Bookinfo](/zh/docs/examples/bookinfo/#determine-the-ingress-ip-and-port)
-文档中所解释的那样。
+Istio の [Bookinfo](/ja/docs/examples/bookinfo/) サンプルには 4 つの独立したマイクロサービスが含まれており、それぞれに複数のバージョンがあります。そのうちの 1 つ、`reviews` マイクロサービスには 3 つの異なるバージョンがデプロイされ、同時に稼働しています。
+この問題を説明するために、ブラウザで Bookinfo アプリケーションの `/productpage` にアクセスし、何度かリロードしてみてください。
+URL は `http://$GATEWAY_URL/productpage` です。`$GATEWAY_URL` は Ingress の外部アクセス IP アドレスで、[Bookinfo](/ja/docs/examples/bookinfo/#determine-the-ingress-ip-and-port) ドキュメントで説明されています。
 
-您会注意到，有时书评的输出包含星级评分，有时则不包含。这是因为没有明确的默认服务版本可路由，
-Istio 将以循环方式将请求路由到所有可用版本。
+書評の出力に星評価が表示されたりされなかったりすることに気づくでしょう。これは、デフォルトのサービスバージョンが明示的にルーティングされていないため、Istio が利用可能なすべてのバージョンにリクエストをラウンドロビンでルーティングしているためです。
 
-此任务的最初目标是应用将所有流量路由到微服务的 `v1` （版本 1）的规则。稍后，您将应用规则根据
-HTTP 请求 header 的值路由流量。
+このタスクの最初の目標は、すべてのトラフィックをマイクロサービスの `v1`（バージョン 1）にルーティングするルールを適用することです。後ほど、HTTP リクエストヘッダーの値に基づいてトラフィックをルーティングするルールを適用します。
 
-## 路由到版本 1  {#route-to-version-1}
+## バージョン 1 へのルーティング {#route-to-version-1}
 
-要仅路由到一个版本，请应用为微服务设置默认版本的 Virtual Service。
+1 つのバージョンのみにルーティングするには、Virtual Service を使ってマイクロサービスのデフォルトバージョンを設定します。
 
 {{< warning >}}
-如果尚未定义服务版本，请按照[定义服务版本](/zh/docs/examples/bookinfo/#define-the-service-versions)中的说明进行操作。
+サービスバージョンがまだ定義されていない場合は、[サービスバージョンの定義](/ja/docs/examples/bookinfo/#define-the-service-versions) の手順に従ってください。
 {{< /warning >}}
 
-1. 运行以下命令以创建路由规则：
-{{< tabset category-name="config-api" >}}
+1. 次のコマンドを実行してルーティングルールを作成します：
+   {{< tabset category-name="config-api" >}}
 
 {{< tab name="Istio APIs" category-value="istio-apis" >}}
 
-Istio 使用 Virtual Service 来定义路由规则。
-运行以下命令以应用 Virtual Service，
-在这种情况下，Virtual Service 将所有流量路由到每个微服务的 `v1` 版本。
+Istio では Virtual Service を使ってルーティングルールを定義します。
+次のコマンドで Virtual Service を適用します。
+この場合、Virtual Service はすべてのトラフィックを各マイクロサービスの `v1` バージョンにルーティングします。
 
 {{< text bash >}}
 $ kubectl apply -f @samples/bookinfo/networking/virtual-service-all-v1.yaml@
 {{< /text >}}
 
-由于配置传播是最终一致的，因此请等待几秒钟以使 Virtual Service 生效。
+構成の伝播は最終的に一貫性があるため、Virtual Service が有効になるまで数秒待ってください。
 
 {{< /tab >}}
 
@@ -69,25 +63,25 @@ $ kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: reviews
+name: reviews
 spec:
-  parentRefs:
-  - group: ""
-    kind: Service
-    name: reviews
-    port: 9080
+parentRefs:
+
+- group: ""
+  kind: Service
+  name: reviews
+  port: 9080
   rules:
-  - backendRefs:
-    - name: reviews-v1
-      port: 9080
-EOF
-{{< /text >}}
+- backendRefs: - name: reviews-v1
+  port: 9080
+  EOF
+  {{< /text >}}
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-2) 使用以下命令显示已定义的路由：
+2. 次のコマンドで定義済みのルーティングを表示します：
 
 {{< tabset category-name="config-api" >}}
 
@@ -95,53 +89,51 @@ EOF
 
 {{< text bash yaml >}}
 $ kubectl get virtualservices -o yaml
-- apiVersion: networking.istio.io/v1
-  kind: VirtualService
-  ...
-  spec:
-    hosts:
-    - details
-    http:
-    - route:
-      - destination:
-          host: details
-          subset: v1
-- apiVersion: networking.istio.io/v1
-  kind: VirtualService
-  ...
-  spec:
-    hosts:
-    - productpage
-    http:
-    - route:
-      - destination:
-          host: productpage
-          subset: v1
-- apiVersion: networking.istio.io/v1
-  kind: VirtualService
-  ...
-  spec:
-    hosts:
-    - ratings
-    http:
-    - route:
-      - destination:
-          host: ratings
-          subset: v1
-- apiVersion: networking.istio.io/v1
-  kind: VirtualService
-  ...
-  spec:
-    hosts:
-    - reviews
-    http:
-    - route:
-      - destination:
-          host: reviews
-          subset: v1
-{{< /text >}}
 
-您还可以使用以下命令显示相应的 `subset` 定义：
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  ...
+  spec:
+  hosts:
+  - details
+    http:
+  - route:
+    - destination:
+      host: details
+      subset: v1
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  ...
+  spec:
+  hosts:
+  - productpage
+    http:
+  - route:
+    - destination:
+      host: productpage
+      subset: v1
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  ...
+  spec:
+  hosts:
+  - ratings
+    http:
+  - route:
+    - destination:
+      host: ratings
+      subset: v1
+- apiVersion: networking.istio.io/v1
+  kind: VirtualService
+  ...
+  spec:
+  hosts: - reviews
+  http: - route: - destination:
+  host: reviews
+  subset: v1
+  {{< /text >}}
+
+また、次のコマンドで対応する `subset` 定義を表示できます：
 
 {{< text bash >}}
 $ kubectl get destinationrules -o yaml
@@ -155,76 +147,68 @@ $ kubectl get destinationrules -o yaml
 $ kubectl get httproute reviews -o yaml
 ...
 spec:
-  parentRefs:
-  - group: gateway.networking.k8s.io
-    kind: Service
-    name: reviews
-    port: 9080
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: reviews-v1
-      port: 9080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
-status:
-  parents:
-  - conditions:
-    - lastTransitionTime: "2022-11-08T19:56:19Z"
-      message: Route was valid
-      observedGeneration: 8
-      reason: Accepted
-      status: "True"
-      type: Accepted
-    - lastTransitionTime: "2022-11-08T19:56:19Z"
-      message: All references resolved
-      observedGeneration: 8
-      reason: ResolvedRefs
-      status: "True"
-      type: ResolvedRefs
-    controllerName: istio.io/gateway-controller
-    parentRef:
-      group: gateway.networking.k8s.io
-      kind: Service
-      name: reviews
-      port: 9080
-{{< /text >}}
+parentRefs:
 
-在资源状态中，确保 `reviews` 父级的 `Accepted` 条件为 `True`。
+- group: gateway.networking.k8s.io
+  kind: Service
+  name: reviews
+  port: 9080
+  rules:
+- backendRefs: - group: ""
+  kind: Service
+  name: reviews-v1
+  port: 9080
+  weight: 1
+  matches: - path:
+  type: PathPrefix
+  value: /
+  status:
+  parents:
+- conditions: - lastTransitionTime: "2022-11-08T19:56:19Z"
+  message: Route was valid
+  observedGeneration: 8
+  reason: Accepted
+  status: "True"
+  type: Accepted - lastTransitionTime: "2022-11-08T19:56:19Z"
+  message: All references resolved
+  observedGeneration: 8
+  reason: ResolvedRefs
+  status: "True"
+  type: ResolvedRefs
+  controllerName: istio.io/gateway-controller
+  parentRef:
+  group: gateway.networking.k8s.io
+  kind: Service
+  name: reviews
+  port: 9080
+  {{< /text >}}
+
+リソースの状態で、`reviews` 親の `Accepted` 条件が `True` であることを確認してください。
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-您已将 Istio 配置为路由到 Bookinfo 微服务的 `v1` 版本，最重要的是 `reviews` 服务的版本 1。
+Istio を Bookinfo マイクロサービスの `v1` バージョン、特に `reviews` サービスのバージョン 1 へルーティングするように構成しました。
 
-## 测试新的路由配置  {#test-the-new-routing-configuration}
+## 新しいルーティング構成のテスト {#test-the-new-routing-configuration}
 
-您可以通过再次刷新 Bookinfo 应用程序的 `/productpage` 轻松测试新配置。
-在浏览器中打开 Bookinfo 站点。网址为 `http://$GATEWAY_URL/productpage`，其中
-`$GATEWAY_URL` 是外部的入口 IP 地址，如 [Bookinfo](/zh/docs/examples/bookinfo/#determine-the-ingress-IP-and-port)
-文档中所述。请注意，无论您刷新多少次，页面的评论部分都不会显示评级星标。这是因为您将 Istio
-配置为将评论服务的所有流量路由到版本 `reviews:v1`，而此版本的服务不访问星级评分服务。
+Bookinfo アプリケーションの `/productpage` を再度リロードすることで、新しい構成を簡単にテストできます。
+ブラウザで Bookinfo サイトを開きます。URL は `http://$GATEWAY_URL/productpage` で、`$GATEWAY_URL` は外部の Ingress IP アドレスです（[Bookinfo](/ja/docs/examples/bookinfo/#determine-the-ingress-IP-and-port) ドキュメント参照）。何度リロードしても、ページのレビュー部分に星評価が表示されないことに注意してください。これは、Istio を `reviews:v1` バージョンにすべてのトラフィックをルーティングするように構成したためで、このバージョンは星評価サービスへアクセスしません。
 
-您已成功完成此任务的第一部分：将流量路由到服务的某一个版本。
+このタスクの第 1 部：トラフィックを 1 つのサービスバージョンへルーティングする、が完了しました。
 
-## 基于用户身份的路由  {#route-based-on-user-identity}
+## ユーザー ID に基づくルーティング {#route-based-on-user-identity}
 
-接下来，您将更改路由配置，以便将来自特定用户的所有流量路由到特定服务版本。在这种情况下，
-来自名为 Jason 的用户的所有流量将被路由到服务 `reviews:v2`。
+次に、特定のユーザーからのすべてのトラフィックを特定のサービスバージョンへルーティングするようにルーティング構成を変更します。この例では、ユーザー名が Jason のすべてのトラフィックを `reviews:v2` サービスへルーティングします。
 
-请注意，Istio 对用户身份没有任何特殊的内置机制。事实上，`productpage` 服务在所有到
-`reviews` 服务的 HTTP 请求中都增加了一个自定义的 `end-user` 请求头，从而达到了本例子的效果。
+Istio にはユーザー ID に特化した仕組みはありません。実際には、`productpage` サービスが `reviews` サービスへのすべての HTTP リクエストにカスタム `end-user` リクエストヘッダーを追加することで、この例の動作を実現しています。
 
-Istio 还支持在入口网关上基于强认证 JWT 的路由，参考 [JWT 基于声明的路由](/zh/docs/tasks/security/authentication/jwt-route)
+Istio はまた、エントリーゲートウェイで強力な認証 JWT に基づくルーティングもサポートしています。詳細は [JWT クレームベースルーティング](/ja/docs/tasks/security/authentication/jwt-route) を参照してください。
 
-请记住，`reviews:v2` 是包含星级评分功能的版本。
+`reviews:v2` は星評価機能を含むバージョンです。
 
-1. 运行以下命令以启用基于用户的路由：
+1. 次のコマンドを実行してユーザーベースのルーティングを有効にします：
 
 {{< tabset category-name="config-api" >}}
 
@@ -234,7 +218,7 @@ Istio 还支持在入口网关上基于强认证 JWT 的路由，参考 [JWT 基
 $ kubectl apply -f @samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml@
 {{< /text >}}
 
-您可以使用以下命令确认规则已创建：
+次のコマンドでルールが作成されたことを確認できます：
 
 {{< text bash yaml >}}
 $ kubectl get virtualservice reviews -o yaml
@@ -242,22 +226,22 @@ apiVersion: networking.istio.io/v1
 kind: VirtualService
 ...
 spec:
-  hosts:
-  - reviews
+hosts:
+
+- reviews
   http:
-  - match:
-    - headers:
-        end-user:
-          exact: jason
+- match:
+  - headers:
+    end-user:
+    exact: jason
     route:
-    - destination:
-        host: reviews
-        subset: v2
-  - route:
-    - destination:
-        host: reviews
-        subset: v1
-{{< /text >}}
+  - destination:
+    host: reviews
+    subset: v2
+- route: - destination:
+  host: reviews
+  subset: v1
+  {{< /text >}}
 
 {{< /tab >}}
 
@@ -268,56 +252,53 @@ $ kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: reviews
+name: reviews
 spec:
-  parentRefs:
-  - group: ""
-    kind: Service
-    name: reviews
-    port: 9080
+parentRefs:
+
+- group: ""
+  kind: Service
+  name: reviews
+  port: 9080
   rules:
-  - matches:
-    - headers:
-      - name: end-user
-        value: jason
-    backendRefs:
-    - name: reviews-v2
-      port: 9080
-  - backendRefs:
-    - name: reviews-v1
-      port: 9080
-EOF
-{{< /text >}}
+- matches:
+  - headers:
+    - name: end-user
+      value: jason
+      backendRefs:
+  - name: reviews-v2
+    port: 9080
+- backendRefs: - name: reviews-v1
+  port: 9080
+  EOF
+  {{< /text >}}
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
-2) 在 Bookinfo 应用程序的 `/productpage` 上，以用户 `jason` 身份登录。
+2. Bookinfo アプリケーションの `/productpage` でユーザー `jason` としてログインします。
 
-    刷新浏览器。您看到了什么？星级评分显示在每个评论旁边。
+   ブラウザをリロードしてください。何が見えますか？各レビューの横に星評価が表示されます。
 
-3) 以其他用户身份登录（选择您想要的任何名称）。
+3. 他のユーザー名でログインします（任意の名前を選択してください）。
 
-    刷新浏览器。现在星星消失了。这是因为除了 Jason 之外，所有用户的流量都被路由到 `reviews:v1`。
+   ブラウザをリロードしてください。今度は星が消えます。これは Jason 以外のすべてのユーザーのトラフィックが `reviews:v1` にルーティングされるためです。
 
-您已成功配置 Istio 以根据用户身份路由流量。
+Istio でユーザー ID に基づくトラフィックルーティングが正しく構成されました。
 
-## 理解原理  {#understanding-what-happened}
+## 仕組みの理解 {#understanding-what-happened}
 
-在此任务中，您首先使用 Istio 将 100% 的请求流量都路由到了 Bookinfo 服务的 `v1` 版本。
-然后设置了一条路由规则，它根据 `productpage` 服务发起的请求中的 `end-user` 自定义请求头内容，
-选择性地将特定的流量路由到了 `reviews` 服务的 `v2` 版本。
+このタスクでは、まず Istio を使って Bookinfo サービスの `v1` バージョンに 100% のリクエストトラフィックをルーティングしました。
+次に、`productpage` サービスからのリクエストに含まれる `end-user` カスタムリクエストヘッダーの内容に基づいて、特定のトラフィックを `reviews` サービスの `v2` バージョンに選択的にルーティングするルールを設定しました。
 
-请注意，Kubernetes 中的服务，如本任务中使用的 Bookinfo 服务，必须遵守某些特定限制，才能利用到
-Istio 的 L7 路由特性优势。参考 [Pod 和 Service 需求](/zh/docs/ops/deployment/application-requirements/)了解详情。
+Kubernetes のサービス（このタスクで使われている Bookinfo サービスなど）は、Istio の L7 ルーティング機能を活用するために特定の要件を満たす必要があります。詳細は [Pod と Service の要件](/ja/docs/ops/deployment/application-requirements/) を参照してください。
 
-在[流量转移](/zh/docs/tasks/traffic-management/traffic-shifting)任务中，
-您将按照在此处学习到的相同的基本模式来配置路由规则，以逐步将流量从服务的一个版本迁移到另一个版本。
+[トラフィックシフト](/ja/docs/tasks/traffic-management/traffic-shifting) タスクでは、ここで学んだのと同じ基本パターンでルーティングルールを設定し、サービスのあるバージョンから別のバージョンへ段階的にトラフィックを移行します。
 
-## 清除  {#cleanup}
+## クリーンアップ {#cleanup}
 
-1. 删除应用程序的路由规则：
+1. アプリケーションのルーティングルールを削除します：
 
 {{< tabset category-name="config-api" >}}
 
@@ -339,4 +320,4 @@ $ kubectl delete httproute reviews
 
 {{< /tabset >}}
 
-2) 如果您不打算探索任何后续任务，请参阅 [Bookinfo 清理](/zh/docs/examples/bookinfo/#cleanup)的说明关闭应用程序。
+2. 今後のタスクを試す予定がない場合は、[Bookinfo のクリーンアップ](/ja/docs/examples/bookinfo/#cleanup) の手順に従ってアプリケーションを停止してください。

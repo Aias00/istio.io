@@ -1,24 +1,24 @@
 ---
-title: 可观测性问题
-description: 处理 Telemetry 收集问题。
+title: オブザーバビリティの問題
+description: テレメトリ収集の問題への対応。
 force_inline_toc: true
 weight: 30
 aliases:
-    - /zh/docs/ops/troubleshooting/grafana
-    - /zh/docs/ops/troubleshooting/missing-traces
+  - /zh/docs/ops/troubleshooting/grafana
+  - /zh/docs/ops/troubleshooting/missing-traces
 owner: istio/wg-policies-and-telemetry-maintainers
 test: n/a
 ---
 
-## 在 Mac 上运行 Istio 时，Zipkin 不生效  {#no-traces-appearing-in-Zipkin-when-running-Istio-locally-on-mac}
+## Mac で Istio を実行しているときに Zipkin にトレースが表示されない {#no-traces-appearing-in-Zipkin-when-running-Istio-locally-on-mac}
 
-Istio 已经完成安装且正常工作，但是 Zipkin 中没有显示任何 trace 信息。
+Istio のインストールは完了し正常に動作しているが、Zipkin にトレース情報が表示されない場合があります。
 
-这可能是由已知的 [Docker 问题](https://github.com/docker/for-mac/issues/1260)引起的，
-容器内的时间可能与主机上的时间有较大偏差。如果是这种情况，当您在 Zipkin 中选择了一个长时间范围时，
-您可能会发现数据比预期早了一些时间。
+これは既知の [Docker の問題](https://github.com/docker/for-mac/issues/1260)が原因で、
+コンテナ内の時刻がホストの時刻と大きくずれている可能性があります。この場合、Zipkin で長い時間範囲を選択すると、
+データが予想よりも早い時刻に記録されていることが分かるかもしれません。
 
-您还可以通过对比 Docker 容器内和容器外的日期来确认此问题：
+また、Docker コンテナ内と外で日付を比較することでこの問題を確認できます：
 
 {{< text bash >}}
 $ docker run --entrypoint date gcr.io/istio-testing/ubuntu-16-04-slave:latest
@@ -30,31 +30,30 @@ $ date -u
 Thu Jun 15 02:25:42 UTC 2017
 {{< /text >}}
 
-要解决此问题，您需要重启 Docker 后重新安装 Istio。
+この問題を解決するには、Docker を再起動し、その後 Istio を再インストールしてください。
 
-## 缺少 Grafana 输出  {#missing-Grafana-output}
+## Grafana の出力が表示されない {#missing-Grafana-output}
 
-如果从本地 Web 客户端连接到 Istio 端时，无法获取 Grafana 的数据，
-则应该验证客户端和服务器的日期和时间是否匹配。
+ローカルの Web クライアントから Istio に接続した際に Grafana のデータが取得できない場合、
+クライアントとサーバーの日時が一致しているか確認してください。
 
-Web 客户端（例如：Chrome）的时间会影响 Grafana 的输出。此问题的简单解决方案是验证
-Kubernetes 集群内的时间同步服务是否正确运行，以及 Web 客户端计算机是否也与目标服务器的时间相同。
-一些常见的时间同步系统有 NTP 和 Chrony。在有防火墙的实验室中问题比较严重，
-这种情况可能是 NTP 配置错误，没有正确指向基于实验室的 NTP 服务。
+Web クライアント（例：Chrome）の時刻は Grafana の出力に影響します。簡単な解決策は、
+Kubernetes クラスタ内の時刻同期サービスが正しく動作していること、
+Web クライアントのコンピュータも対象サーバーと同じ時刻になっていることを確認することです。
+よく使われる時刻同期システムには NTP や Chrony があります。ファイアウォールのあるラボ環境では、
+NTP 設定が誤っていてラボ内の NTP サーバーを正しく参照できていない場合にこの問題が発生しやすいです。
 
-## 验证 Istio CNI Pod 正在运行（如果使用）  {#verify-Istio-CNI-pods-are-running}
+## Istio CNI Pod が稼働しているか確認する（利用している場合） {#verify-Istio-CNI-pods-are-running}
 
-Istio CNI 插件在 Kubernetes Pod 生命周期中的网络配置阶段执行 Istio
-网格 Pod 流量重定向，从而消除了用户将 Pod 部署到 Istio 网格是对
-[`NET_ADMIN` 和 `NET_RAW` 权限的依赖](/zh/docs/ops/deployment/application-requirements/)。
-Istio CNI 插件取代了 `istio-init` 容器提供的功能。
+Istio CNI プラグインは Kubernetes Pod ライフサイクルのネットワーク設定段階で Istio メッシュ Pod のトラフィックリダイレクトを実行し、
+ユーザーが Istio メッシュに Pod をデプロイする際の [`NET_ADMIN` および `NET_RAW` 権限の依存](/zh/docs/ops/deployment/application-requirements/)を排除します。
+Istio CNI プラグインは `istio-init` コンテナの機能を置き換えます。
 
-1. 验证 `istio-cni-node` Pod 是否正在运行：
+1. `istio-cni-node` Pod が稼働しているか確認します：
 
-    {{< text bash >}}
-    $ kubectl -n kube-system get pod -l k8s-app=istio-cni-node
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl -n kube-system get pod -l k8s-app=istio-cni-node
+   {{< /text >}}
 
-1. 如果 `PodSecurityPolicy` 在您的集群中正在工作，确认 `istio-cni`
-   Service Account 可以使用 `PodSecurityPolicy` 的
-   [`NET_ADMIN` 和 `NET_RAW` 功能](/zh/docs/ops/deployment/application-requirements/)。
+1. クラスタで `PodSecurityPolicy` が有効な場合、`istio-cni` Service Account が `PodSecurityPolicy` の
+   [`NET_ADMIN` および `NET_RAW` 機能](/zh/docs/ops/deployment/application-requirements/)を利用できることを確認してください。

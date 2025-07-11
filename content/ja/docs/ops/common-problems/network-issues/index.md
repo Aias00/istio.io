@@ -1,6 +1,6 @@
 ---
-title: 流量管理问题
-description: 定位常见的 Istio 流量管理和网络问题的技术。
+title: トラフィック管理の問題
+description: Istio のトラフィック管理やネットワークのよくある問題を特定するための技術。
 force_inline_toc: true
 weight: 10
 aliases:
@@ -11,60 +11,51 @@ owner: istio/wg-networking-maintainers
 test: no
 ---
 
-## 请求被 Envoy 拒绝 {#requests-are-rejected-by-envoy}
+## リクエストが Envoy によって拒否される {#requests-are-rejected-by-envoy}
 
-请求被拒绝有许多原因。弄明白为什么请求被拒绝的最好方式是检查 Envoy 的访问日志。
-默认情况下，访问日志被输出到容器的标准输出中。运行下列命令可以查看日志：
+リクエストが拒否される理由はたくさんあります。リクエストが拒否される理由をよく理解するためには、Envoy のアクセスログを確認することが最も良い方法です。
+デフォルトでは、アクセスログはコンテナの標準出力に出力されます。次のコマンドを実行してログを確認できます。
 
 {{< text bash >}}
 $ kubectl logs PODNAME -c istio-proxy -n NAMESPACE
 {{< /text >}}
 
-在默认的访问日志输出格式中，Envoy 响应标志位于响应状态码之后，
-如果您使用自定义日志输出格式，请确保包含 `%RESPONSE_FLAGS%`。
+デフォルトのアクセスログ出力形式では、Envoy の応答フラグは応答ステータスコードの後に表示されます。
+カスタムログ出力形式を使用する場合は、`%RESPONSE_FLAGS%` を含めるようにしてください。
 
-参考 [Envoy 响应标志](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-response-flags)查看更多有关响应标志的细节。
+[Envoy 応答フラグ](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#config-access-log-format-response-flags)を参照して応答フラグの詳細を確認してください。
 
-通用响应标志如下：
+一般的な応答フラグは次のとおりです。
 
-- `NR`：没有配置路由，请检查您的 `DestinationRule` 或者 `VirtualService` 配置。
-- `UO`：上游溢出导致熔断，请在 `DestinationRule` 检查您的熔断器配置。
-- `UF`：未能连接到上游，如果您正在使用 Istio 认证，
-  请检查[双向 TLS 配置冲突](#503-errors-after-setting-destination-rule)。
+- `NR`：ルートが設定されていないため、DestinationRule または VirtualService の設定を確認してください。
+- `UO`：アップストリームのオーバーフローによるオープンループによるブレーク、アップストリームのオープンループによるブレークを確認してください。
+- `UF`：アップストリームに接続できない場合、Istio 認証を使用している場合は、[双方向 TLS 設定の競合](#503-errors-after-setting-destination-rule)を確認してください。
 
-## 路由规则似乎没有对流量生效 {#route-rules-dont-seem-to-affect-traffic-flow}
+## ルートルールがトラフィックフローに影響を与えないように見える {#route-rules-dont-seem-to-affect-traffic-flow}
 
-在当前版本的 Envoy Sidecar 实现中，加权版本分发被观测到至少需要 100 个请求。
+現在の Envoy Sidecar 実装では、重み付きバージョン分散が少なくとも 100 リクエストを必要とします。
 
-如果路由规则在 [Bookinfo](/zh/docs/examples/bookinfo/) 这个例子中完美地运行，
-但类似的路由规则在您自己的应用中却没有生效，可能因为您的 Kubernetes Service
-需要被稍微地修改。为了利用 Istio 的七层路由特性 Kubernetes Service 必须严格遵守某些限制。
-参考 [Pod 和 Service 的要求](/zh/docs/ops/deployment/application-requirements/)查看详细信息。
+Bookinfo の例でルートルールが完全に機能している場合でも、同様のルートルールが自分のアプリケーションで機能しない場合があります。これは、Kubernetes Service が若干の変更を必要とする場合があるためです。Istio の七層ルーティング機能を利用するには、Kubernetes Service が特定の制限に厳密に従う必要があります。[Pod と Service の要件](/zh/docs/ops/deployment/application-requirements/)を参照して詳細情報を確認してください。
 
-另一个潜在的问题是路由规则可能只是生效比较慢。在 Kubernetes 上实现的 Istio
-利用一个最终一致性算法来保证所有的 Envoy Sidecar 有正确的配置包括所有的路由规则。
-一个配置变更需要花一些时间来传播到所有的 Sidecar。
-在大型的集群部署中传播将会耗时更长并且可能有几秒钟的延迟时间。
+もう一つの潜在的な問題は、ルートルールが効果的に機能するのに時間がかかることです。Kubernetes 上で実装された Istio は、すべての Envoy Sidecar が正しい設定を持つようにするために最終一貫性アルゴリズムを利用します。設定の変更には、すべての Sidecar に設定を伝播するのに時間がかかります。大規模なクラスターのデプロイでは、伝播に時間がかかり、数秒の遅延が発生する可能性があります。
 
-## 设置 DestinationRule 之后出现 503 异常 {#503-errors-after-setting-destination-rule}
+## DestinationRule を設定した後に 503 エラーが発生する {#503-errors-after-setting-destination-rule}
 
 {{< tip >}}
-只有在安装期间禁用了[自动双向 TLS](/zh/docs/tasks/security/authentication/authn-policy/#auto-mutual-TLS)
-时，才会看到此错误。
+このエラーは、[自動双方向 TLS](/zh/docs/tasks/security/authentication/authn-policy/#auto-mutual-TLS) が無効になっている場合にのみ表示されます。
 {{< /tip >}}
 
-如果在您应用了一个 `DestinationRule` 之后请求一个服务立即发生了 HTTP 503
-异常，并且这个异常状态一直持续到您移除或回滚了这个 `DestinationRule`，
-那么这个 `DestinationRule` 可能导致服务引起了一个 TLS 冲突。
+DestinationRule を適用した後に HTTP 503 エラーが発生し、そのエラーが DestinationRule を削除またはロールバックするまで続く場合、その DestinationRule がサービスに TLS 競合を引き起こす可能性があります。
 
-举个例子，如果在您的集群里配置了全局的双向 TLS，这个 `DestinationRule`
-必须包含下列的 `trafficPolicy`：
+例えば、クラスター内でグローバルな双方向 TLS が設定されている場合、この DestinationRule は次のようになる必要があります。
 
 {{< text yaml >}}
 trafficPolicy:
-  tls:
-    mode: ISTIO_MUTUAL
+tls:
+mode: ISTIO_MUTUAL
 {{< /text >}}
+
+そうでない場合、TLS モードがデフォルトで `DISABLE` に設定されるため、クライアント Sidecar 代理は暗号化されていない HTTP リクエストを開始する可能性があります。したがって、リクエストとサーバー代理間に競合が発生します。なぜならサーバー代理は暗号化されたリクエストを期待しているからです。
 
 否则，这个 TLS 模式默认被设置成 `DISABLE` 会使客户端 Sidecar
 代理发起明文 HTTP 请求而不是 TLS 加密了的请求。因此，请求和服务端代理冲突，
@@ -82,22 +73,23 @@ trafficPolicy:
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp
+name: myapp
 spec:
-  hosts:
-  - "myapp.com" # 或者如果您正在通过 ingress-gateway IP（例如 http://1.2.3.4/hello）而不是 DNS 进行测试，也可以配置成 "*"
+hosts:
+
+- "myapp.com" # 或者如果您正在通过 ingress-gateway IP（例如 http://1.2.3.4/hello）而不是 DNS 进行测试，也可以配置成 "\*"
   gateways:
-  - myapp-gateway
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /hello
+- match:
+  - uri:
+    prefix: /hello
     route:
-    - destination:
-        host: helloworld.default.svc.cluster.local
-  - match:
-    ...
-{{< /text >}}
+  - destination:
+    host: helloworld.default.svc.cluster.local
+- match:
+  ...
+  {{< /text >}}
 
 您还有一个 `VirtualService` 将访问 helloworld 服务的流量路由至该服务的一个特定子集：
 
@@ -105,16 +97,16 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: helloworld
+name: helloworld
 spec:
-  hosts:
-  - helloworld.default.svc.cluster.local
+hosts:
+
+- helloworld.default.svc.cluster.local
   http:
-  - route:
-    - destination:
-        host: helloworld.default.svc.cluster.local
-        subset: v1
-{{< /text >}}
+- route: - destination:
+  host: helloworld.default.svc.cluster.local
+  subset: v1
+  {{< /text >}}
 
 此时您会发现，通过 Ingress 网关访问 helloworld 服务的请求没有直接路由到 v1 子集，
 而是仍然使用默认的轮询调度路由。
@@ -131,23 +123,24 @@ helloworld `VirtualService`，其中的规则直接将流量路由至 v1 子集�
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp
+name: myapp
 spec:
-  hosts:
-  - "myapp.com" # 或者如果您正在通过 ingress-gateway IP（例如 http://1.2.3.4/hello）而不是 DNS 进行测试，也可以配置成 "*"
+hosts:
+
+- "myapp.com" # 或者如果您正在通过 ingress-gateway IP（例如 http://1.2.3.4/hello）而不是 DNS 进行测试，也可以配置成 "\*"
   gateways:
-  - myapp-gateway
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /hello
+- match:
+  - uri:
+    prefix: /hello
     route:
-    - destination:
-        host: helloworld.default.svc.cluster.local
-        subset: v1
-  - match:
-    ...
-{{< /text >}}
+  - destination:
+    host: helloworld.default.svc.cluster.local
+    subset: v1
+- match:
+  ...
+  {{< /text >}}
 
 或者，您可以尽可能地将两个 `VirtualService` 配置合并成一个：
 
@@ -155,32 +148,30 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: myapp
+name: myapp
 spec:
-  hosts:
-  - myapp.com # 这里不能使用“*”，因为这是与网格服务关联在一起的
-  - helloworld.default.svc.cluster.local
+hosts:
+
+- myapp.com # 这里不能使用“\*”，因为这是与网格服务关联在一起的
+- helloworld.default.svc.cluster.local
   gateways:
-  - mesh # 内部和外部都可以应用
-  - myapp-gateway
+- mesh # 内部和外部都可以应用
+- myapp-gateway
   http:
-  - match:
-    - uri:
-        prefix: /hello
-      gateways:
-      - myapp-gateway # 只对 Ingress Gateway 严格应用这条规则
-    route:
-    - destination:
-        host: helloworld.default.svc.cluster.local
-        subset: v1
-  - match:
-    - gateways:
-      - mesh # 应用到网格中的所有服务
-    route:
-    - destination:
-        host: helloworld.default.svc.cluster.local
-        subset: v1
-{{< /text >}}
+- match:
+  - uri:
+    prefix: /hello
+    gateways:
+    - myapp-gateway # 只对 Ingress Gateway 严格应用这条规则
+      route:
+  - destination:
+    host: helloworld.default.svc.cluster.local
+    subset: v1
+- match: - gateways: - mesh # 应用到网格中的所有服务
+  route: - destination:
+  host: helloworld.default.svc.cluster.local
+  subset: v1
+  {{< /text >}}
 
 ## Envoy 在负载压力下崩溃 {#envoy-is-crashing-under-load}
 
@@ -188,7 +179,7 @@ spec:
 它将导致 Envoy 断言失败并崩溃：
 
 {{< text plain >}}
-[2017-05-17 03:00:52.735][14236][critical][assert] assert failure: fd_ != -1: external/envoy/source/common/network/connection_impl.cc:58
+[2017-05-17 03:00:52.735][14236][critical][assert] assert failure: fd\_ != -1: external/envoy/source/common/network/connection_impl.cc:58
 {{< /text >}}
 
 请确保增大您的 ulimit。例如 `ulimit -n 16384`
@@ -204,13 +195,14 @@ Envoy 之后使用 [NGINX](https://www.nginx.com/) 来代理您的流量，您�
 
 {{< text plain >}}
 upstream http_backend {
-    server 127.0.0.1:8080;
+server 127.0.0.1:8080;
 
     keepalive 16;
+
 }
 
 server {
-    ...
+...
 
     location /http/ {
         proxy_pass http://http_backend;
@@ -218,6 +210,7 @@ server {
         proxy_set_header Connection "";
         ...
     }
+
 }
 {{< /text >}}
 
@@ -235,38 +228,39 @@ server {
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
-  labels:
-    app: nginx
+name: nginx
+labels:
+app: nginx
 spec:
-  ports:
-  - port: 80
-    name: http-web  # 显式定义一个 http 端口
-  clusterIP: None   # 创建一个 Headless Service
+ports:
+
+- port: 80
+  name: http-web # 显式定义一个 http 端口
+  clusterIP: None # 创建一个 Headless Service
   selector:
-    app: nginx
+  app: nginx
+
 ---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: web
+name: web
 spec:
-  selector:
-    matchLabels:
-      app: nginx
-  serviceName: "nginx"
-  replicas: 3
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: registry.k8s.io/nginx-slim:0.8
-        ports:
-        - containerPort: 80
-          name: web
+selector:
+matchLabels:
+app: nginx
+serviceName: "nginx"
+replicas: 3
+template:
+metadata:
+labels:
+app: nginx
+spec:
+containers: - name: nginx
+image: registry.k8s.io/nginx-slim:0.8
+ports: - containerPort: 80
+name: web
 {{< /text >}}
 
 Service 定义中的端口名称 `http-web` 为该端口显式指定 http 协议。
@@ -279,7 +273,7 @@ Pod `Deployment`。当使用 Pod IP（这是访问 Headless Service 的一种常
 {{< text bash >}}
 $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
 $ kubectl exec -it $SOURCE_POD -c curl -- curl 10.1.1.171 -s -o /dev/null -w "%{http_code}"
-  503
+503
 {{< /text >}}
 
 `10.1.1.171` 是其中一个 `nginx` 副本的 Pod IP，通过 `containerPort` 80 访问此服务。
@@ -288,46 +282,46 @@ $ kubectl exec -it $SOURCE_POD -c curl -- curl 10.1.1.171 -s -o /dev/null -w "%{
 
 1. 指定正确的 Host 头：
 
-    上述 curl 请求中的 Host 头默认将是 Pod IP。
-    在指向 `nginx` 的请求中将 Host 头指定为 `nginx.default`，成功返回 `HTTP 200 OK`。
+   上述 curl 请求中的 Host 头默认将是 Pod IP。
+   在指向 `nginx` 的请求中将 Host 头指定为 `nginx.default`，成功返回 `HTTP 200 OK`。
 
-    {{< text bash >}}
-    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
-    $ kubectl exec -it $SOURCE_POD -c curl -- curl -H "Host: nginx.default" 10.1.1.171 -s -o /dev/null -w "%{http_code}"
-      200
-    {{< /text >}}
+   {{< text bash >}}
+   $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
+   $ kubectl exec -it $SOURCE_POD -c curl -- curl -H "Host: nginx.default" 10.1.1.171 -s -o /dev/null -w "%{http_code}"
+   200
+   {{< /text >}}
 
 1. 端口名称设置为 `tcp`、`tcp-web` 或 `tcp-<custom_name>`：
 
-    此例中协议被显式指定为 `tcp`。这种情况下，客户端和服务器都对 Sidecar 代理仅使用 `TCP Proxy` 网络过滤器。
-    并未使用 HTTP 连接管理器，因此请求中不应包含任意类型的头。
+   此例中协议被显式指定为 `tcp`。这种情况下，客户端和服务器都对 Sidecar 代理仅使用 `TCP Proxy` 网络过滤器。
+   并未使用 HTTP 连接管理器，因此请求中不应包含任意类型的头。
 
-    无论是否显式设置 Host 头，到 `nginx` 的请求都成功返回 `HTTP 200 OK`。
+   无论是否显式设置 Host 头，到 `nginx` 的请求都成功返回 `HTTP 200 OK`。
 
-    这可用于客户端无法在请求中包含头信息的某些场景。
+   这可用于客户端无法在请求中包含头信息的某些场景。
 
-    {{< text bash >}}
-    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
-    $ kubectl exec -it $SOURCE_POD -c curl -- curl 10.1.1.171 -s -o /dev/null -w "%{http_code}"
-      200
-    {{< /text >}}
+   {{< text bash >}}
+   $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
+   $ kubectl exec -it $SOURCE_POD -c curl -- curl 10.1.1.171 -s -o /dev/null -w "%{http_code}"
+   200
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec -it $SOURCE_POD -c curl -- curl -H "Host: nginx.default" 10.1.1.171 -s -o /dev/null -w "%{http_code}"
-      200
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl exec -it $SOURCE_POD -c curl -- curl -H "Host: nginx.default" 10.1.1.171 -s -o /dev/null -w "%{http_code}"
+   200
+   {{< /text >}}
 
 1. 使用域名代替 Pod IP：
 
-    Headless Service 的特定实例也可以仅使用域名进行访问。
+   Headless Service 的特定实例也可以仅使用域名进行访问。
 
-    {{< text bash >}}
-    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
-    $ kubectl exec -it $SOURCE_POD -c curl -- curl web-0.nginx.default -s -o /dev/null -w "%{http_code}"
-      200
-    {{< /text >}}
+   {{< text bash >}}
+   $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath='{.items..metadata.name}')
+   $ kubectl exec -it $SOURCE_POD -c curl -- curl web-0.nginx.default -s -o /dev/null -w "%{http_code}"
+   200
+   {{< /text >}}
 
-    此处 `web-0` 是 3 个 `nginx` 副本中其中一个的 Pod 名称。
+   此处 `web-0` 是 3 个 `nginx` 副本中其中一个的 Pod 名称。
 
 有关针对不同协议的 Headless Service 和流量路由行为的更多信息，
 请参阅这个[流量路由](/zh/docs/ops/configuration/traffic-management/traffic-routing/)页面。
@@ -346,21 +340,22 @@ $ kubectl exec -it $SOURCE_POD -c curl -- curl 10.1.1.171 -s -o /dev/null -w "%{
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: httpbin
+name: httpbin
 spec:
-  hosts:
-  - httpbin.org
+hosts:
+
+- httpbin.org
   ports:
-  - number: 443
-    name: http
-    protocol: HTTP
+- number: 443
+  name: http
+  protocol: HTTP
   resolution: DNS
-{{< /text >}}
+  {{< /text >}}
 
 虽然如果您有意在端口 443 上发送明文（如，`curl http://httpbin.org:443`），
 上述配置可能是正确的，但是一般情况下，443 端口专用于 HTTPS 流量。
 
-发送像 `curl https://httpbin.org` 这样的 HTTPS 请求（默认端口为443）将导致类似于
+发送像 `curl https://httpbin.org` 这样的 HTTPS 请求（默认端口为 443）将导致类似于
 `curl: (35) error:1408F10B:SSL routines:ssl3_get_record:wrong version number`
 的错误。访问日志也可能显示如 `400 DPE` 的错误。
 
@@ -368,11 +363,12 @@ spec:
 
 {{< text yaml >}}
 spec:
-  ports:
-  - number: 443
-    name: https
-    protocol: HTTPS
-{{< /text >}}
+ports:
+
+- number: 443
+  name: https
+  protocol: HTTPS
+  {{< /text >}}
 
 ### 网关到 `VirtualService` 的 TLS 不匹配 {#gateway-mismatch}
 
@@ -387,39 +383,40 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
-  name: gateway
-  namespace: istio-system
+name: gateway
+namespace: istio-system
 spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - port:
-      number: 443
-      name: https
-      protocol: HTTPS
-    hosts:
-      - "*"
+selector:
+istio: ingressgateway
+servers:
+
+- port:
+  number: 443
+  name: https
+  protocol: HTTPS
+  hosts:
+  - "\*"
     tls:
-      mode: SIMPLE
-      credentialName: sds-credential
+    mode: SIMPLE
+    credentialName: sds-credential
+
 ---
+
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: httpbin
+name: httpbin
 spec:
-  hosts:
-  - "*.example.com"
+hosts:
+
+- "\*.example.com"
   gateways:
-  - istio-system/gateway
+- istio-system/gateway
   tls:
-  - match:
-    - sniHosts:
-      - "*.example.com"
-    route:
-    - destination:
-        host: httpbin.org
-{{< /text >}}
+- match: - sniHosts: - "\*.example.com"
+  route: - destination:
+  host: httpbin.org
+  {{< /text >}}
 
 在此示例中，当 `VirtualService` 使用基于 TLS 的路由时，网关将终止 TLS
 （因为网关的 `tls.mode` 配置为 `SIMPLE`，而不是 `PASSTHROUGH`）。
@@ -432,13 +429,13 @@ spec:
 
 {{< text yaml >}}
 spec:
-  ...
-  http:
-  - match:
-    - headers:
-        ":authority":
-          regex: "*.example.com"
-{{< /text >}}
+...
+http:
+
+- match: - headers:
+  ":authority":
+  regex: "\*.example.com"
+  {{< /text >}}
 
 #### 网关启用 TLS 透传 {#gateway-with-TLS-passthrough}
 
@@ -446,34 +443,37 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
-  name: gateway
+name: gateway
 spec:
-  selector:
-    istio: ingressgateway
-  servers:
-  - hosts:
-    - "*"
+selector:
+istio: ingressgateway
+servers:
+
+- hosts:
+  - "\*"
     port:
-      name: https
-      number: 443
-      protocol: HTTPS
+    name: https
+    number: 443
+    protocol: HTTPS
     tls:
-      mode: PASSTHROUGH
+    mode: PASSTHROUGH
+
 ---
+
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: virtual-service
+name: virtual-service
 spec:
-  gateways:
-  - gateway
+gateways:
+
+- gateway
   hosts:
-  - httpbin.example.com
+- httpbin.example.com
   http:
-  - route:
-    - destination:
-        host: httpbin.org
-{{< /text >}}
+- route: - destination:
+  host: httpbin.org
+  {{< /text >}}
 
 在此配置中，`VirtualService` 试图将 HTTP 流量与通过网关的 TLS 流量进行匹配。
 这将导致 `VirtualService` 配置无效。您可以使用 `istioctl proxy-config listener`
@@ -483,22 +483,21 @@ spec:
 
 {{< text yaml >}}
 spec:
-  tls:
-  - match:
-    - sniHosts: ["httpbin.example.com"]
-    route:
-    - destination:
-        host: httpbin.org
-{{< /text >}}
+tls:
+
+- match: - sniHosts: ["httpbin.example.com"]
+  route: - destination:
+  host: httpbin.org
+  {{< /text >}}
 
 另外，您可以通过在网关中切换 `tls` 配置来终止 TLS，而不是透传 TLS：
 
 {{< text yaml >}}
 spec:
-  ...
-    tls:
-      credentialName: sds-credential
-      mode: SIMPLE
+...
+tls:
+credentialName: sds-credential
+mode: SIMPLE
 {{< /text >}}
 
 ### 双 TLS（TLS 源发起 TLS 连接） {#double-tls}
@@ -513,25 +512,28 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
-  name: httpbin
+name: httpbin
 spec:
-  hosts:
-  - httpbin.org
+hosts:
+
+- httpbin.org
   ports:
-  - number: 443
-    name: https
-    protocol: HTTPS
+- number: 443
+  name: https
+  protocol: HTTPS
   resolution: DNS
+
 ---
+
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: originate-tls
+name: originate-tls
 spec:
-  host: httpbin.org
-  trafficPolicy:
-    tls:
-      mode: SIMPLE
+host: httpbin.org
+trafficPolicy:
+tls:
+mode: SIMPLE
 {{< /text >}}
 
 使用此配置，Sidecar 期望应用程序在端口 443 上发送 TLS 通信 (如，`curl https://httpbin.org`)，
@@ -544,13 +546,14 @@ spec:
 
 {{< text yaml >}}
 spec:
-  hosts:
-  - httpbin.org
+hosts:
+
+- httpbin.org
   ports:
-  - number: 443
-    name: http
-    protocol: HTTP
-{{< /text >}}
+- number: 443
+  name: http
+  protocol: HTTP
+  {{< /text >}}
 
 请注意，使用此配置，您的应用程序将需要向端口 443 发送纯文本请求，例如
 `curl http://httpbin.org:443`，因为 TLS 连接不会更改端口。
@@ -559,14 +562,15 @@ spec:
 
 {{< text yaml >}}
 spec:
-  hosts:
-  - httpbin.org
+hosts:
+
+- httpbin.org
   ports:
-  - number: 80
-    name: http
-    protocol: HTTP
-    targetPort: 443
-{{< /text >}}
+- number: 80
+  name: http
+  protocol: HTTP
+  targetPort: 443
+  {{< /text >}}
 
 ### 当为多个 Gateway 配置了相同的 TLS 证书导致 404 异常 {#404-errors-occur-when-multiple-gateways-configured-with-same-TLS-certificate}
 
@@ -607,13 +611,14 @@ spec:
 
 {{< text yaml >}}
 servers:
+
 - port:
-    number: 443
-    name: https
-    protocol: HTTPS
+  number: 443
+  name: https
+  protocol: HTTPS
   hosts:
-  - "*.example.com"
-{{< /text >}}
+  - "\*.example.com"
+    {{< /text >}}
 
 这可能会导致某些请求失败。
 
@@ -636,20 +641,21 @@ SNI，因此，如果您要终止云负载均衡器中的 TLS，则可能需要�
 
 {{< text yaml >}}
 spec:
-  configPatches:
-  - applyTo: NETWORK_FILTER
-    match:
-      context: SIDECAR_OUTBOUND
-      listener:
-        portNumber: 443
-        filterChain:
-          filter:
-            name: istio.stats
-    patch:
-      operation: INSERT_BEFORE
-      value:
-        ...
-{{< /text >}}
+configPatches:
+
+- applyTo: NETWORK_FILTER
+  match:
+  context: SIDECAR_OUTBOUND
+  listener:
+  portNumber: 443
+  filterChain:
+  filter:
+  name: istio.stats
+  patch:
+  operation: INSERT_BEFORE
+  value:
+  ...
+  {{< /text >}}
 
 为了正常工作，这个过滤器配置依赖于创建时间比它早的 `istio.stats` 过滤器。
 否则，`INSERT_BEFORE` 操作将被静默忽略。错误日志中将没有任何内容表明此过滤器尚未添加到链中。
@@ -671,30 +677,28 @@ spec:
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: helloworld
+name: helloworld
 spec:
-  hosts:
-    - "*"
-  gateways:
-  - helloworld-gateway
+hosts: - "\*"
+gateways:
+
+- helloworld-gateway
   http:
-  - match:
-    - uri:
-        exact: /hello
-    fault:
-      abort:
-        httpStatus: 500
-        percentage:
-          value: 50
-    retries:
-      attempts: 5
-      retryOn: 5xx
-    route:
-    - destination:
-        host: helloworld
-        port:
-          number: 5000
-{{< /text >}}
+- match: - uri:
+  exact: /hello
+  fault:
+  abort:
+  httpStatus: 500
+  percentage:
+  value: 50
+  retries:
+  attempts: 5
+  retryOn: 5xx
+  route: - destination:
+  host: helloworld
+  port:
+  number: 5000
+  {{< /text >}}
 
 您期望配置了五次重试尝试时用户在调用 `helloworld` 服务时几乎不会看到任何错误。
 但是由于故障和重试都配置在同一个 `VirtualService` 上，所以重试配置未生效，导致 50%
@@ -705,30 +709,31 @@ spec:
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  name: hello-world-filter
+name: hello-world-filter
 spec:
-  workloadSelector:
-    labels:
-      app: helloworld
-  configPatches:
-  - applyTo: HTTP_FILTER
-    match:
-      context: SIDECAR_INBOUND # 将匹配所有 Sidecar 中的出站监听器
-      listener:
-        filterChain:
-          filter:
-            name: "envoy.filters.network.http_connection_manager"
-    patch:
-      operation: INSERT_BEFORE
-      value:
-        name: envoy.fault
-        typed_config:
-          "@type": "type.googleapis.com/envoy.extensions.filters.http.fault.v3.HTTPFault"
-          abort:
-            http_status: 500
-            percentage:
-              numerator: 50
-              denominator: HUNDRED
-{{< /text >}}
+workloadSelector:
+labels:
+app: helloworld
+configPatches:
+
+- applyTo: HTTP_FILTER
+  match:
+  context: SIDECAR_INBOUND # 将匹配所有 Sidecar 中的出站监听器
+  listener:
+  filterChain:
+  filter:
+  name: "envoy.filters.network.http_connection_manager"
+  patch:
+  operation: INSERT_BEFORE
+  value:
+  name: envoy.fault
+  typed_config:
+  "@type": "type.googleapis.com/envoy.extensions.filters.http.fault.v3.HTTPFault"
+  abort:
+  http_status: 500
+  percentage:
+  numerator: 50
+  denominator: HUNDRED
+  {{< /text >}}
 
 上述这种方式可行，这是因为这种方式为客户端代理配置了重试策略，而为上游代理配置了故障注入。

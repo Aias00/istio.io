@@ -1,8 +1,8 @@
 ---
-title: 模拟运行
-description: 展示如何在不实际执行的情况下，观察授权策略应用后的效果。
+title: ドライラン（シミュレーション実行）
+description: 実際に適用せずに認可ポリシーの効果を観察する方法を紹介します。
 weight: 65
-keywords: [security,access-control,rbac,authorization,dry-run]
+keywords: [security, access-control, rbac, authorization, dry-run]
 owner: istio/wg-security-maintainers
 test: yes
 status: Alpha
@@ -10,106 +10,103 @@ status: Alpha
 
 {{< boilerplate alpha >}}
 
-本任务将向您展示如何使用新的[实验性注解 `istio.io/dry-run`](/zh/docs/reference/config/annotations/)
-来设置 Istio 授权策略，并对其进行模拟运行而不实际执行。
+このタスクでは、新しい[実験的アノテーション `istio.io/dry-run`](/ja/docs/reference/config/annotations/)を使って、Istio 認可ポリシーをシミュレーション実行（ドライラン）し、実際に適用せずにその効果を確認する方法を紹介します。
 
-模拟运行注解允许您在生产流量上应用授权策略之前更好地理解其效果，
-从而帮助减少由于不正确的授权策略引起的生产流量中断风险。
+ドライランアノテーションを使うことで、本番トラフィックに認可ポリシーを適用する前にその影響をよりよく理解でき、
+誤った認可ポリシーによる本番トラフィックの中断リスクを減らすのに役立ちます。
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-在开始本任务之前，请完成以下操作：
+このタスクを始める前に、以下を完了してください：
 
-* 阅读 [Istio 授权概念](/zh/docs/concepts/security/#authorization)。
+- [Istio 認可の概念](/ja/docs/concepts/security/#authorization)を読んでください。
 
-* 按照 [Istio 安装指南](/zh/docs/setup/install)来安装 Istio。
+- [Istio インストールガイド](/ja/docs/setup/install)に従って Istio をインストールしてください。
 
-* 部署 Zipkin 以检查模拟运行追踪结果。按照
-  [Zipkin 任务](/zh/docs/tasks/observability/distributed-tracing/zipkin/)
-  将 Zipkin 安装到集群中。
+- Zipkin をデプロイしてドライランのトレース結果を確認します。
+  [Zipkin タスク](/ja/docs/tasks/observability/distributed-tracing/zipkin/)に従って Zipkin をクラスタにインストールしてください。
 
-* 部署 Prometheus 以检查模拟运行指标结果。按照
-  [Prometheus 任务](/zh/docs/tasks/observability/metrics/querying-metrics/)
-  将 Prometheus 安装到集群中。
+- Prometheus をデプロイしてドライランのメトリクス結果を確認します。
+  [Prometheus タスク](/ja/docs/tasks/observability/metrics/querying-metrics/)に従って Prometheus をクラスタにインストールしてください。
 
-* 部署测试工作负载：
+- テスト用ワークロードをデプロイします：
 
-    本任务使用 `httpbin` 和 `curl` 两个工作负载，均部署在命名空间 `foo` 中。
-    两个工作负载都带有 Envoy 代理 Sidecar。请使用以下命令创建 `foo` 命名空间并部署工作负载：
+  このタスクでは、`foo` 名前空間に `httpbin` と `curl` の 2 つのワークロードを使用します。
+  どちらも Envoy サイドカーを持ちます。以下のコマンドで `foo` 名前空間を作成し、ワークロードをデプロイします：
 
-    {{< text bash >}}
-    $ kubectl create ns foo
-    $ kubectl label ns foo istio-injection=enabled
-    $ kubectl apply -f @samples/httpbin/httpbin.yaml@ -n foo
-    $ kubectl apply -f @samples/curl/curl.yaml@ -n foo
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl create ns foo
+  $ kubectl label ns foo istio-injection=enabled
+  $ kubectl apply -f @samples/httpbin/httpbin.yaml@ -n foo
+  $ kubectl apply -f @samples/curl/curl.yaml@ -n foo
+  {{< /text >}}
 
-* 启用代理调试级别日志以检查模拟运行日志结果：
+- ドライランのログ結果を確認するため、プロキシのデバッグレベルログを有効にします：
 
-    {{< text bash >}}
-    $ istioctl proxy-config log deploy/httpbin.foo --level "rbac:debug" | grep rbac
-    rbac: debug
-    {{< /text >}}
+  {{< text bash >}}
+  $ istioctl proxy-config log deploy/httpbin.foo --level "rbac:debug" | grep rbac
+  rbac: debug
+  {{< /text >}}
 
-* 使用以下命令验证 `curl` 是否可以访问 `httpbin`：
+- 次のコマンドで `curl` から `httpbin` へのアクセスを確認します：
 
-    {{< text bash >}}
-    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -s -o /dev/null -w "%{http_code}\n"
-    200
-    {{< /text >}}
+  {{< text bash >}}
+  $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -s -o /dev/null -w "%{http_code}\n"
+  200
+  {{< /text >}}
 
 {{< warning >}}
-如果您按照指南操作无法看到期望的输出，请稍等几秒钟后重试。
-因为缓存和传播开销可能会导致某些延迟。
+ガイド通りに操作しても期待される出力が得られない場合は、数秒待ってから再試行してください。
+キャッシュや伝播のオーバーヘッドにより遅延が発生することがあります。
 {{< /warning >}}
 
-## 创建模拟运行策略 {#create-dry-run-policy}
+## ドライランポリシーの作成 {#create-dry-run-policy}
 
-1. 使用以下命令创建带有模拟运行注解 `"istio.io/dry-run": "true"` 的授权策略：
+1. 次のコマンドで、ドライランアノテーション `"istio.io/dry-run": "true"` を持つ認可ポリシーを作成します：
 
-    {{< text bash >}}
-    $ kubectl apply -n foo -f - <<EOF
-    apiVersion: security.istio.io/v1
-    kind: AuthorizationPolicy
-    metadata:
-      name: deny-path-headers
-      annotations:
-        "istio.io/dry-run": "true"
-    spec:
-      selector:
-        matchLabels:
-          app: httpbin
-      action: DENY
-      rules:
-      - to:
-        - operation:
-            paths: ["/headers"]
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -n foo -f - <<EOF
+   apiVersion: security.istio.io/v1
+   kind: AuthorizationPolicy
+   metadata:
+   name: deny-path-headers
+   annotations:
+   "istio.io/dry-run": "true"
+   spec:
+   selector:
+   matchLabels:
+   app: httpbin
+   action: DENY
+   rules:
 
-    您也可以使用以下命令将现有的授权策略快速更改为模拟运行模式：
+   - to: - operation:
+     paths: ["/headers"]
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl annotate --overwrite authorizationpolicies deny-path-headers -n foo istio.io/dry-run='true'
-    {{< /text >}}
+   既存の認可ポリシーをドライランモードに素早く変更するには、次のコマンドを使います：
 
-1. 验证请求路径 `/headers` 是否允许，因为策略是在模拟运行模式下创建的，
-   所以请运行以下命令将 20 个请求从 `curl` 发送到 `httpbin`，
-   此请求包含头部 `X-B3-Sampled: 1` 以始终触发 Zipkin 追踪：
+   {{< text bash >}}
+   $ kubectl annotate --overwrite authorizationpolicies deny-path-headers -n foo istio.io/dry-run='true'
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ for i in {1..20}; do kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/headers -H "X-B3-Sampled: 1" -s -o /dev/null -w "%{http_code}\n"; done
-    200
-    200
-    200
-    ...
-    {{< /text >}}
+1. ポリシーがドライランモードで作成されているため、`/headers` パスへのリクエストが許可されることを確認します。
+   次のコマンドで `curl` から `httpbin` へ 20 回リクエストを送信します。
+   リクエストには `X-B3-Sampled: 1` ヘッダーを付与し、常に Zipkin トレースを発生させます：
 
-## 在代理日志中检查模拟运行结果 {#check-dry-run-results-in-proxy-log}
+   {{< text bash >}}
+   $ for i in {1..20}; do kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/headers -H "X-B3-Sampled: 1" -s -o /dev/null -w "%{http_code}\n"; done
+   200
+   200
+   200
+   ...
+   {{< /text >}}
 
-模拟运行结果可以在代理调试日志中找到，格式为
-`shadow denied, matched policy ns[foo]-policy[deny-path-headers]-rule[0]`。
-运行以下命令检查日志：
+## プロキシログでドライラン結果を確認する {#check-dry-run-results-in-proxy-log}
+
+ドライラン結果はプロキシのデバッグログで確認できます。ログの形式は
+`shadow denied, matched policy ns[foo]-policy[deny-path-headers]-rule[0]` です。
+次のコマンドでログを確認します：
 
 {{< text bash >}}
 $ kubectl logs "$(kubectl -n foo -l app=httpbin get pods -o jsonpath={.items..metadata.name})" -c istio-proxy -n foo | grep "shadow denied"
@@ -119,88 +116,88 @@ $ kubectl logs "$(kubectl -n foo -l app=httpbin get pods -o jsonpath={.items..me
 ...
 {{< /text >}}
 
-另见[故障排查指南](/zh/docs/ops/common-problems/security-issues/#ensure-proxies-enforce-policies-correctly)了解日志记录的更多细节。
+詳細は[トラブルシューティングガイド](/ja/docs/ops/common-problems/security-issues/#ensure-proxies-enforce-policies-correctly)も参照してください。
 
-## 使用 Prometheus 检查指标中的模拟运行结果 {#check-dry-run-result-in-metric-using-prometheus}
+## Prometheus でメトリクスのドライラン結果を確認する {#check-dry-run-result-in-metric-using-prometheus}
 
-1. 使用以下命令打开 Prometheus 仪表板：
+1. 次のコマンドで Prometheus ダッシュボードを開きます：
 
-    {{< text bash >}}
-    $ istioctl dashboard prometheus
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl dashboard prometheus
+   {{< /text >}}
 
-1. 在 Prometheus 仪表板中，搜索以下指标：
+1. Prometheus ダッシュボードで次のメトリクスを検索します：
 
-    {{< text plain >}}
-    envoy_http_inbound_0_0_0_0_80_rbac{authz_dry_run_action="deny",authz_dry_run_result="denied"}
-    {{< /text >}}
+   {{< text plain >}}
+   envoy_http_inbound_0_0_0_0_80_rbac{authz_dry_run_action="deny",authz_dry_run_result="denied"}
+   {{< /text >}}
 
-1.  验证如下查询的指标结果：
+1. 次のようなクエリ結果を確認します：
 
-    {{< text plain >}}
-    envoy_http_inbound_0_0_0_0_80_rbac{app="httpbin",authz_dry_run_action="deny",authz_dry_run_result="denied",instance="10.44.1.11:15020",istio_io_rev="default",job="kubernetes-pods",kubernetes_namespace="foo",kubernetes_pod_name="httpbin-74fb669cc6-95qm8",pod_template_hash="74fb669cc6",security_istio_io_tlsMode="istio",service_istio_io_canonical_name="httpbin",service_istio_io_canonical_revision="v1",version="v1"}  20
-    {{< /text >}}
+   {{< text plain >}}
+   envoy_http_inbound_0_0_0_0_80_rbac{app="httpbin",authz_dry_run_action="deny",authz_dry_run_result="denied",instance="10.44.1.11:15020",istio_io_rev="default",job="kubernetes-pods",kubernetes_namespace="foo",kubernetes_pod_name="httpbin-74fb669cc6-95qm8",pod_template_hash="74fb669cc6",security_istio_io_tlsMode="istio",service_istio_io_canonical_name="httpbin",service_istio_io_canonical_revision="v1",version="v1"} 20
+   {{< /text >}}
 
-1. 查询的指标值为 `20`（根据发送的请求数量，您可能会找到不同的值。只要该值大于0，就是预期的结果）。
-   这意味着模拟运行策略应用于端口 `80` 上的 `httpbin` 工作负载匹配了一个请求。
-   如果策略未处于模拟运行模式，则该策略将拒绝一次请求。
+1. クエリの値が `20` であることを確認します（リクエスト数によって異なる場合がありますが、0 より大きければ期待通りです）。
+   これは、ドライランポリシーがポート `80` 上の `httpbin` ワークロードでリクエストにマッチしたことを意味します。
+   ポリシーがドライランでなければ、リクエストは 1 回拒否されます。
 
-1. 以下是 Prometheus 仪表板的屏幕截图：
+1. Prometheus ダッシュボードのスクリーンショット例：
 
-    {{< image width="100%" link="./prometheus.png" caption="Prometheus dashboard" >}}
+   {{< image width="100%" link="./prometheus.png" caption="Prometheus dashboard" >}}
 
-## 使用 Zipkin 检查追踪中的模拟运行结果 {#check-dry-run-result-in-tracing-using-zipkin}
+## Zipkin でトレースのドライラン結果を確認する {#check-dry-run-result-in-tracing-using-zipkin}
 
-1. 使用以下命令打开 Zipkin 仪表板：
+1. 次のコマンドで Zipkin ダッシュボードを開きます：
 
-    {{< text bash >}}
-    $ istioctl dashboard zipkin
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl dashboard zipkin
+   {{< /text >}}
 
-1. 查找从 `curl` 到 `httpbin` 的请求的追踪结果。
-   如果您由于 Zipkin 中的延迟看到追踪结果，请尝试发送更多请求。
+1. `curl` から `httpbin` へのリクエストのトレース結果を探します。
+   Zipkin の遅延で結果が見つからない場合は、リクエストを追加で送信してください。
 
-1. 在追踪结果中，您应看到以下自定义标记，表明此请求被命名空间 `foo` 中的模拟运行策略 `deny-path-headers` 拒绝：
+1. トレース結果に、次のカスタムタグが表示されていることを確認します。これは、ネームスペース `foo` のドライランポリシー `deny-path-headers` でリクエストが拒否されたことを示します：
 
-    {{< text plain >}}
-    istio.authorization.dry_run.deny_policy.name: ns[foo]-policy[deny-path-headers]-rule[0]
-    istio.authorization.dry_run.deny_policy.result: denied
-    {{< /text >}}
+   {{< text plain >}}
+   istio.authorization.dry_run.deny_policy.name: ns[foo]-policy[deny-path-headers]-rule[0]
+   istio.authorization.dry_run.deny_policy.result: denied
+   {{< /text >}}
 
-1. 以下是 Zipkin 仪表板的屏幕截图：
+1. Zipkin ダッシュボードのスクリーンショット例：
 
-    {{< image width="100%" link="./trace.png" caption="Zipkin dashboard" >}}
+   {{< image width="100%" link="./trace.png" caption="Zipkin dashboard" >}}
 
-## 总结 {#summary}
+## まとめ {#summary}
 
-代理调试日志、Prometheus 指标和 Zipkin 追踪结果表明模拟运行策略将拒绝请求。
-如果模拟运行结果不符预期，您可以进一步更改策略。
+プロキシのデバッグログ、Prometheus メトリクス、Zipkin トレース結果から、ドライランポリシーがリクエストを拒否することが分かります。
+ドライラン結果が期待と異なる場合は、ポリシーをさらに調整してください。
 
-建议保留模拟运行策略一段时间，以便可以使用更多的生产流量进行测试。
+本番トラフィックで十分にテストできるよう、しばらくドライランポリシーを維持することを推奨します。
 
-当您对模拟运行结果有信心时，可以禁用模拟运行模式，以便该策略开始实际拒绝请求。这可以通过以下任一方法实现：
+ドライラン結果に自信が持てたら、ドライランモードを無効にしてポリシーを実際に適用できます。次のいずれかの方法で実現できます：
 
-* 完全删除模拟运行注解】；或
+- ドライランアノテーションを完全に削除する；または
 
-* 将模拟运行注解的值更改为 `false`。
+- ドライランアノテーションの値を `false` に変更する。
 
-## 限制 {#limiatations}
+## 制限事項 {#limiatations}
 
-模拟运行注解目前处于实验阶段，具有以下限制：
+ドライランアノテーションは現在実験的で、以下の制限があります：
 
-* 模拟运行注解目前仅支持 ALLOW 和 DENY 策略；
+- ドライランアノテーションは現在 ALLOW および DENY ポリシーのみサポートしています；
 
-* 由于在代理中独立执行 ALLOW 和 DENY 策略，所以将有两个单独的模拟运行结果（即日志、指标和追踪标记）。
-  您应该考虑所有两个模拟运行结果，因为一个请求可能会被 ALLOW 策略允许，但仍会被另一个 DENY 策略拒绝；
+- プロキシ内で ALLOW と DENY ポリシーが独立して実行されるため、2 つのドライラン結果（ログ・メトリクス・トレースタグ）が出力されます。
+  両方のドライラン結果を考慮してください。1 つのリクエストが ALLOW ポリシーで許可されても、DENY ポリシーで拒否される場合があります；
 
-* 代理日志、指标和追踪中的模拟运行结果仅用于手动故障排除，并且不应用作 API，因为它可能随时更改而没有事先通知。
+- プロキシログ・メトリクス・トレースのドライラン結果は手動トラブルシューティング用であり、API として利用すべきではありません（予告なく変更される場合があります）。
 
-## 清理 {#clean-up}
+## クリーンアップ {#clean-up}
 
-1. 从您的配置中移除命名空间 `foo`：
+1. 設定から `foo` 名前空間を削除します：
 
-    {{< text bash >}}
-    $ kubectl delete namespace foo
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl delete namespace foo
+   {{< /text >}}
 
-1. 如果不再需要，可以移除 Prometheus 和 Zipkin。
+1. 不要であれば Prometheus と Zipkin も削除してください。

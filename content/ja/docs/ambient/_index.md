@@ -1,6 +1,6 @@
 ---
-title: Ambient 模式
-description: 有关在 Ambient 模式下设置和操作 Istio 的信息。
+title: Ambient モード
+description: Ambient モードでの Istio のセットアップと運用に関する情報。
 weight: 17
 aliases:
   - /zh/docs/ops/ambient

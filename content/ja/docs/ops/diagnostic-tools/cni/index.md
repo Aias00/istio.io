@@ -1,82 +1,77 @@
 ---
-title: Istio CNI 插件故障排除
-description: 描述使用 Istio 和 CNI 插件诊断问题的工具和技术。
+title: Istio CNI プラグインのトラブルシューティング
+description: Istio と CNI プラグインの診断に役立つツールと技術について説明します。
 weight: 90
-keywords: [debug,cni]
+keywords: [debug, cni]
 owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-本页介绍如何解决 Istio CNI 插件的问题。在阅读本文之前，您须阅读
-[CNI 安装和操作指南](/zh/docs/setup/additional-setup/cni/)。
+このページでは、Istio CNI プラグインの問題解決方法を紹介します。この記事を読む前に、
+[CNI のインストールと運用ガイド](/ja/docs/setup/additional-setup/cni/)を参照してください。
 
-## 日志 {#log}
+## ログ {#log}
 
-Istio CNI 插件日志基于 `PodSpec` 提供了有关插件如何配置应用程序 Pod
-流量重定向的信息。
+Istio CNI プラグインのログは、`PodSpec` に基づいてアプリケーション Pod のトラフィックリダイレクトがどのように構成されたかを示します。
 
-该插件在容器运行时进程空间中运行，因此您可以在 `kubelet` 日志中看到 CNI 日志条目。
-为了使调试更容易，CNI 插件还将其日志发送到 `istio-cni-node` DaemonSet。
+このプラグインはコンテナランタイムのプロセス空間で動作するため、`kubelet` のログに CNI のログエントリが出力されます。
+デバッグを容易にするため、CNI プラグインは `istio-cni-node` DaemonSet にもログを送信します。
 
-CNI 插件的默认日志级别是 `info`。要获得更详细的日志输出，可以通过编辑
-`values.cni.logLevel` 安装选项并重新启动 CNI DaemonSet Pod 来更改级别。
+CNI プラグインのデフォルトログレベルは `info` です。より詳細なログを得るには、
+`values.cni.logLevel` インストールオプションを編集し、CNI DaemonSet Pod を再起動してください。
 
-Istio CNI DaemonSet Pod 日志还提供了有关 CNI
-插件安装的信息以及[竞争条件和缓解措施](/zh/docs/setup/additional-setup/cni/#race-condition--mitigation)。
+Istio CNI DaemonSet Pod のログには、CNI プラグインのインストール状況や
+[競合状態とその緩和策](/ja/docs/setup/additional-setup/cni/#race-condition--mitigation)に関する情報も含まれます。
 
-## 监控 {#monitoring}
+## モニタリング {#monitoring}
 
-CNI DaemonSet [生成指标](/zh/docs/reference/commands/install-cni/#metrics)，
-可用于监视 CNI 的安装、准备就绪和竞争条件缓解措施。默认情况下，Prometheus 抓取的注解
-（`prometheus.io/port`、`prometheus.io/path`）被添加到 `istio-cni-node` DaemonSet Pod 中。
-您可以通过标准 Prometheus 配置来收集生成的指标。
+CNI DaemonSet は[メトリクスを生成](/ja/docs/reference/commands/install-cni/#metrics)し、
+CNI のインストール、準備完了、競合状態の緩和策を監視できます。デフォルトで Prometheus のアノテーション
+（`prometheus.io/port`、`prometheus.io/path`）が `istio-cni-node` DaemonSet Pod に追加されます。
+標準の Prometheus 設定でメトリクスを収集できます。
 
-## DaemonSet 准备就绪 {#daemonset-readiness}
+## DaemonSet の準備完了 {#daemonset-readiness}
 
-CNI DaemonSet 的就绪表明 Istio CNI 插件已被正确安装和配置。
-如果 Istio CNI DaemonSet 尚未准备好，则表明出现了问题。查看
-`istio-cni-node` DaemonSet 日志进行诊断。您还可以通过
-`istio_cni_install_ready` 指标跟踪 CNI 安装就绪与否。
+CNI DaemonSet の準備完了は、Istio CNI プラグインが正しくインストール・構成されたことを示します。
+Istio CNI DaemonSet が準備完了でない場合は問題が発生しています。`istio-cni-node` DaemonSet のログを確認してください。
+また、`istio_cni_install_ready` メトリクスで CNI インストールの準備状況を追跡できます。
 
-## 竞争条件和缓解措施 {#race-condition-repair}
+## 競合状態と緩和策 {#race-condition-repair}
 
-Istio CNI DaemonSet 默认启用[竞争条件和缓解措施](/zh/docs/setup/additional-setup/cni/#race-condition--mitigation)，
-这将驱逐在 CNI 插件准备就绪之前启动的 Pod。要了解哪些 Pod 被驱逐，请查找如下所示的日志行：
+Istio CNI DaemonSet ではデフォルトで[競合状態と緩和策](/ja/docs/setup/additional-setup/cni/#race-condition--mitigation)が有効になっており、
+CNI プラグインが準備完了前に起動した Pod を強制的に削除します。どの Pod が削除されたかは、次のようなログ行で確認できます：
 
 {{< text plain >}}
-2021-07-21T08:32:17.362512Z     info   Deleting broken pod: service-graph00/svc00-0v1-95b5885bf-zhbzm
+2021-07-21T08:32:17.362512Z info Deleting broken pod: service-graph00/svc00-0v1-95b5885bf-zhbzm
 {{< /text >}}
 
-您还可以通过 `istio_cni_repair_pods_repaired_total` 指标追踪修复的 Pod。
+また、`istio_cni_repair_pods_repaired_total` メトリクスで修復された Pod の数も追跡できます。
 
-## 诊断 Pod 启动失败 {#diagnose-pod-start-up-failure}
+## Pod 起動失敗の診断 {#diagnose-pod-start-up-failure}
 
-CNI 插件的一个常见问题是由于容器网络设置失败，使得 Pod 无法启动。
-通常，失败原因会写入 Pod 事件，Pod 描述中会包含这些失败原因：
+CNI プラグインでよくある問題は、コンテナネットワークのセットアップ失敗により Pod が起動できないことです。
+通常、失敗の理由は Pod イベントに記録され、Pod の詳細情報で確認できます：
 
 {{< text bash >}}
 $ kubectl describe pod POD_NAME -n POD_NAMESPACE
 {{< /text >}}
 
-如果 Pod 持续出现初始化错误，请检查 Init 容器 `istio-validation`
-日志是否存在如下 "connection refused" 错误：
+Pod で初期化エラーが継続する場合、Init コンテナ `istio-validation` のログに "connection refused" エラーがないか確認してください：
 
 {{< text bash >}}
 $ kubectl logs POD_NAME -n POD_NAMESPACE -c istio-validation
 ...
-2021-07-20T05:30:17.111930Z     error   Error connecting to 127.0.0.6:15002: dial tcp 127.0.0.1:0->127.0.0.6:15002: connect: connection refused
-2021-07-20T05:30:18.112503Z     error   Error connecting to 127.0.0.6:15002: dial tcp 127.0.0.1:0->127.0.0.6:15002: connect: connection refused
+2021-07-20T05:30:17.111930Z error Error connecting to 127.0.0.6:15002: dial tcp 127.0.0.1:0->127.0.0.6:15002: connect: connection refused
+2021-07-20T05:30:18.112503Z error Error connecting to 127.0.0.6:15002: dial tcp 127.0.0.1:0->127.0.0.6:15002: connect: connection refused
 ...
-2021-07-20T05:30:22.111676Z     error   validation timeout
+2021-07-20T05:30:22.111676Z error validation timeout
 {{< /text >}}
 
-`istio-validation` Init 容器设置一个本地虚拟服务器，该服务器监听流量重定向目标的出入端口，
-并检查测试流量是否可以重定向到此虚拟服务器。当 CNI 插件未正确设置 Pod 流量重定向时，
-`istio-validation` Init 容器会阻止 Pod 启动，以防止流量绕过。
-要查看网络设置行为是否有任何错误或意外，请在 `istio-cni-node` 中搜索 Pod ID。
+`istio-validation` Init コンテナは、トラフィックリダイレクト先の入出力ポートをリッスンするローカル仮想サーバーをセットアップし、
+テストトラフィックがこの仮想サーバーにリダイレクトできるかを検証します。CNI プラグインが Pod のトラフィックリダイレクトを正しく設定できていない場合、
+`istio-validation` Init コンテナが Pod の起動をブロックし、トラフィックのバイパスを防ぎます。ネットワーク設定のエラーや想定外の動作がないか、`istio-cni-node` のログで Pod ID を検索してください。
 
-CNI 插件出现故障的另一个症状是，应用程序 Pod 在启动时不断被逐出。
-这通常是因为插件没有被正确安装，因此无法设置 Pod 流量重定向。
-CNI 的[竞争条件和缓解措施逻辑](/zh/docs/setup/additional-setup/cni/#race-condition--mitigation)
-认为由于竞争条件引起的问题导致 Pod 损坏，并连续逐出 Pod。遇到此问题时，请检查 CNI DaemonSet 日志，
-以获取为什么插件未被正确安装的信息。
+CNI プラグインのもう一つの故障症状は、アプリケーション Pod が起動時に繰り返し削除されることです。
+これはプラグインが正しくインストールされず、Pod のトラフィックリダイレクトを設定できない場合に発生します。
+CNI の[競合状態と緩和策ロジック](/ja/docs/setup/additional-setup/cni/#race-condition--mitigation)は、競合状態による Pod の破損を検知し、Pod を連続して削除します。
+この問題が発生した場合は、CNI DaemonSet のログでプラグインが正しくインストールされなかった理由を確認してください。

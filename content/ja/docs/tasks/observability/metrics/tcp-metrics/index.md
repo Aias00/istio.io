@@ -1,153 +1,152 @@
 ---
-title: 收集 TCP 服务指标
-description: 本任务展示了如何配置 Istio 进行 TCP 服务的指标收集。
+title: TCP サービスメトリクスの収集
+description: このタスクでは、Istio で TCP サービスのメトリクス収集を設定する方法を紹介します。
 weight: 20
-keywords: [telemetry,metrics,tcp]
+keywords: [telemetry, metrics, tcp]
 aliases:
-    - /zh/docs/tasks/telemetry/tcp-metrics
-    - /zh/docs/tasks/telemetry/metrics/tcp-metrics/
+  - /zh/docs/tasks/telemetry/tcp-metrics
+  - /zh/docs/tasks/telemetry/metrics/tcp-metrics/
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-本文任务展示了如何对 Istio 进行配置，从而自动收集网格中 TCP 服务的遥测数据。
-在任务最后，会为网格中的一个 TCP 服务启用一个新的指标。
+このタスクでは、Istio を設定してメッシュ内の TCP サービスのテレメトリデータを自動収集する方法を紹介します。
+タスクの最後では、メッシュ内の TCP サービスに新しいメトリクスを有効化します。
 
-在本例中会使用 [Bookinfo](/zh/docs/examples/bookinfo/) 作为示例应用。
+この例では [Bookinfo](/zh/docs/examples/bookinfo/) をサンプルアプリケーションとして使用します。
 
-## 开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-* 在集群中[安装 Istio](/zh/docs/setup/) 并部署一个应用。您必须安装
-  [Prometheus](/zh/docs/ops/integrations/prometheus/)。
+- クラスタに[Istio をインストール](/zh/docs/setup/)し、アプリケーションをデプロイしてください。
+  [Prometheus](/zh/docs/ops/integrations/prometheus/) もインストールする必要があります。
 
-* 任务中假设 Bookinfo 应用部署在 `default` 命名空间中。如果使用不同的命名空间，
-  需要更新例子中的相关配置和命令。
+- このタスクでは Bookinfo アプリが `default` 名前空間にデプロイされていると仮定します。異なる名前空間を使う場合は、
+  サンプルの設定やコマンドを適宜修正してください。
 
-## 收集新的遥测数据  {#collecting-new-telemetry-data}
+## 新しいテレメトリデータの収集 {#collecting-new-telemetry-data}
 
-1. 设置 Bookinfo 使用 MongoDB。
+1. Bookinfo で MongoDB を利用するように設定します。
 
-    1. 安装 `ratings` 服务的 `v2` 版本。
+   1. `ratings` サービスの `v2` バージョンをインストールします。
 
-        {{< text bash >}}
-        $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo-ratings-v2.yaml@
-        serviceaccount/bookinfo-ratings-v2 created
-        deployment.apps/ratings-v2 created
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo-ratings-v2.yaml@
+      serviceaccount/bookinfo-ratings-v2 created
+      deployment.apps/ratings-v2 created
+      {{< /text >}}
 
-    1. 安装 `mongodb` 服务：
+   1. `mongodb` サービスをインストールします：
 
-        {{< text bash >}}
-        $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo-db.yaml@
-        service/mongodb created
-        deployment.apps/mongodb-v1 created
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo-db.yaml@
+      service/mongodb created
+      deployment.apps/mongodb-v1 created
+      {{< /text >}}
 
-    1. Bookinfo 示例部署了每个微服务的多个版本，因此您将首先创建目标规则定义每个版本对应的服务子集，
-       以及每个子集的负载均衡策略。
+   1. Bookinfo サンプルは各マイクロサービスの複数バージョンをデプロイするため、まず各バージョンに対応するサブセットと
+      各サブセットのロードバランシング戦略を定義する DestinationRule を作成します。
 
-        {{< text bash >}}
-        $ kubectl apply -f @samples/bookinfo/networking/destination-rule-all.yaml@
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl apply -f @samples/bookinfo/networking/destination-rule-all.yaml@
+      {{< /text >}}
 
-        如果您启用了双向 TLS，请执行以下操作：
+      双方向 TLS を有効にしている場合は、次を実行してください：
 
-        {{< text bash >}}
-        $ kubectl apply -f @samples/bookinfo/networking/destination-rule-all-mtls.yaml@
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl apply -f @samples/bookinfo/networking/destination-rule-all-mtls.yaml@
+      {{< /text >}}
 
-        您可以使用以下命令显示目标规则：
+      次のコマンドで DestinationRule を表示できます：
 
-        {{< text bash >}}
-        $ kubectl get destinationrules -o yaml
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl get destinationrules -o yaml
+      {{< /text >}}
 
-        由于虚拟服务中的子集引用依赖于目标规则，
-        在添加引用这些子集的虚拟服务之前，请等待几秒钟以使目标规则传播。
+      VirtualService のサブセット参照は DestinationRule に依存するため、
+      サブセットを参照する VirtualService を追加する前に数秒待って DestinationRule が伝播するのを待ちます。
 
-    1. 创建 `ratings` 以及 `reviews` 两个虚拟服务：
+   1. `ratings` および `reviews` の VirtualService を作成します：
 
-        {{< text bash >}}
-        $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-db.yaml@
-        virtualservice.networking.istio.io/reviews created
-        virtualservice.networking.istio.io/ratings created
-        {{< /text >}}
+      {{< text bash >}}
+      $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-db.yaml@
+      virtualservice.networking.istio.io/reviews created
+      virtualservice.networking.istio.io/ratings created
+      {{< /text >}}
 
-1. 向应用发送流量。
+1. アプリケーションにトラフィックを送信します。
 
-    对于 Bookinfo 应用来说，在浏览器中浏览 `http://$GATEWAY_URL/productpage`，
-    或者使用下面的命令：
+   Bookinfo アプリの場合、ブラウザで `http://$GATEWAY_URL/productpage` にアクセスするか、
+   次のコマンドを実行します：
 
-    {{< text bash >}}
-    $ curl http://"$GATEWAY_URL/productpage"
-    {{< /text >}}
+   {{< text bash >}}
+   $ curl http://"$GATEWAY_URL"/productpage
+   {{< /text >}}
 
-    {{< tip >}}
-    `$GATEWAY_URL` 是在 [Bookinfo](/zh/docs/examples/bookinfo/) 示例中设置的值。
-    {{< /tip >}}
+   {{< tip >}}
+   `$GATEWAY_URL` は [Bookinfo](/zh/docs/examples/bookinfo/) サンプルで設定した値です。
+   {{< /tip >}}
 
-1. 检查是否已经生成并收集了 TCP 指标。
+1. TCP メトリクスが生成・収集されているか確認します。
 
-    在 Kubernetes 环境中，使用下面的命令为 Prometheus 设置端口转发：
+   Kubernetes 環境では、次のコマンドで Prometheus のポートフォワードを設定します：
 
-    {{< text bash >}}
-    $ istioctl dashboard prometheus
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl dashboard prometheus
+   {{< /text >}}
 
-    在 Prometheus 浏览器窗口查看 TCP 指标的值。选择 **Graph**。
-    输入 `istio_tcp_connections_opened_total` 指标或 `istio_tcp_connections_closed_total`
-    并选择 **Execute**。在 **Console** 标签页中显示的表格包含了类似如下的内容：
+   Prometheus のブラウザウィンドウで TCP メトリクス値を確認します。**Graph** を選択し、
+   `istio_tcp_connections_opened_total` または `istio_tcp_connections_closed_total` を入力し、
+   **Execute** を選択します。**Console** タブに表示されるテーブルは次のようになります：
 
-    {{< text plain >}}
-    istio_tcp_connections_opened_total{
-    destination_version="v1",
-    instance="172.17.0.18:42422",
-    job="istio-mesh",
-    canonical_service_name="ratings-v2",
-    canonical_service_revision="v2"}
-    {{< /text >}}
+   {{< text plain >}}
+   istio_tcp_connections_opened_total{
+   destination_version="v1",
+   instance="172.17.0.18:42422",
+   job="istio-mesh",
+   canonical_service_name="ratings-v2",
+   canonical_service_revision="v2"}
+   {{< /text >}}
 
-    {{< text plain >}}
-    istio_tcp_connections_closed_total{
-    destination_version="v1",
-    instance="172.17.0.18:42422",
-    job="istio-mesh",
-    canonical_service_name="ratings-v2",
-    canonical_service_revision="v2"}
-    {{< /text >}}
+   {{< text plain >}}
+   istio_tcp_connections_closed_total{
+   destination_version="v1",
+   instance="172.17.0.18:42422",
+   job="istio-mesh",
+   canonical_service_name="ratings-v2",
+   canonical_service_revision="v2"}
+   {{< /text >}}
 
-## 理解 TCP 遥测数据的收集过程  {#understanding-tcp-telemetry-collection}
+## TCP テレメトリ収集の仕組み {#understanding-tcp-telemetry-collection}
 
-在此任务中，您使用 Istio 配置自动生成并报告网格内 TCP 服务的所有流量的指标。
-默认情况下，所有活动连接的 TCP 指标每 `15s` 记录一次，并且此计时器可通过
-`tcpReportingDuration` 进行配置。连接结束时也会记录连接的指标。
+このタスクでは、Istio の設定によりメッシュ内の TCP サービスの全トラフィックについて自動的にメトリクスが生成・レポートされます。
+デフォルトでは、すべてのアクティブな接続の TCP メトリクスは `15s` ごとに記録され、このタイマーは
+`tcpReportingDuration` で設定できます。接続終了時にもメトリクスが記録されます。
 
-### TCP 属性  {#tcp-attributes}
+### TCP 属性 {#tcp-attributes}
 
-几个特定于 TCP 的属性可在 Istio 中启用 TCP 策略和控制。这些属性由 Envoy
-代理生成，并使用 Envoy 的 Node Metadata 从 Istio 获得。Envoy 使用基于
-ALPN 的隧道和基于前缀的协议将节点元数据转发给对等 Envoy。我们定义了一个新的协议
-`istio-peer-exchange`，该协议定义了网格中的客户端和 Sidecar 服务器的通告和优先级。
-对于启用了 Istio 之间的连接，ALPN 协商将协议解析为 `istio-peer-exchange` 代理，
-不再启用 Istio 的代理和任何其他代理。该协议扩展了 TCP，如下所示：
+TCP 固有の属性がいくつかあり、Istio で TCP ポリシーや制御を有効化できます。これらの属性は Envoy
+プロキシによって生成され、Envoy の Node Metadata を通じて Istio から取得されます。Envoy は
+ALPN ベースのトンネリングやプレフィックスベースのプロトコルを使ってノードメタデータをピア Envoy に転送します。
+新しいプロトコル `istio-peer-exchange` を定義しており、これはメッシュ内のクライアントと Sidecar サーバーのアドバタイズと優先度を定義します。
+Istio 間の接続で有効な場合、ALPN ネゴシエーションによりプロトコルが `istio-peer-exchange` プロキシに解決され、
+Istio のプロキシや他のプロキシは有効になりません。このプロトコルは TCP を次のように拡張します：
 
-1. TCP 客户端，作为第一个字节序列，发送一个魔术字节串和一个长度带前缀的有效载荷。
-1. TCP 服务端，作为第一个字节序列，发送一个魔术字节串和一个长度带前缀的有效载荷，
-   这些有效载荷是 protobuf 编码的序列化元数据。
-1. 客户端和服务器可以同时写入并且顺序混乱。Envoy 中的扩展筛选器会在下游和上游进行处理，
-   直到魔术字节序列不匹配或读取了整个有效负载。
+1. TCP クライアントは、最初のバイト列としてマジックバイト列と長さ付きペイロードを送信します。
+1. TCP サーバーも、最初のバイト列としてマジックバイト列と長さ付きペイロード（protobuf でエンコードされたシリアライズメタデータ）を送信します。
+1. クライアントとサーバーは同時に書き込みでき、順序は混在します。Envoy の拡張フィルタが下流・上流で処理し、
+   マジックバイト列が一致しないか、ペイロード全体を読み込むまで続きます。
 
 {{< image link="./alpn-based-tunneling-protocol.svg"
-    alt="Istio 服务网格中的 TCP 服务属性生成流程"
-    caption="TCP 属性流程"
+    alt="Istio サービスメッシュにおける TCP サービス属性生成フロー"
+    caption="TCP 属性フロー"
     >}}
 
-## 清理 {#cleanup}
+## クリーンアップ {#cleanup}
 
-*   删除 `port-forward` 进程：
+- `port-forward` プロセスを削除します：
 
-    {{< text bash >}}
-    $ killall istioctl
-    {{< /text >}}
+  {{< text bash >}}
+  $ killall istioctl
+  {{< /text >}}
 
-* 如果不准备进一步探索其他任务，请参照 [Bookinfo 清理](/zh/docs/examples/bookinfo/#cleanup)，关闭示例应用。
+- 他のタスクを試す予定がなければ、[Bookinfo のクリーンアップ](/zh/docs/examples/bookinfo/#cleanup)に従い、サンプルアプリケーションを削除してください。

@@ -1,6 +1,6 @@
 ---
-title: 安全策略示例
-description: 展示使用 Istio 安全策略的通用示例。
+title: セキュリティポリシーの例
+description: Istio セキュリティポリシーの一般的な例を紹介します。
 weight: 60
 owner: istio/wg-security-maintainers
 test: yes
@@ -8,178 +8,178 @@ test: yes
 
 ## 背景 {#background}
 
-本页展示了使用 Istio 安全策略的通用模式。
-您可能发现这些模式在部署时很有用，还可以将其用作策略示例的快速参考。
+このページでは、Istio セキュリティポリシーの一般的なパターンを紹介します。
+これらのパターンはデプロイ時に役立つ場合があり、ポリシー例のクイックリファレンスとしても利用できます。
 
-此处展示的这些策略只是示例，在应用前需要进行修改才能适配您的实际环境。
+ここで紹介するポリシーはあくまで例であり、実際の環境に合わせて修正が必要です。
 
-另请参阅[身份验证](/zh/docs/tasks/security/authentication/authn-policy)和[鉴权](/zh/docs/tasks/security/authorization)任务，
-了解如何使用安全策略的实践教程。
+また、[認証](/ja/docs/tasks/security/authentication/authn-policy)や[認可](/ja/docs/tasks/security/authorization)のタスクも参照し、
+セキュリティポリシーの実践的な使い方を学んでください。
 
-### 每个主机需要不同的 JWT 签名者 {#require-different-jwt-issuer-per-host}
+### ホストごとに異なる JWT 発行者が必要な場合 {#require-different-jwt-issuer-per-host}
 
-JWT 校验通常用于 Ingress Gateway，您可能需要为不同的主机使用不同的 JWT 签名者。
-除了[请求身份验证](/zh/docs/tasks/security/authentication/authn-policy/#end-user-authentication)策略，
-您还可以为精细粒度的 JWT 校验使用鉴权策略。
+JWT 検証は通常 Ingress Gateway で使われ、ホストごとに異なる JWT 発行者を使いたい場合があります。
+[リクエスト認証](/ja/docs/tasks/security/authentication/authn-policy/#end-user-authentication)ポリシーに加え、
+より細かい JWT 検証には認可ポリシーも利用できます。
 
-如果您想要在 JWT 主体匹配的情况下访问给定的主机，请使用以下策略。
-对其他主机的访问将始终被拒绝。
+JWT サブジェクトが一致する場合のみ特定ホストへのアクセスを許可したい場合、以下のポリシーを使います。
+他のホストへのアクセスは常に拒否されます。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: jwt-per-host
-  namespace: istio-system
+name: jwt-per-host
+namespace: istio-system
 spec:
-  selector:
-    matchLabels:
-      istio: ingressgateway
-  action: ALLOW
-  rules:
-  - from:
-    - source:
-        # JWT 令牌的签名者必须有后缀 "@example.com"
-        requestPrincipals: ["*@example.com"]
-    to:
-    - operation:
-        hosts: ["example.com", "*.example.com"]
-  - from:
-    - source:
-        # JWT 令牌的签名者必须有后缀 "@another.org"
-        requestPrincipals: ["*@another.org"]
-    to:
-    - operation:
-        hosts: [".another.org", "*.another.org"]
-{{< /text >}}
+selector:
+matchLabels:
+istio: ingressgateway
+action: ALLOW
+rules:
 
-### 命名空间隔离 {#namespace-isolation}
+- from:
+  - source: # JWT トークンの発行者は "@example.com" で終わる必要があります
+    requestPrincipals: ["*@example.com"]
+    to:
+  - operation:
+    hosts: ["example.com", "*.example.com"]
+- from: - source: # JWT トークンの発行者は "@another.org" で終わる必要があります
+  requestPrincipals: ["*@another.org"]
+  to: - operation:
+  hosts: [".another.org", "*.another.org"]
+  {{< /text >}}
 
-以下两个策略对命名空间 `foo` 启用了 `STRICT` mTLS，
-允许来自相同命名空间的流量。
+### ネームスペース分離 {#namespace-isolation}
+
+以下の 2 つのポリシーは、ネームスペース `foo` で `STRICT` mTLS を有効にし、
+同じネームスペースからのトラフィックのみを許可します。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: default
-  namespace: foo
+name: default
+namespace: foo
 spec:
-  mtls:
-    mode: STRICT
+mtls:
+mode: STRICT
+
 ---
+
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: foo-isolation
-  namespace: foo
+name: foo-isolation
+namespace: foo
 spec:
-  action: ALLOW
-  rules:
-  - from:
-    - source:
-        namespaces: ["foo"]
-{{< /text >}}
+action: ALLOW
+rules:
 
-### 将 Ingress 排除在外的命名空间隔离 {#namespace-isolation-with-ingress-exception}
+- from: - source:
+  namespaces: ["foo"]
+  {{< /text >}}
 
-以下两个策略对命名空间 `foo` 启用了 Strict mTLS，允许来自相同命名空间和
-Ingress Gateway 的流量。
+### Ingress を除外したネームスペース分離 {#namespace-isolation-with-ingress-exception}
+
+以下の 2 つのポリシーは、ネームスペース `foo` で Strict mTLS を有効にし、
+同じネームスペースおよび Ingress Gateway からのトラフィックを許可します。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: default
-  namespace: foo
+name: default
+namespace: foo
 spec:
-  mtls:
-    mode: STRICT
+mtls:
+mode: STRICT
+
 ---
+
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: ns-isolation-except-ingress
-  namespace: foo
+name: ns-isolation-except-ingress
+namespace: foo
 spec:
-  action: ALLOW
-  rules:
-  - from:
-    - source:
-        namespaces: ["foo"]
-    - source:
-        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
-{{< /text >}}
+action: ALLOW
+rules:
 
-### 要求在鉴权层使用 mTLS（深度防御）{#require-mlts-in-authorization-layer}
+- from: - source:
+  namespaces: ["foo"] - source:
+  principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+  {{< /text >}}
 
-您已将 `PeerAuthentication` 配置为 `STRICT`，但想要确保流量真实地受到 mTLS 的保护，
-同时在鉴权层进行额外的检查，即深度防御。
+### 認可レイヤーで mTLS を必須にする（多層防御）{#require-mlts-in-authorization-layer}
 
-如果主体为空，以下策略将拒绝此请求。如果使用纯文本，主体将为空。
-换言之，如果主体非空，此策略将允许这些请求。
-`"*"` 意味着非空匹配，与 `notPrincipals` 一起使用时意味着匹配空主体。
+`PeerAuthentication` で `STRICT` を設定していても、
+トラフィックが実際に mTLS で保護されていることを認可レイヤーで追加チェックしたい場合、
+（多層防御）
+
+サブジェクトが空の場合、以下のポリシーはリクエストを拒否します。プレーンテキストの場合、サブジェクトは空になります。
+つまり、サブジェクトが空でなければリクエストを許可します。
+`"*"` は非空一致を意味し、`notPrincipals` と組み合わせると空サブジェクトにマッチします。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: require-mtls
-  namespace: foo
+name: require-mtls
+namespace: foo
 spec:
-  action: DENY
-  rules:
-  - from:
-    - source:
-        notPrincipals: ["*"]
-{{< /text >}}
+action: DENY
+rules:
 
-### 使用 `DENY` 策略时要求强制的鉴权检查 {#require-mandatory-authorization-check-with-deny-policy}
+- from: - source:
+  notPrincipals: ["*"]
+  {{< /text >}}
 
-如果想要强制鉴权检查必须被满足且不能被另一个更宽松的 `ALLOW` 策略绕过，
-您可以使用 `DENY` 策略。这种做法很有效，因为 `DENY` 策略优先于 `ALLOW`
-策略，并且可以在 `ALLOW` 策略之前就拒绝请求。
+### `DENY` ポリシーで強制的な認可チェックを要求する {#require-mandatory-authorization-check-with-deny-policy}
 
-除了[请求身份验证](/zh/docs/tasks/security/authentication/authn-policy/#end-user-authentication)策略之外，
-还可以使用以下策略强制执行 JWT 校验。如果请求主体为空，此策略将拒绝请求。
-如果 JWT 校验失败，请求主体将为空。换言之，如果请求主体非空，此策略将允许这些请求。
-`"*"` 意味着非空匹配，与 `notRequestPrincipals` 一起使用时意味着匹配空请求主体。
+認可チェックを必ず満たし、より緩い `ALLOW` ポリシーでバイパスされないようにしたい場合、
+`DENY` ポリシーを使うことができます。`DENY` ポリシーは `ALLOW` より優先され、
+`ALLOW` ポリシーより前にリクエストを拒否できます。
+
+[リクエスト認証](/ja/docs/tasks/security/authentication/authn-policy/#end-user-authentication)ポリシーに加え、
+以下のポリシーで JWT 検証を強制できます。リクエストサブジェクトが空の場合、このポリシーはリクエストを拒否します。
+JWT 検証に失敗した場合、リクエストサブジェクトは空になります。つまり、リクエストサブジェクトが空でなければ許可されます。
+`"*"` は非空一致を意味し、`notRequestPrincipals` と組み合わせると空リクエストサブジェクトにマッチします。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: require-jwt
-  namespace: istio-system
+name: require-jwt
+namespace: istio-system
 spec:
-  selector:
-    matchLabels:
-      istio: ingressgateway
-  action: DENY
-  rules:
-  - from:
-    - source:
-        notRequestPrincipals: ["*"]
-{{< /text >}}
+selector:
+matchLabels:
+istio: ingressgateway
+action: DENY
+rules:
 
-类似地，使用以下策略需要强制地命名空间隔离，也允许来自 Ingress Gateway
-的请求。如果命名空间不是 `foo` 且主体不是
-`cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account`，
-此策略将拒绝请求。换言之，只有命名空间是 `foo` 或主体是
-`cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account`，
-此策略才允许请求。
+- from: - source:
+  notRequestPrincipals: ["*"]
+  {{< /text >}}
+
+同様に、以下のポリシーは Ingress Gateway からのリクエストも許可しつつ、
+強制的なネームスペース分離を実現します。ネームスペースが `foo` でなく、かつサブジェクトが
+`cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account` でない場合、
+このポリシーはリクエストを拒否します。つまり、ネームスペースが `foo` またはサブジェクトが
+`cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account` の場合のみリクエストが許可されます。
 
 {{< text yaml >}}
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: ns-isolation-except-ingress
-  namespace: foo
+name: ns-isolation-except-ingress
+namespace: foo
 spec:
-  action: DENY
-  rules:
-  - from:
-    - source:
-        notNamespaces: ["foo"]
-        notPrincipals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
-{{< /text >}}
+action: DENY
+rules:
+
+- from: - source:
+  notNamespaces: ["foo"]
+  notPrincipals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+  {{< /text >}}

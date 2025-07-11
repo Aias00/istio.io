@@ -1,23 +1,22 @@
 ---
-title: 认证策略
-description: 向您展示如何通过使用 Istio 认证策略来设置双向 TLS 和基本的终端用户认证。
+title: 認証ポリシー
+description: Istio の認証ポリシーを使用して双方向 TLS と基本的なエンドユーザー認証を設定する方法を示します。
 weight: 10
 keywords: [security,authentication]
 aliases:
-    - /zh/docs/tasks/security/istio-auth.html
-    - /zh/docs/tasks/security/authn-policy/
+  - /ja/docs/tasks/security/istio-auth.html
+  - /ja/docs/tasks/security/authn-policy/
 owner: istio/wg-security-maintainers
 test: yes
 ---
 
-本任务涵盖了您在启用、配置和使用 Istio 认证策略时可能需要做的主要工作。
-更多基本概念介绍请查看[认证总览](/zh/docs/concepts/security/#authentication)。
+このタスクでは、Istio の認証ポリシーを使用して双方向 TLS と基本的なエンドユーザー認証を設定する方法を紹介します。
+詳細な基本概念については、[認証の概要](/ja/docs/concepts/security/#authentication)を参照してください。
 
-## 开始之前 {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-* 理解 Istio [认证策略](/zh/docs/concepts/security/#authentication-policies)和[双向 TLS 认证](/zh/docs/concepts/security/#mutual-TLS-authentication)相关概念。
-* 参照[安装步骤](/zh/docs/setup/getting-started)，使用 `default`
-  配置模板在 Kubernetes 集群中安装 Istio。
+* Istio [認証ポリシー](/ja/docs/concepts/security/#authentication-policies)と[双方向 TLS 認証](/ja/docs/concepts/security/#mutual-TLS-authentication)の概念を理解していること。
+* [インストール手順](/ja/docs/setup/getting-started)に従って、Kubernetes クラスターに Istio を `default` 設定テンプレートでインストールしていること。
 
 {{< text bash >}}
 $ istioctl install --set profile=default
@@ -25,10 +24,10 @@ $ istioctl install --set profile=default
 
 ### 设置 {#setup}
 
-本例中我们将在 `foo` 和 `bar` 命名空间下各自创建带有 Envoy 代理（Sidecar）的
-`httpbin` 和 `curl` 服务。我还将在 `legacy` 命名空间下创建不带
-Envoy 代理（Sidecar）的 `httpbin` 和 `curl` 服务。如果您希望使用相同的示例来完成这些任务，
-请执行如下命令：
+本例中は、`foo` と `bar` の名前空間にそれぞれ Envoy プロキシ（Sidecar）付きの
+`httpbin` と `curl` サービスを作成します。また、`legacy` の名前空間には Envoy プロキシ（Sidecar）なしの
+`httpbin` と `curl` サービスを作成します。同じサンプルを使用してこれらのタスクを完了する場合は、
+以下のコマンドを実行してください：
 
 {{< text bash >}}
 $ kubectl create ns foo
@@ -42,18 +41,18 @@ $ kubectl apply -f @samples/httpbin/httpbin.yaml@ -n legacy
 $ kubectl apply -f @samples/curl/curl.yaml@ -n legacy
 {{< /text >}}
 
-现在您可以在 `foo`、`bar` 或 `legacy` 三个命名空间下的任意 `curl` Pod
-中使用 `curl` 向 `httpbin.foo`、`httpbin.bar` 或 `httpbin.legacy`
-发送 HTTP 请求来验证部署结果。所有请求都应该成功并返回 HTTP 200。
+これで、`foo`、`bar` または `legacy` のいずれかの名前空間にある任意の `curl` Pod で、
+`curl` を使用して `httpbin.foo`、`httpbin.bar` または `httpbin.legacy` に HTTP リクエストを送信し、
+デプロイ結果を検証できます。すべてのリクエストは成功し、HTTP 200 を返す必要があります。
 
-例如，检查 `curl.bar` 到 `httpbin.foo` 可达性的指令如下：
+例えば、`curl.bar` から `httpbin.foo` への到達可能性を確認するコマンドは次のようになります：
 
 {{< text bash >}}
 $ kubectl exec "$(kubectl get pod -l app=curl -n bar -o jsonpath={.items..metadata.name})" -c curl -n bar -- curl http://httpbin.foo:8000/ip -s -o /dev/null -w "%{http_code}\n"
 200
 {{< /text >}}
 
-您也可以使用一行指令检查所有可能的组合：
+また、以下のコマンドを使用して、すべての可能な組み合わせを確認することもできます：
 
 {{< text bash >}}
 $ for from in "foo" "bar" "legacy"; do for to in "foo" "bar" "legacy"; do kubectl exec "$(kubectl get pod -l app=curl -n ${from} -o jsonpath={.items..metadata.name})" -c curl -n ${from} -- curl -s "http://httpbin.${to}:8000/ip" -s -o /dev/null -w "curl.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -68,55 +67,59 @@ curl.legacy to httpbin.bar: 200
 curl.legacy to httpbin.legacy: 200
 {{< /text >}}
 
-使用以下指令确认系统中没有对等认证策略：
+以下のコマンドを使用して、システム内に対等認証ポリシーがないことを確認します：
 
 {{< text bash >}}
 $ kubectl get peerauthentication --all-namespaces
 No resources found
 {{< /text >}}
 
-最后同样重要的是，确认示例服务没有应用目标规则（destination rule）。
-您可以检查现有目标规则中的 `host:` 值并确保它们不匹配。例如：
+最後に、サンプルサービスがターゲットルール（destination rule）を適用していないことを確認することも重要です。
+現在のターゲットルールの `host:` 値を確認し、それらが一致しないことを確認します。例えば：
 
 {{< text bash >}}
 $ kubectl get destinationrules.networking.istio.io --all-namespaces -o yaml | grep "host:"
 {{< /text >}}
 
 {{< tip >}}
-您可能会看到目标规则配置了除上面显示以外的其他 host，这依赖于 Istio 的版本。
-然而，在 `foo`、`bar` 和 `legacy` 命名空间中不应有任何 host 相关的目标规则，
-也不应配置匹配所有的通配符 `*`。
+ターゲットルールが表示された他のホストを設定している場合がありますが、これは Istio のバージョンによって異なります。
+ただし、`foo`、`bar`、`legacy` の名前空間には、ホストに関連するターゲットルールがないはずです。
+また、すべてのワイルドカード `*` に一致するように設定してはいけません。
 {{< /tip >}}
 
-## 自动双向 TLS {#auto-mutual-TLS}
+## 自動双方向 TLS {#auto-mutual-TLS}
 
-默认情况下，Istio 会跟踪迁移到 Istio 代理的服务器工作负载，并配置客户端代理将双向
-TLS 流量自动发送到这些工作负载，并将明文流量发送到没有 Sidecar 的工作负载。
+デフォルトでは、Istio は Istio プロキシ付きのサービスワークロードを追跡し、
+クライアントプロキシを設定してこれらのワークロードに対して双方向 TLS トラフィックを自動的に送信し、
+Sidecar なしのワークロードに対しては明文トラフィックを送信します。
 
-因此，具有代理的工作负载之间的所有流量即可启用双向 TLS，您无需做额外操作。
-例如，您无需检查请求 `httpbin/header` 的响应。
-当使用双向 TLS 时，代理会将 `X-Forwarded-Client-Cert` 标头注入到后端的上游请求。
-这个标头的存在就是启用双向 TLS 的证据。例如：
+したがって、プロキシ付きのワークロード間のすべてのトラフィックで双方向 TLS を有効にするには、
+追加の操作は必要ありません。
+例えば、リクエスト `httpbin/header` の応答を確認する必要はありません。
+双方向 TLS を使用する場合、プロキシは後端の上流リクエストに `X-Forwarded-Client-Cert` ヘッダーを注入します。
+このヘッダーの存在は双方向 TLS が有効であることを示しています。例えば：
 
 {{< text bash >}}
 $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl -s http://httpbin.foo:8000/headers -s | jq '.headers["X-Forwarded-Client-Cert"][0]' | sed 's/Hash=[a-z0-9]*;/Hash=<redacted>;/'
   "By=spiffe://cluster.local/ns/foo/sa/httpbin;Hash=<redacted>;Subject=\"\";URI=spiffe://cluster.local/ns/foo/sa/curl"
 {{< /text >}}
 
-当服务器没有 Sidecar 时，`X-Forwarded-Client-Cert` 标头将不会存在，
-这意味着请求是明文的。
+Sidecar なしのサーバーの場合、`X-Forwarded-Client-Cert` ヘッダーは存在しません。
+これは明文リクエストを示しています。
 
 {{< text bash >}}
 $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.legacy:8000/headers -s | grep X-Forwarded-Client-Cert
 {{< /text >}}
 
-## 全局以 STRICT 模式启用 Istio 双向 TLS {#globally-enabling-Istio-mutual-TLS-in-STRICT-mode}
+## グローバルに STRICT モードで Istio 双方向 TLS を有効にする {#globally-enabling-Istio-mutual-TLS-in-STRICT-mode}
 
-当 Istio 自动将代理和工作负载之间的所有流量升级到双向 TLS 时，
-工作负载仍然可以接收明文流量。为了阻止整个网格的服务以非双向 TLS 通信，
-您需要将整个网格的对等认证策略设置为 `STRICT` 模式。
-作用域为整个网格范围的对等认证策略不应设置 `selector`，
-这种认证策略必须应用于**根命名空间**，例如：
+Istio は自動的にプロキシ付きのワークロード間のすべてのトラフィックを双方向 TLS にアップグレードするため、
+ワークロードは依然として明文トラフィックを受信できます。
+グローバルな対等認証ポリシーを `STRICT` モードに設定して、
+グローバルな対等認証ポリシーを `STRICT` モードに設定して、
+メッシュ全体のピア認証ポリシーを `STRICT` モードに設定する必要があります。
+作用域がメッシュ全体のピア認証ポリシーには `selector` を設定してはいけません。
+このような認証ポリシーは**ルート名前空間**に適用する必要があります。例えば：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
@@ -132,14 +135,14 @@ EOF
 {{< /text >}}
 
 {{< tip >}}
-该示例假定命名空间 `istio-system` 是根命名空间。如果在安装过程中使用了不同的值，
-请将 `istio-system` 替换为所使用的值。
+この例では、名前空間 `istio-system` がルート名前空間であると仮定しています。
+インストール時に異なる値を使用した場合は、`istio-system` を使用した値に置き換えてください。
 {{< /tip >}}
 
-这个对等认证策略将工作负载配置为仅接受使用 TLS 加密的请求。
-由于未对 `selector` 字段指定值，因此该策略适用于网格中的所有工作负载。
+このピア認証ポリシーは、ワークロードを TLS 暗号化されたリクエストのみを受け入れるように設定します。
+`selector` フィールドに値が指定されていないため、このポリシーはメッシュ内のすべてのワークロードに適用されます。
 
-再次运行测试指令：
+再びテストコマンドを実行します：
 
 {{< text bash >}}
 $ for from in "foo" "bar" "legacy"; do for to in "foo" "bar" "legacy"; do kubectl exec "$(kubectl get pod -l app=curl -n ${from} -o jsonpath={.items..metadata.name})" -c curl -n ${from} -- curl "http://httpbin.${to}:8000/ip" -s -o /dev/null -w "curl.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -156,25 +159,26 @@ command terminated with exit code 56
 curl.legacy to httpbin.legacy: 200
 {{< /text >}}
 
-您会发现除了从没有 Sidecar 的服务（`curl.legacy`）到有 Sidecar
-的服务（`httpbin.foo` 或 `httpbin.bar`）的请求外，其他请求依然是成功的。
-这是符合预期的结果，因为现在严格要求使用双向 TLS，但没有 Sidecar 的工作负载无法满足这一要求。
+Sidecar なしのサービス（`curl.legacy`）から Sidecar 付きのサービス（`httpbin.foo` または `httpbin.bar`）へのリクエスト以外は、
+他のリクエストも成功します。
+これは予想通りの結果です。なぜなら、現在は双方向 TLS を厳密に要求しているため、
+Sidecar なしのワークロードはこの要件を満たすことができないからです。
 
-### 清理第 1 部分 {#cleanup-part-1}
+### 第 1 部のクリーンアップ {#cleanup-part-1}
 
-删除在会话中添加的全局认证策略：
+グローバル認証ポリシーを削除します：
 
 {{< text bash >}}
 $ kubectl delete peerauthentication -n istio-system default
 {{< /text >}}
 
-## 为每个命名空间或者工作负载启用双向 TLS {#enable-mutual-TLS-per-namespace-or-workload}
+## 各命名空間またはワークロードに対して双方向 TLS を有効にする {#enable-mutual-TLS-per-namespace-or-workload}
 
 ### 命名空间级别策略 {#namespace-wide-policy}
 
-如果要为特定命名空间内的所有工作负载更改双向 TLS，请使用命名空间级别策略。
-该策略的规范与整个网格级别的规范相同，但是您可以在 `metadata` 字段指定命名空间的名称。
-例如，以下对等认证策略在 `foo` 命名空间上启用了严格的双向 TLS：
+特定の名前空間内のすべてのワークロードの双方向 TLS を変更する場合は、名前空間レベルのポリシーを使用します。
+このポリシーの仕様は、メッシュ全体の仕様と同じですが、`metadata` フィールドで名前空間の名前を指定できます。
+例えば、以下のピア認証ポリシーは `foo` 名前空間で双方向 TLS を厳密に有効にしています：
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
@@ -189,8 +193,8 @@ spec:
 EOF
 {{< /text >}}
 
-由于这些策略只应用于命名空间 `foo` 中的服务，您会看到只有从没有 Sidecar
-的客户端（`curl.legacy`）到有 Sidecar 的客户端（`httpbin.foo`）的请求会失败。
+これらのポリシーは、名前空間 `foo` 内のサービスにのみ適用されるため、
+Sidecar なしのクライアント（`curl.legacy`）から Sidecar 付きのクライアント（`httpbin.foo`）へのリクエストのみが失敗することがわかります。
 
 {{< text bash >}}
 $ for from in "foo" "bar" "legacy"; do for to in "foo" "bar" "legacy"; do kubectl exec "$(kubectl get pod -l app=curl -n ${from} -o jsonpath={.items..metadata.name})" -c curl -n ${from} -- curl "http://httpbin.${to}:8000/ip" -s -o /dev/null -w "curl.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -206,11 +210,11 @@ curl.legacy to httpbin.bar: 200
 curl.legacy to httpbin.legacy: 200
 {{< /text >}}
 
-### 为每个工作负载启用双向 TLS {#enable-mutual-TLS-per-workload}
+### 各ワークロードに対して双方向 TLS を有効にする {#enable-mutual-TLS-per-workload}
 
-要为特定工作负载设置对等认证策略，您必须配置 `selector`
-字段并指定与所需工作负载匹配的标签。例如，以下对等认证策略和目标规则将为
-`httpbin.bar` 服务启用严格的双向 TLS：
+特定のワークロードに対してピア認証ポリシーを設定するには、`selector` フィールドを設定し、
+必要なワークロードに一致するラベルを指定する必要があります。
+例えば、以下のピア認証ポリシーとターゲットルールは `httpbin.bar` サービスを双方向 TLS を厳密に有効にします：
 
 {{< text bash >}}
 $ cat <<EOF | kubectl apply -n bar -f -
@@ -228,8 +232,8 @@ spec:
 EOF
 {{< /text >}}
 
-再次执行测试命令。跟预期一样，从 `curl.legacy` 到 `httpbin.bar`
-的请求因为同样的原因失败。
+再びテストコマンドを実行します。予想通り、`curl.legacy` から `httpbin.bar`
+へのリクエストは同じ理由で失敗します。
 
 {{< text bash >}}
 $ for from in "foo" "bar" "legacy"; do for to in "foo" "bar" "legacy"; do kubectl exec "$(kubectl get pod -l app=curl -n ${from} -o jsonpath={.items..metadata.name})" -c curl -n ${from} -- curl "http://httpbin.${to}:8000/ip" -s -o /dev/null -w "curl.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -252,8 +256,8 @@ curl.legacy to httpbin.bar: 000
 command terminated with exit code 56
 {{< /text >}}
 
-要优化每个端口的双向 TLS 设置，您必须配置 `portLevelMtls` 字段。
-例如，以下对等认证策略要求在除 `8080` 端口以外的所有端口上都使用双向 TLS：
+各ポートの双方向 TLS 設定を最適化するには、`portLevelMtls` フィールドを設定する必要があります。
+例えば、以下のピア認証ポリシーは `8080` ポートを除くすべてのポートで双方向 TLS を要求します：
 
 {{< text bash >}}
 $ cat <<EOF | kubectl apply -n bar -f -
@@ -274,8 +278,8 @@ spec:
 EOF
 {{< /text >}}
 
-1. 对等认证策略中的端口值为容器的端口。目标规则的值是服务的端口。
-1. 如果端口绑定到服务则只能使用 `portLevelMtls` 配置，其他配置将被 Istio 忽略。
+1. ピア認証ポリシーのポート値はコンテナのポートです。ターゲットルールの値はサービスのポートです。
+1. ポートがサービスにバインドされている場合は、`portLevelMtls` 設定のみを使用できます。その他の設定は Istio によって無視されます。
 
 {{< text bash >}}
 $ for from in "foo" "bar" "legacy"; do for to in "foo" "bar" "legacy"; do kubectl exec "$(kubectl get pod -l app=curl -n ${from} -o jsonpath={.items..metadata.name})" -c curl -n ${from} -- curl "http://httpbin.${to}:8000/ip" -s -o /dev/null -w "curl.${from} to httpbin.${to}: %{http_code}\n"; done; done
@@ -291,12 +295,12 @@ curl.legacy to httpbin.bar: 200
 curl.legacy to httpbin.legacy: 200
 {{< /text >}}
 
-### 策略优先级 {#policy-precedence}
+### ポリシーの優先順位 {#policy-precedence}
 
-为了演示特定服务策略比命名空间范围的策略优先级高，您可以像下面一样为
-`httpbin.foo` 添加一个禁用双向 TLS 的策略。
-注意您已经为所有在命名空间 `foo` 中的服务创建了命名空间范围的策略来启用双向
-TLS，发现从 `curl.legacy` 到 `httpbin.foo` 的请求都会失败（如上所示）。
+特定のサービスポリシーが名前空間範囲のポリシーよりも優先順位が高いことを示すために、
+`httpbin.foo` に双方向 TLS を無効にするポリシーを追加できます。
+注意、すべての名前空間 `foo` 内のサービスに対して名前空間範囲のポリシーを作成して双方向 TLS を有効にしましたが、
+`curl.legacy` から `httpbin.foo` へのリクエストは失敗します（上記参照）。
 
 {{< text bash >}}
 $ cat <<EOF | kubectl apply -n foo -f -
@@ -314,32 +318,33 @@ spec:
 EOF
 {{< /text >}}
 
-重新执行来自 `curl.legacy` 的请求，您应该又会看到请求成功并返回 200 代码，
-证明了特定服务策略覆盖了命名空间范围的策略。
+`curl.legacy` からのリクエストを再実行すると、リクエストが成功し、200 コードが返されることがわかります。
+これは、特定のサービスポリシーが名前空間範囲のポリシーを上書きしていることを示しています。
 
 {{< text bash >}}
 $ kubectl exec "$(kubectl get pod -l app=curl -n legacy -o jsonpath={.items..metadata.name})" -c curl -n legacy -- curl http://httpbin.foo:8000/ip -s -o /dev/null -w "%{http_code}\n"
 200
 {{< /text >}}
 
-### 清理第 2 部分 {#cleanup-part-2}
+### 第 2 部のクリーンアップ {#cleanup-part-2}
 
-删除之前步骤中创建的策略：
+前の手順で作成したポリシーを削除します：
 
 {{< text bash >}}
 $ kubectl delete peerauthentication default overwrite-example -n foo
 $ kubectl delete peerauthentication httpbin -n bar
 {{< /text >}}
 
-## 终端用户认证 {#end-user-authentication}
+## エンドユーザー認証 {#end-user-authentication}
 
-为了体验这个特性，您需要一个有效的 JWT。该 JWT 必须和您用于该示例的 JWKS 终端对应。
-在这个教程中，我们使用来自 Istio 代码基础库的
+この機能を体験するには、有効な JWT が必要です。
+この JWT は、このチュートリアルで使用した JWKS エンドポイントに対応している必要があります。
+このチュートリアルでは、Istio コードベースの
 [JWT test]({{< github_file >}}/security/tools/jwt/samples/demo.jwt) 和
 [JWKS endpoint]({{< github_file >}}/security/tools/jwt/samples/jwks.json)。
 
-同时为了方便访问，通过 Ingress 网关暴露 `httpbin.foo`
-（详细细节请查看 [Ingress 任务](/zh/docs/tasks/traffic-management/ingress/)）。
+同様に、`httpbin.foo` を Ingress ゲートウェイで公開します
+（詳細は [Ingress タスク](/ja/docs/tasks/traffic-management/ingress/)を参照してください）。
 
 {{< boilerplate gateway-api-support >}}
 
@@ -347,27 +352,27 @@ $ kubectl delete peerauthentication httpbin -n bar
 
 {{< tab name="Istio APIs" category-value="istio-apis" >}}
 
-配置网关：
+Ingress ゲートウェイを設定します：
 
 {{< text bash >}}
 $ kubectl apply -f @samples/httpbin/httpbin-gateway.yaml@ -n foo
 {{< /text >}}
 
-按照[确定 Ingress IP 和端口](/zh/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-ip-and-ports)中的说明，
-设置 `INGRESS_PORT` 和 `INGRESS_HOST` 环境变量。
+[Ingress IP とポートの確認](/ja/docs/tasks/traffic-management/ingress/ingress-control/#ingress-ip-and-port-determination)の説明に従って、
+`INGRESS_PORT` と `INGRESS_HOST` 環境変数を設定します。
 
 {{< /tab >}}
 
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
-创建网关：
+Ingress ゲートウェイを作成します：
 
 {{< text bash >}}
 $ kubectl apply -f @samples/httpbin/gateway-api/httpbin-gateway.yaml@ -n foo
 $ kubectl wait --for=condition=programmed gtw -n foo httpbin-gateway
 {{< /text >}}
 
-设置 `INGRESS_PORT` 和 `INGRESS_HOST` 环境变量：
+`INGRESS_PORT` と `INGRESS_HOST` 環境変数を設定します：
 
 {{< text bash >}}
 $ export INGRESS_HOST=$(kubectl get gtw httpbin-gateway -n foo -o jsonpath='{.status.addresses[0].value}')
@@ -378,14 +383,14 @@ $ export INGRESS_PORT=$(kubectl get gtw httpbin-gateway -n foo -o jsonpath='{.sp
 
 {{< /tabset >}}
 
-通过网关运行测试查询：
+Ingress ゲートウェイを使用してテストクエリを実行します：
 
 {{< text bash >}}
 $ curl "$INGRESS_HOST:$INGRESS_PORT/headers" -s -o /dev/null -w "%{http_code}\n"
 200
 {{< /text >}}
 
-现在添加一个认证策略，该策略要求 Ingress 网关指定终端用户的 JWT。
+これで、Ingress ゲートウェイがエンドユーザーの JWT を指定する認証ポリシーを追加します。
 
 {{< tabset category-name="config-api" >}}
 
@@ -434,12 +439,12 @@ EOF
 
 {{< /tabset >}}
 
-在所选的工作负载的命名空间中应用该策略，本例中是 Ingress 网关。
+選択されたワークロードの名前空間にポリシーを適用します。この例では、Ingress ゲートウェイです。
 
-如果您在授权标头中提供了一个令牌，并且其位置是隐式默认的，Istio
-将使用[公钥集]({{< github_file >}}/security/tools/jwt/samples/jwks.json)验证令牌，
-并拒绝无效的令牌请求。但是，没有令牌的请求会被接受。
-为了观察这种行为，请尝试重新发出没有令牌、有错误令牌以及含有效令牌的请求。
+認証ヘッダーにトークンを提供し、その位置が暗黙的なデフォルトである場合、
+Istio は[公開鍵セット]({{< github_file >}}/security/tools/jwt/samples/jwks.json)を使用してトークンを検証し、
+無効なトークンのリクエストを拒否します。ただし、トークンなしのリクエストは受け入れられます。
+この動作を観察するために、トークンなし、エラートークン、および有効なトークンを含むリクエストを再送信してみてください。
 
 {{< text bash >}}
 $ curl "$INGRESS_HOST:$INGRESS_PORT/headers" -s -o /dev/null -w "%{http_code}\n"
@@ -457,30 +462,31 @@ $ curl --header "Authorization: Bearer $TOKEN" "$INGRESS_HOST:$INGRESS_PORT/head
 200
 {{< /text >}}
 
-为了观察 JWT 验证的其它方面，使用脚本
+JWT 検証の他の側面を観察するために、スクリプト
 [`gen-jwt.py`]({{< github_tree >}}/security/tools/jwt/samples/gen-jwt.py)
-生成新 token 带上不同的发行人、受众、有效期等等进行测试。可以从 Istio 库下载此脚本：
+を使用して、異なる発行者、オーディエンス、有効期限などを持つ新しいトークンを生成してテストします。
+Istio ライブラリからこのスクリプトをダウンロードできます：
 
 {{< text bash >}}
 $ wget --no-verbose {{< github_file >}}/security/tools/jwt/samples/gen-jwt.py
 {{< /text >}}
 
-您还需要 `key.pem` 文件：
+`key.pem` ファイルも必要です：
 
 {{< text bash >}}
 $ wget --no-verbose {{< github_file >}}/security/tools/jwt/samples/key.pem
 {{< /text >}}
 
 {{< tip >}}
-如果您的系统尚未安装 `jwcrypto` 库，您需要从
-[jwcrypto](https://pypi.org/project/jwcrypto) 下载并安装。
+システムに `jwcrypto` ライブラリがインストールされていない場合は、
+[jwcrypto](https://pypi.org/project/jwcrypto) からダウンロードしてインストールする必要があります。
 {{< /tip >}}
 
-JWT 认证有 60 秒的时钟偏移（clock skew），这意味着 JWT
-令牌会比其配置 `nbf` 早 60 秒成为有效的，其配置 `exp` 后 60 秒后仍然有效。
+JWT 認証には 60 秒のクロックシュークがあります。これは、JWT
+トークンがその設定 `nbf` よりも 60 秒前に有効になり、その設定 `exp` よりも 60 秒後も有効であることを意味します。
 
-例如，下面的命令创建一个令牌，该令牌在 5 秒钟后过期。如您所见，
-Istio 会一直通过认证直到 65 秒后才拒绝这些令牌：
+例えば、以下のコマンドは 5 秒後に期限切れになるトークンを作成します。
+Istio は、これらのトークンを 65 秒後に拒否するまで認証を続けま
 
 {{< text bash >}}
 $ TOKEN=$(python3 ./gen-jwt.py ./key.pem --expire 5)
@@ -497,15 +503,15 @@ $ for i in $(seq 1 10); do curl --header "Authorization: Bearer $TOKEN" "$INGRES
 401
 {{< /text >}}
 
-您也可以给一个 `ingress gateway` 添加一个 JWT 策略（例如，服务
+`ingress gateway` に JWT ポリシーを追加することもできます（例えば、サービス
 `istio-ingressgateway.istio-system.svc.cluster.local`）。
-这个常用于为绑定到这个 gateway 的所有服务定义一个 JWT 策略而不是为单独的服务绑定策略。
+これは、このゲートウェイにバインドされたすべてのサービスに対して JWT ポリシーを定義するために使用されます。
 
-### 提供有效令牌 {#require-a-valid-token}
+### 有効なトークンを提供する {#require-a-valid-token}
 
-拒绝没有有效的令牌的请求，需要增加名为 `DENY` 认证策略，
-可参考以下例子中的 `notRequestPrincipals:["*"]` 配置。
-仅当提供有效的JWT令牌时请求主体才可用，因此该规则将拒绝没有有效令牌的请求。
+有効なトークンを持たないリクエストを拒否するには、`DENY` 認証ポリシーを追加する必要があります。
+以下の例の `notRequestPrincipals:["*"]` 設定を参照してください。
+有効な JWT トークンを提供する場合にのみリクエスト主体が使用可能になるため、このルールは有効なトークンを持たないリクエストを拒否します。
 
 {{< tabset category-name="config-api" >}}
 
@@ -558,18 +564,19 @@ EOF
 
 {{< /tabset >}}
 
-重新发送没有令牌的请求。请求失败并返回错误码 `403`：
+トークンなしのリクエストを再送信します。リクエストが失敗し、エラーコード `403` が返されます：
 
 {{< text bash >}}
 $ curl "$INGRESS_HOST:$INGRESS_PORT/headers" -s -o /dev/null -w "%{http_code}\n"
 403
 {{< /text >}}
 
-### 按路径提供有效令牌 {#require-valid-tokens-per-path}
+### パスごとに有効なトークンを提供する {#require-valid-tokens-per-path}
 
-为了按路径（路径指 host、path 或者 method）提供有效令牌，我们需要在其授权策略中指定这些路径，
-如下列配置中的 `/headers` 只需要 JWT。待授权规则生效后，对 `$INGRESS_HOST:$INGRESS_PORT/headers`
-的请求将失败，错误代码为 `403`。而到其他所有路径的请求（例如 `$INGRESS_HOST:$INGRESS_PORT/ip`）都会成功。
+パスごとに有効なトークンを提供するには、そのパスを認可ポリシーで指定する必要があります。
+例えば、以下の設定では `/headers` のみ JWT が必要です。認可ポリシーが有効になると、
+`$INGRESS_HOST:$INGRESS_PORT/headers` へのリクエストは失敗し、エラーコード `403` が返されます。
+他のすべてのパス（例えば `$INGRESS_HOST:$INGRESS_PORT/ip`）へのリクエストは成功します。
 
 {{< tabset category-name="config-api" >}}
 
@@ -638,27 +645,27 @@ $ curl "$INGRESS_HOST:$INGRESS_PORT/ip" -s -o /dev/null -w "%{http_code}\n"
 200
 {{< /text >}}
 
-### 清理第 3 部分 {#cleanup-part-3}
+### 第 3 部のクリーンアップ {#cleanup-part-3}
 
-1. 删除认证策略：
+1. 認証ポリシーを削除します：
 
     {{< text bash >}}
     $ kubectl -n istio-system delete requestauthentication jwt-example
     {{< /text >}}
 
-1. 删除授权策略：
+1. 認可ポリシーを削除します：
 
     {{< text bash >}}
     $ kubectl -n istio-system delete authorizationpolicy frontend-ingress
     {{< /text >}}
 
-1. 删除生成令牌的脚本和密钥文件：
+1. トークン生成スクリプトとキーファイルを削除します：
 
     {{< text bash >}}
     $ rm -f ./gen-jwt.py ./key.pem
     {{< /text >}}
 
-1. 如果您不打算继续后续章节的任务，只需删除这些测试命名空间，就可以移除所有资源：
+1. 後続の章のタスクを続行しない場合は、これらのテスト名前空間を削除するだけで、すべてのリソースを削除できます：
 
     {{< text bash >}}
     $ kubectl delete ns foo bar legacy

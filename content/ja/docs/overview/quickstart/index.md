@@ -1,6 +1,6 @@
 ---
-title: "快速入门"
-description: 了解如何通过简单的示例安装开始。
+title: クイックスタート
+description: シンプルな例でインストールを始める方法を紹介します。
 weight: 50
 keywords: [introduction]
 owner: istio/wg-docs-maintainers-chinese
@@ -8,33 +8,33 @@ skip_seealso: true
 test: n/a
 ---
 
-感谢您对 Istio 的关注！
+Istio にご関心をお寄せいただきありがとうございます！
 
-Istio 有两种主要模式：**Ambient 模式**和 **Sidecar 模式**。
+Istio には主に 2 つのモードがあります：**Ambient モード**と **Sidecar モード**。
 
-* [Ambient 模式](/zh/docs/overview/dataplane-modes/#ambient-mode)是一种全新改进的模型，
-  旨在弥补 Sidecar 模式的不足。在 Ambient 模式下，每个节点都会安装一个安全隧道，
-  您可以选择安装代理（通常按命名空间安装）来启用其全部功能。
-* [Sidecar 模式](/zh/docs/overview/dataplane-modes/#sidecar-mode)是
-  Istio 于 2017 年首创的传统服务网格模型。在 Sidecar 模式下，
-  代理会与每个 Kubernetes Pod 或其他工作负载一起部署。
+- [Ambient モード](/ja/docs/overview/dataplane-modes/#ambient-mode)は新しい改良モデルで、
+  Sidecar モードの課題を解決するために設計されています。Ambient モードでは各ノードにセキュアトンネルがインストールされ、
+  必要に応じて（通常はネームスペース単位で）プロキシを追加して全機能を有効化できます。
+- [Sidecar モード](/ja/docs/overview/dataplane-modes/#sidecar-mode)は
+  2017 年に Istio が最初に導入した従来型サービスメッシュモデルです。Sidecar モードでは、
+  各 Kubernetes Pod や他のワークロードごとにプロキシがデプロイされます。
 
-Istio 社区的大部分精力都投入到了 Ambient 模式的改进上，
-尽管 Sidecar 模式仍然得到全面支持。任何贡献给项目的主要新功能都有望在两种模式下运行。
+Istio コミュニティは現在、主に Ambient モードの改良に注力していますが、
+Sidecar モードも引き続き完全にサポートされています。新機能の多くは両モードで動作することが期待されています。
 
-一般来说，**我们建议新用户从 Ambient 模式开始**。它速度更快、
-成本更低，而且更易于管理。有些[高级用例](/zh/docs/overview/dataplane-modes/#unsupported-features)仍然需要使用 Sidecar 模式，
-但弥补这些不足是我们 2025 年路线图上的目标。
+**新規ユーザーには Ambient モードから始めることを推奨します。**
+Ambient モードは高速・低コストで管理も容易です。一部の[高度なユースケース](/ja/docs/overview/dataplane-modes/#unsupported-features)では Sidecar モードが必要ですが、
+これらの課題も 2025 年のロードマップで解決を目指しています。
 
 <div style="text-align: center;">
   <div style="display: inline-block;">
-    <a href="/zh/docs/ambient/getting-started"
+    <a href="/ja/docs/ambient/getting-started"
        style="display: inline-block; min-width: 18em; margin: 0.5em;"
        class="btn btn--secondary"
-       id="get-started-ambient">开始使用 Ambient 模式</a>
-    <a href="/zh/docs/setup/getting-started"
+       id="get-started-ambient">Ambient モードで始める</a>
+    <a href="/ja/docs/setup/getting-started"
        style="display: inline-block; min-width: 18em; margin: 0.5em;"
        class="btn btn--secondary"
-       id="get-started-sidecar">开始使用 Sidecar 模式</a>
+       id="get-started-sidecar">Sidecar モードで始める</a>
   </div>
 </div>

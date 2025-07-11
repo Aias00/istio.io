@@ -1,103 +1,100 @@
 ---
-title: 安全漏洞
+title: セキュリティ脆弱性
 description: 我们如何处理安全漏洞。
 weight: 35
 aliases:
-    - /zh/about/security-vulnerabilities
-    - /zh/latest/about/security-vulnerabilities
+  - /zh/about/security-vulnerabilities
+  - /zh/latest/about/security-vulnerabilities
 owner: istio/wg-docs-maintainers
 test: n/a
 ---
 
-我们非常感谢那些报告 Istio 安全漏洞的安全研究人员和用户。
-我们会彻底分析和评估每份报告。
+Istio のセキュリティ脆弱性を報告してくださるセキュリティ研究者やユーザーの皆様に感謝します。
+私たちはすべての報告を徹底的に分析・評価します。
 
-## 报告漏洞  {#reporting-a-vulnerability}
+## 脆弱性の報告 {#reporting-a-vulnerability}
 
-要进行漏洞报告，请将包含漏洞详细信息的电子邮件发送到
-[istio-security-vulnerability-reports@googlegroups.com](mailto:istio-security-vulnerability-reports@googlegroups.com)，
-对于与潜在安全漏洞无关的普通产品错误，
-请转到我们的[报告错误](/zh/docs/releases/bugs/)页面以了解如何操作。
+脆弱性を報告するには、詳細を記載したメールを
+[istio-security-vulnerability-reports@googlegroups.com](mailto:istio-security-vulnerability-reports@googlegroups.com)
+までお送りください。潜在的なセキュリティ脆弱性に関係しない通常のバグについては、
+[バグ報告](/ja/docs/releases/bugs/)ページをご覧ください。
 
-### 何时报告安全漏洞？  {#when-to-report-a-security-vulnerability}
+### いつセキュリティ脆弱性を報告すべきか {#when-to-report-a-security-vulnerability}
 
-只要您有以下情况，请向我们发送报告：
+以下の場合はご報告ください：
 
-- 认为 Istio 具有潜在的安全漏洞。
-- 不确定漏洞是否或如何影响 Istio。
-- 认为 Istio 依赖的另一个项目中存在漏洞。例如 Envoy、Docker 或 Kubernetes。
+- Istio に潜在的なセキュリティ脆弱性があると思われる場合
+- 脆弱性が Istio にどのように影響するか不明な場合
+- Istio が依存する他のプロジェクト（例：Envoy、Docker、Kubernetes）に脆弱性があると思われる場合
 
-当不确定的时候，请向我们私下披露。这包括但不限于：
+迷った場合は、非公開でご報告ください。これには以下が含まれますが、これらに限りません：
 
-- 任何的崩溃，特别是在 Envoy 中
-- 任何的安全策略（比如认证或授权）的绕过或者脆弱性
-- 任何潜在的拒绝服务（DoS）
+- いかなるクラッシュ、特に Envoy におけるもの
+- セキュリティポリシー（認証や認可など）の回避や脆弱性
+- 潜在的なサービス拒否（DoS）
 
-### 什么时候不报告安全漏洞？  {#when-not-to-report-a-security-vulnerability}
+### いつセキュリティ脆弱性を報告しないか {#when-not-to-report-a-security-vulnerability}
 
-在以下情况下，请勿发送漏洞报告：
+以下の場合は脆弱性報告を送らないでください：
 
-- 您需要帮助调整 Istio 组件的安全性。
-- 您需要使用安全更新相关的帮助。
-- 您的问题与安全性无关。
-- 您的问题与基础镜像依赖关系有关（查看[基础镜像](#base-images)）。
+- Istio コンポーネントのセキュリティ調整の支援が必要な場合
+- セキュリティアップデートに関する支援が必要な場合
+- 問題がセキュリティに関係しない場合
+- ベースイメージの依存関係に関する問題（[ベースイメージ](#base-images)を参照）
 
-## 评估  {#evaluation}
+## 評価 {#evaluation}
 
-Istio 安全团队会在三个工作日内确认并分析每个漏洞报告。
+Istio セキュリティチームは、すべての脆弱性報告を 3 営業日以内に確認・分析します。
 
-您与 Istio 安全团队共享的任何漏洞信息都属于 Istio 项目，
-我们仅共享解决问题所需的信息，不会将信息传播给其他项目。
+Istio セキュリティチームと共有された脆弱性情報は Istio プロジェクトに帰属し、
+問題解決に必要な範囲でのみ共有され、他プロジェクトには伝達されません。
 
-从 `triaged` 到 `identified fix` 再到
-`release planning`，我们会随时反馈安全问题的状态。
+`triaged` から `identified fix`、`release planning` まで、
+セキュリティ問題の進捗状況は随時フィードバックします。
 
-## 修复问题  {#fixing-the-issue}
+## 問題の修正 {#fixing-the-issue}
 
-一旦对安全漏洞进行了充分描述，Istio 团队就会开发出修复程序。
-修复程序的开发和测试在私有 GitHub 仓库中进行，以防止过早披露此漏洞信息。
+セキュリティ脆弱性が十分に記述されたら、Istio チームが修正プログラムを開発します。
+修正プログラムの開発・テストは、脆弱性情報の早期漏洩を防ぐため、プライベートな GitHub リポジトリで行われます。
 
-## 早期披露  {#early-disclosure}
+## 早期開示 {#early-disclosure}
 
-Istio 项目维护了一个邮件列表，用于在私下及早的公开安全漏洞。
-该列表用于提供可操作的信息给与 Istio 密切的合作伙伴。
-该列表不用于让个人了解安全问题。
+Istio プロジェクトは、セキュリティ脆弱性を非公開で早期に開示するためのメーリングリストを運用しています。
+このリストは Istio と密接に連携するパートナー向けに、実用的な情報を提供するためのものです。
+個人がセキュリティ問題を知るためのものではありません。
 
-请参阅[早期披露的安全漏洞](https://github.com/istio/community/blob/master/EARLY-DISCLOSURE.md)以获取更多信息。
+詳細は[早期開示のセキュリティ脆弱性](https://github.com/istio/community/blob/master/EARLY-DISCLOSURE.md)をご覧ください。
 
-## 公开披露  {#public-disclosure}
+## 公開開示 {#public-disclosure}
 
-在选择公开披露的当天，下面一系列动作会尽可能快的进行：
+公開開示を選択した当日、以下の一連の作業ができるだけ迅速に行われます：
 
-- 将私有 GitHub 仓库中拥有修复程序的分支与公共仓库的相应分支进行合并。
+- プライベート GitHub リポジトリの修正ブランチをパブリックリポジトリの該当ブランチにマージ
+- リリースエンジニアが必要なバイナリを迅速にビルド・公開
+- バイナリが利用可能になったら、以下のチャネルで告知：
+  - [Istio ブログ](/ja/blog)
+  - discuss.istio.io の [Announcements](https://discuss.istio.io/c/announcements) セクション
+  - [Istio Twitter feed](https://twitter.com/IstioMesh)
+  - Slack の [#announcements](https://istio.slack.com/messages/CFXS256EQ/) チャンネル
 
-- 发布工程师确保所有必要的二进制文件都可以迅速生成和发布。
+告知には、修正版にアップグレードする前に取れる緩和策があればできる限り記載します。
+告知の推奨時刻は UTC の月曜～木曜 16:00 です。
+これは太平洋時間の朝、ヨーロッパとアジアの夕方にあたります。
 
-- 二进制文件可用后，将通过以下渠道发送公告：
+## ベースイメージ {#base-images}
 
-    - [Istio 博客](/zh/blog)
-    - discuss.istio.io 上的 [Announcements](https://discuss.istio.io/c/announcements) 栏目
-    - [Istio Twitter feed](https://twitter.com/IstioMesh)
-    - Slack 上的 [#announcements](https://istio.slack.com/messages/CFXS256EQ/) 频道
+Istio は `ubuntu` ベースと `distroless` ベースの 2 種類のデフォルト Docker イメージを提供しています。
+詳細は[Docker コンテナイメージの強化](/ja/docs/ops/configuration/security/harden-docker-images/)をご覧ください。
+これらのイメージには新たに発見された CVE 脆弱性が含まれる場合があります。
+Istio セキュリティチームはこれらのイメージを自動スキャンし、既知の CVE 脆弱性が含まれていないことを確認しています。
 
-该公告将尽可能包含客户在升级到固定版本之前能够采取的任何缓解措施，
-这些公告的建议发布时间是 UTC 时间星期一至四的 16:00。
-这意味着该公告将在太平洋时间的早上、欧洲傍晚和亚洲傍晚发布。
+イメージ内で CVE 脆弱性が検出された場合、新しいイメージが自動的にビルドされ、以降のすべてのビルドで使用されます。
+また、セキュリティチームはこれらの脆弱性が Istio で直接悪用可能かどうかを分析します。
+多くの場合、脆弱性はベースイメージのパッケージに存在しても、Istio で利用される際に悪用できません。
+このような場合、新バージョンは CVE のみを理由にリリースされず、修正は次の定期リリースに含まれます。
 
-## 基础镜像  {#base-images}
+したがって、ベースイメージの CVE 脆弱性は[報告](#reporting-a-vulnerability)すべきではありません。
+Istio で悪用可能である証拠がある場合を除きます。
 
-Istio 提供了两组基于 `ubuntu` 和基于 `distroless` 的默认 Docker 镜像，
-更多详情请查阅（[加固 Docker 容器镜像](/zh/docs/ops/configuration/security/harden-docker-images/)）。
-这些镜像中偶尔会存在一些新发现的 CVE 安全漏洞。
-Istio 安全团队会对这些镜像进行自动扫描，以确保基础镜像中没有已知的 CVE 安全漏洞。
-
-当在镜像中检测到 CVE 安全漏洞时，新的镜像将被自动构建并用于所有后续构建。
-此外，安全团队会分析这些漏洞，查验这些漏洞是否可以直接在 Istio 中被利用。
-在大多数情况下，这些漏洞可能存在于基础镜像包中，但无法在 Istio 使用这些镜像时被人加以利用。
-对于这些情况，新版本通常不会仅仅为了解决这些 CVE 而发布，具体的修复将包含在下一个定期发布的版本中。
-
-因此，基础镜像 CVE 安全漏洞不应被[报告](#reporting-a-vulnerability)，
-除非有证据表明它可以在 Istio 中被利用。
-
-如果减少基础镜像 CVE 安全漏洞对您很重要，强烈建议使用
-[`distroless`](/zh/docs/ops/configuration/security/harden-docker-images/) 基础镜像。
+ベースイメージの CVE 脆弱性を減らしたい場合は、
+[`distroless`](/ja/docs/ops/configuration/security/harden-docker-images/) ベースイメージの利用を強く推奨します。

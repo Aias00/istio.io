@@ -1,9 +1,9 @@
 ---
-title: 安全
-description: 帮助您管理正在运行的网格的安全性方面。
+title: セキュリティ
+description: 実行中のメッシュのセキュリティ管理をサポートします。
 weight: 30
-keywords: [ops,security]
+keywords: [ops, security]
 aliases:
-    - /zh/help/ops/security
+  - /zh/help/ops/security
 test: n/a
 ---

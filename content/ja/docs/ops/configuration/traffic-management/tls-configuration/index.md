@@ -1,164 +1,161 @@
 ---
-title: 理解 TLS 配置
-linktitle: TLS 配置
-description: 如何使用 TLS 配置设置安全的网络流量。
+title: TLS 設定の理解
+linktitle: TLS 設定
+description: TLS 設定を使って安全なネットワークトラフィックを構成する方法。
 weight: 30
-keywords: [traffic-management,proxy]
+keywords: [traffic-management, proxy]
 owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-Istio 非常重要的一个功能是能够锁定并且保护网格内的来往流量。然而配置 TLS 设置可能会令人困惑，并且是配置错误的一个常见来源。
-这篇文章尝试去说明在 Istio 内发送请求时，其涉及到的各种相关联系，以及怎样去配置其 TLS 的相关设置。
-参考 [TLS 配置错误](/zh/docs/ops/common-problems/network-issues/#tls-configuration-mistakes)，
-此文章总结了一些 TLS 配置的常见问题。
+Istio の重要な機能の 1 つは、メッシュ内のトラフィックをロックダウンし保護できることです。しかし、TLS 設定の構成は混乱しやすく、設定ミスの一般的な原因となります。
+この記事では、Istio 内でリクエストを送信する際に関係するさまざまな接続と、それらの TLS 設定方法について説明します。
+[TLS 設定ミス](/ja/docs/ops/common-problems/network-issues/#tls-configuration-mistakes)も参照してください。
+この記事では TLS 設定に関するよくある問題もまとめています。
 
-## Sidecars
+## Sidecar
 
-Sidecar 流量有各种相关的连接，让我们一个个把它们分解开。
+Sidecar のトラフィックにはさまざまな接続が関係します。1 つずつ分解してみましょう。
 
 {{< image width="100%"
     link="sidecar-connections.svg"
-    alt="Sidecar 代理网络连接"
-    title="Sidecar 连接"
-    caption="Sidecar 代理网络连接"
+    alt="Sidecar プロキシネットワーク接続"
+    title="Sidecar 接続"
+    caption="Sidecar プロキシネットワーク接続"
     >}}
 
-1. **外部入站流量**
-    这是被 Sidecar 捕获的来自外部客户端的流量。
-    如果客户端在网格外面，该流量可能被 Istio 设置双向 TLS 加密。
-    Sidecar 默认配置 `PERMISSIVE`（宽容）模式：接受 mTLS 和 non-mTLS 的流量。
-    该模式能够变更为 `STRICT`（严格）模式，该模式下的流量流量必须是 mTLS；或者变更为 `DISABLE`（禁用）模式，
-    该模式下的流量必须为明文。mTLS 模式使用
-    [`PeerAuthentication` 资源](/zh/docs/reference/config/security/peer_authentication/)配置。
+1. **外部インバウンドトラフィック**
+   これは Sidecar がキャプチャする外部クライアントからのトラフィックです。
+   クライアントがメッシュ外の場合、このトラフィックは Istio によって双方向 TLS で暗号化されることがあります。
+   Sidecar のデフォルト設定は `PERMISSIVE`（許容）モードで、mTLS と非 mTLS の両方のトラフィックを受け入れます。
+   このモードは `STRICT`（厳格）モード（mTLS のみ許可）や `DISABLE`（無効）モード（平文のみ許可）に変更できます。
+   mTLS モードは [`PeerAuthentication` リソース](/ja/docs/reference/config/security/peer_authentication/)で設定します。
 
-1. **内部入站流量**
-    这是从 Sidecar 流出并引入您的应用服务的流量，流量会保持原样转发。
-    注意这并不意味着它总是明文状态，Sidecar 可能也通过 TLS 连接，
-    这只意味着 Sidecar 中不会产生一条新的 TLS 连接。
+1. **内部インバウンドトラフィック**
+   これは Sidecar からアプリケーションサービスに流れるトラフィックで、トラフィックはそのまま転送されます。
+   これは常に平文という意味ではなく、Sidecar も TLS 接続を使う場合がありますが、Sidecar 内で新たな TLS 接続は発生しません。
 
-1. **内部出站流量**
-    这是被 Sidecar 拦截的来自您的应用服务的流量，
-    您的应用可能发送明文或者 TLS 的流量。
-    如果[自动选择协议](/zh/docs/ops/configuration/traffic-management/protocol-selection/#automatic-protocol-selection)已开启，
-    Istio 将能够自动地选择协议。
-    否则您可以在目标服务内使用端口名来[手动指定协议](/zh/docs/ops/configuration/traffic-management/protocol-selection/#explicit-protocol-selection)。
+1. **内部アウトバウンドトラフィック**
+   これはアプリケーションサービスから Sidecar に送られるトラフィックで、Sidecar がインターセプトします。
+   アプリケーションは平文または TLS でトラフィックを送信できます。
+   [自動プロトコル選択](/ja/docs/ops/configuration/traffic-management/protocol-selection/#automatic-protocol-selection)が有効な場合、Istio はプロトコルを自動選択します。
+   そうでない場合は、宛先サービスのポート名で[手動プロトコル指定](/ja/docs/ops/configuration/traffic-management/protocol-selection/#explicit-protocol-selection)が必要です。
 
-1. **外部出站流量**
-    这是离开 Sidecar 到一些外部目标的流量。流量会报错原样转发，也可以启动一个 TLS 连接（mTLS 或者标准 TLS）。
-    这可以通过 [`DestinationRule` 资源](/zh/docs/reference/config/networking/destination-rule/)中的
-    `trafficPolicy` 来控制使用的 TLS 模式。模式设置为 `DISABLE` 将发生明文，
-    而 `SIMPLE`、`MUTUAL` 和 `ISTIO_MUTUAL` 模式将会发起一条 TLS 连接。
+1. **外部アウトバウンドトラフィック**
+   これは Sidecar から外部宛先に出ていくトラフィックです。トラフィックはそのまま転送されるか、TLS 接続（mTLS または標準 TLS）を開始できます。
+   これは [`DestinationRule` リソース](/ja/docs/reference/config/networking/destination-rule/)の
+   `trafficPolicy` で TLS モードを制御します。`DISABLE` で平文、
+   `SIMPLE`、`MUTUAL`、`ISTIO_MUTUAL` で TLS 接続を開始します。
 
-关键要点是：
+ポイントは：
 
-- `PeerAuthentication` 用于配置 Sidecar 接收的 mTLS 流量类型。
-- `DestinationRule` 用于配置 Sidecar 发送的 TLS 流量类型。
-- 端口名，或者自动选择协议，决定 Sidecar 解析流量的协议。
+- `PeerAuthentication` は Sidecar が受信する mTLS トラフィックのタイプを設定します。
+- `DestinationRule` は Sidecar が送信する TLS トラフィックのタイプを設定します。
+- ポート名または自動プロトコル選択が、Sidecar がトラフィックのプロトコルを解釈する方法を決定します。
 
-## 自动 mTLS  {#auto-mTLS}
+## 自動 mTLS {#auto-mTLS}
 
-综上所述，`DestinationRule` 控制传出流量是否使用 mTLS。
-然而，给每个工作负载配置它非常的枯燥。通常，您希望 Istio 始终使用 mTLS。
-在可能的情况下，只将明文发送到不属于网格的工作负载（即没有 Sidecar 的工作负载）。
+上記の通り、`DestinationRule` は送信トラフィックで mTLS を使うかどうかを制御します。
+しかし、すべてのワークロードでこれを設定するのは面倒です。多くの場合、Istio には常に mTLS を使ってほしいでしょう。
+可能な限り、メッシュ外（Sidecar を持たないワークロード）には平文のみを送信したいはずです。
 
-Istio 通过名为“自动 mTLS” 的功能使得配置更改容易。自动 mTLS 将原理如下：
-如果在 `DestinationRule` 中没有明确配置 TLS 设置，Sidecar 将会自动选择是否发送
-[Istio 双向 TLS](/zh/about/faq/#difference-between-mutual-and-istio-mutual)。
-这意味着没有任何配置，所有网格内部的流量将会被 mTLS 加密。
+Istio には「自動 mTLS」という機能があり、設定を簡単にします。自動 mTLS の仕組みは次の通りです：
+`DestinationRule` で明示的に TLS 設定がされていない場合、Sidecar は自動的に
+[Istio 双方向 TLS](/ja/about/faq/#difference-between-mutual-and-istio-mutual) を使うかどうかを選択します。
+つまり、何も設定しなくても、メッシュ内のすべてのトラフィックは mTLS で暗号化されます。
 
-## 网关  {#gateways}
+## ゲートウェイ {#gateways}
 
-通过网关的任何请求都将有两个连接：
+ゲートウェイ経由のリクエストは常に 2 つの接続を持ちます：
 
 {{< image width="100%"
     link="gateway-connections.svg"
-    alt="网关网络连接"
-    title="网关连接"
-    caption="网络连接"
+    alt="ゲートウェイネットワーク接続"
+    title="ゲートウェイ接続"
+    caption="ネットワーク接続"
     >}}
 
-1. 入站请求由客户端发起，例如 `curl` 或者 Web 浏览器等。这通常称为“下游”连接。
+1. インバウンドリクエストはクライアント（curl や Web ブラウザなど）から発信されます。これは「ダウンストリーム」接続と呼ばれます。
 
-1. 出站请求由网关向某个后端发起，这通常称为“上游”连接。
+1. アウトバウンドリクエストはゲートウェイからバックエンドに発信されます。これは「アップストリーム」接続と呼ばれます。
 
-这两个连接都有独立的 TLS 配置。
+この 2 つの接続はそれぞれ独立した TLS 設定を持ちます。
 
-请注意入口与出口网关配置是相同的，
-`istio-ingress-gateway` 和 `istio-egress-gateway` 是两个定制化的网关部署。
-不同之处在于入口网关的客户端运行在网格之外，而在出口网关的目的地运行在网格之外。
+イングレス・エグレスゲートウェイの設定は同じです。
+`istio-ingress-gateway` と `istio-egress-gateway` はカスタマイズされたゲートウェイデプロイメントです。
+違いはイングレスゲートウェイのクライアントはメッシュ外、エグレスゲートウェイの宛先はメッシュ外という点です。
 
-### 入站  {#inbound}
+### インバウンド {#inbound}
 
-作为入站请求的一部分，网关必须对流量进行解码才能应用路由规则。
-网关根据 [`Gateway` 资源](/zh/docs/reference/config/networking/gateway/)中的服务配置解码。
-例如，如果入站连接是明文的 HTTP，则端口协议配置成 `HTTP`：
+インバウンドリクエストでは、ゲートウェイはトラフィックをデコードしてルーティングルールを適用する必要があります。
+ゲートウェイは [`Gateway` リソース](/ja/docs/reference/config/networking/gateway/)のサービス設定に従ってデコードします。
+たとえば、インバウンド接続がプレーンな HTTP の場合、ポートプロトコルは `HTTP` に設定します：
 
 {{< text yaml >}}
 apiVersion: networking.istio.io/v1
 kind: Gateway
 ...
-  servers:
-  - port:
-      number: 80
-      name: http
-      protocol: HTTP
-{{< /text >}}
+servers:
 
-同样，对于原始 TCP 流量，协议将设置为 `TCP`。
+- port:
+  number: 80
+  name: http
+  protocol: HTTP
+  {{< /text >}}
 
-对于 TLS 连接，还有更多选项：
+同様に、純粋な TCP トラフィックの場合はプロトコルを `TCP` に設定します。
 
-1. 封装了什么协议？
-    如果连接是 HTTPS，服务协议应该配置成 `HTTPS`。
-    反之，对于使用 TLS 封装的原始 TCP 连接，协议应设置为 `TLS`。
+TLS 接続の場合はさらにオプションがあります：
 
-1. TLS 连接是终止还是通过？
-    对于直通流量，将 TLS 模式字段配置为 `PASSTHROUGH`：
+1. どのプロトコルがカプセル化されていますか？
+   接続が HTTPS の場合、サービスプロトコルは `HTTPS` に設定します。
+   逆に、TLS でカプセル化された純粋な TCP 接続の場合はプロトコルを `TLS` にします。
 
-    {{< text yaml >}}
-    apiVersion: networking.istio.io/v1
-    kind: Gateway
-    ...
-      servers:
-      - port:
-          number: 443
-          name: https
-          protocol: HTTPS
-        tls:
-          mode: PASSTHROUGH
-    {{< /text >}}
+1. TLS 接続は終端されますか、それともパススルーですか？
+   パススルーの場合、TLS モードフィールドを `PASSTHROUGH` に設定します：
 
-    在这种模式下，Istio 将根据 SNI 信息进行路由并将请求按原样转发到目的地。
+   {{< text yaml >}}
+   apiVersion: networking.istio.io/v1
+   kind: Gateway
+   ...
+   servers:
 
-1. 是否应该使用双向 TLS？
-    双向 TLS 可以通过 TLS 模式 `MUTUAL` 进行配置。配置后，客户端证书将根据配置的
-    `caCertificates` 或 `credentialName` 请求和验证：
+   - port:
+     number: 443
+     name: https
+     protocol: HTTPS
+     tls:
+     mode: PASSTHROUGH
+     {{< /text >}}
 
-    {{< text yaml >}}
-    apiVersion: networking.istio.io/v1
-    kind: Gateway
-    ...
-      servers:
-      - port:
-          number: 443
-          name: https
-          protocol: HTTPS
-        tls:
-          mode: MUTUAL
-          caCertificates: ...
-    {{< /text >}}
+   このモードでは、Istio は SNI 情報に基づいてルーティングし、リクエストをそのまま宛先に転送します。
 
-### 出站  {#outbound}
+1. 双方向 TLS を使いますか？
+   双方向 TLS は TLS モード `MUTUAL` で設定できます。設定すると、クライアント証明書は設定した
+   `caCertificates` または `credentialName` でリクエスト・検証されます：
 
-出站配置控制会根据入站配置预期的流量类型以及其处理方式来决定网关发送什么类型的流量。
-TLS 配置在 `DestinationRule` 中，就像 [Sidecar](#sidecars)
-外部出站流量，或者默认[自动 mTLS](#auto-mTLS)。
+   {{< text yaml >}}
+   apiVersion: networking.istio.io/v1
+   kind: Gateway
+   ...
+   servers:
 
-唯一的区别是您在配置它时，应该小心考虑 `Gateway` 的配置。例如，如果 `Gateway`
-配置了 TLS `PASSTHROUGH` 而 `DestinationRule` 配置了 TLS 源，
-最终的结果是[双重加密](/zh/docs/ops/common-problems/network-issues/#double-tls)。
-虽然这是有效的配置，但是这样的行为不是常规配置。
+   - port:
+     number: 443
+     name: https
+     protocol: HTTPS
+     tls:
+     mode: MUTUAL
+     caCertificates: ...
+     {{< /text >}}
 
-绑定到网关的 `VirtualService` 也需要与 `Gateway`
-的定义[确保一致性](/zh/docs/ops/common-problems/network-issues/#gateway-mismatch)
+### アウトバウンド {#outbound}
+
+アウトバウンド設定は、インバウンド設定で期待されるトラフィックタイプやその処理方法に基づいて、ゲートウェイがどのタイプのトラフィックを送信するかを制御します。
+TLS 設定は `DestinationRule` で行い、[Sidecar](#sidecars) の外部アウトバウンドトラフィックや、デフォルトの[自動 mTLS](#auto-mTLS)と同様です。
+
+唯一の違いは、設定時に `Gateway` の設定を慎重に考慮する必要がある点です。たとえば、`Gateway` で TLS `PASSTHROUGH` を設定し、`DestinationRule` で TLS ソースを設定すると、
+最終的に[二重暗号化](/ja/docs/ops/common-problems/network-issues/#double-tls)となります。
+これは有効な設定ですが、通常の構成ではありません。
+
+ゲートウェイにバインドされた `VirtualService` も `Gateway` の定義と[整合性を保つ](/ja/docs/ops/common-problems/network-issues/#gateway-mismatch)必要があります。

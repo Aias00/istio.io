@@ -1,131 +1,130 @@
 ---
-title: 使用 Grafana 可视化指标
-description: 此任务展示了如何设置和使用 Istio Dashboard 监控网格流量。
+title: Grafana でメトリクスを可視化する
+description: このタスクでは、Istio ダッシュボードをセットアップし、メッシュトラフィックを監視する方法を紹介します。
 weight: 40
-keywords: [telemetry,visualization]
+keywords: [telemetry, visualization]
 aliases:
-    - /zh/docs/tasks/telemetry/using-istio-dashboard/
-    - /zh/docs/tasks/telemetry/metrics/using-istio-dashboard/
+  - /zh/docs/tasks/telemetry/using-istio-dashboard/
+  - /zh/docs/tasks/telemetry/metrics/using-istio-dashboard/
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-此任务展示了如何设置和使用 Istio Dashboard 监控网格流量。作为此任务的一部分，
-您将使用 Grafana 的 Istio 附加组件和基于 Web 的界面来查看服务网格流量数据。
+このタスクでは、Istio ダッシュボードをセットアップし、メッシュトラフィックを監視する方法を紹介します。
+このタスクの一環として、Grafana の Istio アドオンと Web ベースの UI を使ってサービスメッシュのトラフィックデータを確認します。
 
-此任务使用 [Bookinfo](/zh/docs/examples/bookinfo/) 作为示例应用。
+このタスクでは [Bookinfo](/zh/docs/examples/bookinfo/) をサンプルアプリケーションとして使用します。
 
-## 在开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-* 在自身集群中[安装 Istio](/zh/docs/setup/)。
-* 安装 [Grafana 附加组件](/zh/docs/ops/integrations/grafana/#option-1-quick-start)。
-* 安装 [Prometheus 附加组件](/zh//docs/ops/integrations/prometheus/#option-1-quick-start)。
-* 部署 [Bookinfo](/zh/docs/examples/bookinfo/) 应用。
+- クラスタに[Istio をインストール](/zh/docs/setup/)してください。
+- [Grafana アドオン](/zh/docs/ops/integrations/grafana/#option-1-quick-start)をインストールしてください。
+- [Prometheus アドオン](/zh//docs/ops/integrations/prometheus/#option-1-quick-start)をインストールしてください。
+- [Bookinfo](/zh/docs/examples/bookinfo/) アプリケーションをデプロイしてください。
 
-## 查看 Istio Dashboard  {#viewing-the-Istio-dashboard}
+## Istio ダッシュボードの表示 {#viewing-the-Istio-dashboard}
 
-1. 验证 `prometheus` 服务正在本集群中运行。
+1. `prometheus` サービスがクラスタ内で稼働していることを確認します。
 
-    在 Kubernetes 环境中，执行以下命令：
+   Kubernetes 環境で次のコマンドを実行します：
 
-    {{< text bash >}}
-    $ kubectl -n istio-system get svc prometheus
-    NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-    prometheus   ClusterIP   10.100.250.202   <none>        9090/TCP   103s
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl -n istio-system get svc prometheus
+   NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+   prometheus ClusterIP 10.100.250.202 <none> 9090/TCP 103s
+   {{< /text >}}
 
-1. 验证 Grafana 服务正在本集群中运行。
+1. Grafana サービスがクラスタ内で稼働していることを確認します。
 
-    在 Kubernetes 集群中，执行以下命令：
+   Kubernetes クラスタで次のコマンドを実行します：
 
-    {{< text bash >}}
-    $ kubectl -n istio-system get svc grafana
-    NAME      TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-    grafana   ClusterIP   10.103.244.103   <none>        3000/TCP   2m25s
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl -n istio-system get svc grafana
+   NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+   grafana ClusterIP 10.103.244.103 <none> 3000/TCP 2m25s
+   {{< /text >}}
 
-1. 通过 Grafana UI 打开 Istio Dashboard。
+1. Grafana UI から Istio ダッシュボードを開きます。
 
-    在 Kubernetes 集群中，执行以下命令：
+   Kubernetes クラスタで次のコマンドを実行します：
 
-    {{< text bash >}}
-    $ istioctl dashboard grafana
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl dashboard grafana
+   {{< /text >}}
 
-    在浏览器中访问 [http://localhost:3000/d/G8wLrJIZk/istio-mesh-dashboard](http://localhost:3000/d/G8wLrJIZk/istio-mesh-dashboard)。
+   ブラウザで [http://localhost:3000/d/G8wLrJIZk/istio-mesh-dashboard](http://localhost:3000/d/G8wLrJIZk/istio-mesh-dashboard) にアクセスします。
 
-    Istio Dashboard 看上去类似于：
+   Istio ダッシュボードは次のように表示されます：
 
-    {{< image link="./grafana-istio-dashboard.png" caption="Istio Dashboard" >}}
+   {{< image link="./grafana-istio-dashboard.png" caption="Istio ダッシュボード" >}}
 
-1. 发送流量到网格应用。
+1. メッシュアプリケーションにトラフィックを送信します。
 
-    对于 Bookinfo 示例，在浏览器中访问 `http://$GATEWAY_URL/productpage` 或者执行以下命令：
+   Bookinfo サンプルの場合、ブラウザで `http://$GATEWAY_URL/productpage` にアクセスするか、次のコマンドを実行します：
 
-    {{< boilerplate trace-generation >}}
+   {{< boilerplate trace-generation >}}
 
-    {{< tip >}}
-    `$GATEWAY_URL` 是在 [Bookinfo](/zh/docs/examples/bookinfo/) 示例中设置的值。
-    {{< /tip >}}
+   {{< tip >}}
+   `$GATEWAY_URL` は [Bookinfo](/zh/docs/examples/bookinfo/) サンプルで設定した値です。
+   {{< /tip >}}
 
-    刷新几次页面（或发送几次命令）以产生少量流量。
+   ページを数回リロード（またはコマンドを数回実行）して少量のトラフィックを発生させてください。
 
-    再次查看 Istio Dashboard，它应该反映出所产生的流量，看起来类似于：
+   再度 Istio ダッシュボードを確認すると、発生したトラフィックが反映され、次のように表示されます：
 
-    {{< image link="./dashboard-with-traffic.png" caption="Istio 流量仪表盘" >}}
+   {{< image link="./dashboard-with-traffic.png" caption="Istio トラフィックダッシュボード" >}}
 
-    这提供了网格以及网格中的服务和工作负载的全局视图，可以通过导航到特定的仪表盘来获取更多关于服务和工作负载的详细信息，
-    如下所述。
+   これにより、メッシュ全体やメッシュ内のサービス・ワークロードのグローバルビューが得られ、
+   特定のダッシュボードに移動することでサービスやワークロードの詳細情報も確認できます（後述）。
 
-1. 可视化服务仪表盘。
+1. サービスダッシュボードの可視化。
 
-    从 Grafana 仪表盘左上角的导航菜单中，可以导航到 Istio Service Dashboard 或者在浏览器中访问
-    [http://localhost:3000/d/LJ_uJAvmk/istio-service-dashboard](http://localhost:3000/d/LJ_uJAvmk/istio-service-dashboard)。
+   Grafana ダッシュボード左上のナビゲーションメニューから Istio Service Dashboard に移動するか、
+   ブラウザで [http://localhost:3000/d/LJ_uJAvmk/istio-service-dashboard](http://localhost:3000/d/LJ_uJAvmk/istio-service-dashboard) にアクセスします。
 
-    {{< tip >}}
-    您可能需要在服务下拉列表中选择一项服务
-    {{< /tip >}}
+   {{< tip >}}
+   サービスのドロップダウンリストからサービスを選択する必要がある場合があります。
+   {{< /tip >}}
 
-    Istio Service Dashboard 看上去类似于：
+   Istio Service Dashboard は次のように表示されます：
 
-    {{< image link="./istio-service-dashboard.png" caption="Istio Service Dashboard" >}}
+   {{< image link="./istio-service-dashboard.png" caption="Istio サービスダッシュボード" >}}
 
-    这里给出了服务，以及更进一步的服务的客户端工作负载（调用该服务的工作负载）和服务工作负载（提供该服务的工作负载）
-    的详细指标。
+   ここではサービスごと、さらにそのサービスのクライアントワークロード（そのサービスを呼び出すワークロード）や
+   サービスワークロード（そのサービスを提供するワークロード）の詳細なメトリクスが表示されます。
 
-1. 可视化工作负载仪表盘。
+1. ワークロードダッシュボードの可視化。
 
-    从 Grafana 仪表盘左上角的导航菜单中，可以导航到 Istio Workload Dashboard 或者在浏览器中访问
-    [http://localhost:3000/d/UbsSZTDik/istio-workload-dashboard](http://localhost:3000/d/UbsSZTDik/istio-workload-dashboard)。
+   Grafana ダッシュボード左上のナビゲーションメニューから Istio Workload Dashboard に移動するか、
+   ブラウザで [http://localhost:3000/d/UbsSZTDik/istio-workload-dashboard](http://localhost:3000/d/UbsSZTDik/istio-workload-dashboard) にアクセスします。
 
-    Istio Workload Dashboard 看上去类似于：
+   Istio Workload Dashboard は次のように表示されます：
 
-    {{< image link="./istio-workload-dashboard.png" caption="Istio Workload Dashboard" >}}
+   {{< image link="./istio-workload-dashboard.png" caption="Istio ワークロードダッシュボード" >}}
 
-    这里给出了每一个工作负载，以及更进一步的该工作负载的入站工作负载（将请求发送到该工作负载的工作负载）
-    和出站服务（此工作负载向其发送请求的服务）的详细指标。
+   ここでは各ワークロードごと、さらにそのワークロードのインバウンドワークロード（そのワークロードにリクエストを送るワークロード）
+   やアウトバウンドサービス（このワークロードがリクエストを送るサービス）の詳細なメトリクスが表示されます。
 
-### 关于 Grafana Dashboard  {#about-the-Grafana-dashboards}
+### Grafana ダッシュボードについて {#about-the-Grafana-dashboards}
 
-Istio Dashboard 包括三个主要部分：
+Istio ダッシュボードは主に 3 つのセクションで構成されています：
 
-1. 网格摘要视图：这部分提供网格的全局摘要视图，并显示网格中（HTTP/gRPC 和 TCP）的工作负载。
+1. メッシュサマリービュー：メッシュ全体のグローバルサマリーを提供し、メッシュ内（HTTP/gRPC および TCP）のワークロードを表示します。
 
-1. 单独的服务视图：这部分提供关于网格中每个单独的（HTTP/gRPC 和 TCP）
-   服务的请求和响应指标以及关于该服务的客户端和服务工作负载的指标。
+1. サービスごとのビュー：メッシュ内の各サービス（HTTP/gRPC および TCP）について、リクエスト・レスポンスのメトリクスや
+   そのサービスのクライアント・サービスワークロードのメトリクスを表示します。
 
-1. 单独的工作负载视图：这部分提供关于网格中每个单独的（HTTP/gRPC 和 TCP）
-   工作负载的请求和响应指标以及关于该工作负载的入站工作负载和出站服务的指标。
+1. ワークロードごとのビュー：メッシュ内の各ワークロード（HTTP/gRPC および TCP）について、リクエスト・レスポンスのメトリクスや
+   そのワークロードのインバウンドワークロード・アウトバウンドサービスのメトリクスを表示します。
 
-有关如何创建，配置和编辑仪表盘的更多信息，请参见 [Grafana 文档](https://docs.grafana.org/)。
+ダッシュボードの作成・設定・編集方法の詳細は [Grafana ドキュメント](https://docs.grafana.org/) を参照してください。
 
-## 清除  {#cleanup}
+## クリーンアップ {#cleanup}
 
-* 移除任何可能正在运行的 `kubectl port-forward` 进程：
+- 実行中の `kubectl port-forward` プロセスがあれば削除してください：
 
-    {{< text bash >}}
-    $ killall kubectl
-    {{< /text >}}
+  {{< text bash >}}
+  $ killall kubectl
+  {{< /text >}}
 
-* 如果不打算探索任何后续任务，请参阅[清除 Bookinfo](/zh/docs/examples/bookinfo/#cleanup)
-  的说明来关闭应用。
+- 他のタスクを試す予定がなければ、[Bookinfo のクリーンアップ](/zh/docs/examples/bookinfo/#cleanup)の手順に従い、アプリケーションを削除してください。

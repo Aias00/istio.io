@@ -1,49 +1,50 @@
 ---
-title: 开始之前
-description: 配置地域负载均衡前的初始化步骤。
+title: 始める前に
+description: ローカリティ負荷分散を構成する前の初期化手順。
 weight: 1
 icon: tasks
-keywords: [locality,load balancing,priority,prioritized,kubernetes,multicluster]
+keywords:
+  [locality, load balancing, priority, prioritized, kubernetes, multicluster]
 test: yes
 owner: istio/wg-networking-maintainers
 ---
 
-在开始区域负载均衡任务之前，必须首先
-[在多个集群上安装 Istio](/zh/docs/setup/install/multicluster)。
-这些集群必须跨越三个地区，其中包含四个可用区。
-所需集群的数量可能会因您的云提供商所提供的功能而异。
+ローカリティ負荷分散タスクを始める前に、まず[複数クラスタに Istio をインストール](/ja/docs/setup/install/multicluster)する必要があります。
+これらのクラスタは 3 つのリージョンにまたがり、4 つのアベイラビリティゾーンを含みます。
+必要なクラスタ数は、クラウドプロバイダーの機能によって異なる場合があります。
 
 {{< tip >}}
-为简单起见，我们假设只有一个 {{< gloss >}}primary cluster{{< /gloss >}} 在网格中。
-由于更改仅需要应用于一个集群，因此这简化了配置控制平面的过程。
+簡単のため、メッシュ内に {{< gloss >}}プライマリクラスタ{{< /gloss >}} が 1 つだけあると仮定します。
+変更は 1 つのクラスタにのみ適用すればよいので、コントロールプレーンの構成が簡単になります。
 {{< /tip >}}
 
-我们将部署 `HelloWorld` 应用程序的多个实例，如下所示：
+`HelloWorld` アプリケーションの複数インスタンスを次のようにデプロイします：
 
 {{< image width="75%"
     link="setup.svg"
-    caption="Setup for locality load balancing tasks"
+    caption="ローカリティ負荷分散タスクのセットアップ"
     >}}
 
 {{< tip >}}
-在单个多区域集群环境中，还可以配置局部负载均衡以将故障转移到同一集群内的不同区域。
-要测试它，您需要创建一个具有多个工作区域的集群，并将 istiod 实例和应用程序部署到每个区域。
+単一のマルチリージョンクラスタ環境でも、同じクラスタ内の異なるリージョンへのフェイルオーバーのためにローカリティ負荷分散を構成できます。
+これをテストするには、複数のワークゾーンを持つクラスタを作成し、各ゾーンに istiod インスタンスとアプリケーションをデプロイする必要があります。
 
-1: 如果您没有多区域 Kubernetes 集群，您可以使用 `kind` 通过以下命令在本地部署一个集群：
+1: 複数リージョンの Kubernetes クラスタがない場合は、`kind` を使って以下のコマンドでローカルにクラスタをデプロイできます：
 
 {{< text syntax=bash snip_id=none >}}
 $ kind create cluster --config=- <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
+
 - role: control-plane
 - role: worker
 - role: worker
 - role: worker
-EOF
-{{< /text >}}
+  EOF
+  {{< /text >}}
 
-2: 使用 `topology.kubernetes.io/zone` 为每个工作节点添加区域名称标签：
+2: 各ワーカーノードに `topology.kubernetes.io/zone` でゾーン名のラベルを追加します：
 
 {{< text syntax=bash snip_id=none >}}
 $ kubectl label node kind-worker topology.kubernetes.io/zone=us-south10
@@ -51,132 +52,132 @@ $ kubectl label node kind-worker2 topology.kubernetes.io/zone=us-south12
 $ kubectl label node kind-worker3 topology.kubernetes.io/zone=us-south13
 {{< /text >}}
 
-3: 将 istiod 部署到控制平面节点，并将 helloworld 应用程序部署到每个工作节点。
+3: istiod をコントロールプレーンノードにデプロイし、各ワーカーノードに helloworld アプリケーションをデプロイします。
 
 {{< /tip >}}
 
-## 环境变量 {#environment-variables}
+## 環境変数 {#environment-variables}
 
-本指南假定将通过默认的 [Kubernetes 配置文件](https://kubernetes.io/zh-cn/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)中的上下文访问所有集群。
-以下环境变量将用于各种上下文：
+本ガイドでは、すべてのクラスタへのアクセスにデフォルトの [Kubernetes 設定ファイル](https://kubernetes.io/ja/docs/tasks/access-application-cluster/configure-access-multiple-clusters/) のコンテキストを使用することを前提としています。
+以下の環境変数は各種コンテキストで使用します：
 
-变量 | 描述
--------- | -----------
-`CTX_PRIMARY` | 用于主集群的上下文。
-`CTX_R1_Z1` | 用于与 `region1.zone1` 中的 Pod 交互的上下文。
-`CTX_R1_Z2` | 用于与 `region1.zone2` 中的 Pod 交互的上下文。
-`CTX_R2_Z3` | 用于与 `region2.zone3` 中的 Pod 交互的上下文。
-`CTX_R3_Z4` | 用于与 `region3.zone4` 中的 Pod 交互的上下文。
+| 変数          | 説明                                                      |
+| ------------- | --------------------------------------------------------- |
+| `CTX_PRIMARY` | プライマリクラスタ用のコンテキスト。                      |
+| `CTX_R1_Z1`   | `region1.zone1` の Pod とやり取りするためのコンテキスト。 |
+| `CTX_R1_Z2`   | `region1.zone2` の Pod とやり取りするためのコンテキスト。 |
+| `CTX_R2_Z3`   | `region2.zone3` の Pod とやり取りするためのコンテキスト。 |
+| `CTX_R3_Z4`   | `region3.zone4` の Pod とやり取りするためのコンテキスト。 |
 
-## 创建 `sample` 命名空间 {#create-the-sample-namespace}
+## `sample` 名前空間の作成 {#create-the-sample-namespace}
 
-首先，启用自动注入 Sidecar 并为 `sample` 命名空间生成 yaml：
+まず、Sidecar の自動インジェクションを有効にし、`sample` 名前空間の yaml を生成します：
 
 {{< text bash >}}
 $ cat <<EOF > sample.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: sample
-  labels:
-    istio-injection: enabled
+name: sample
+labels:
+istio-injection: enabled
 EOF
 {{< /text >}}
 
-为每个集群添加 `sample` 命名空间：
+各クラスタに `sample` 名前空間を追加します：
 
 {{< text bash >}}
 $ for CTX in "$CTX_PRIMARY" "$CTX_R1_Z1" "$CTX_R1_Z2" "$CTX_R2_Z3" "$CTX_R3_Z4"; \
   do \
     kubectl --context="$CTX" apply -f sample.yaml; \
-  done
+ done
 {{< /text >}}
 
-## 部署 `HelloWorld` {#deploy-helloWorld}
+## `HelloWorld` のデプロイ {#deploy-helloWorld}
 
-使用地域作为版本号，为每个地域生成 `HelloWorld` 的 yaml：
+リージョン名をバージョン番号として、各リージョン用の `HelloWorld` の yaml を生成します：
 
 {{< text bash >}}
 $ for LOC in "region1.zone1" "region1.zone2" "region2.zone3" "region3.zone4"; \
-  do \
-    ./@samples/helloworld/gen-helloworld.sh@ \
-      --version "$LOC" > "helloworld-${LOC}.yaml"; \
-  done
+ do \
+ ./@samples/helloworld/gen-helloworld.sh@ \
+ --version "$LOC" > "helloworld-${LOC}.yaml"; \
+ done
 {{< /text >}}
 
-应用 `HelloWorld` YAML 到每个地域的合适集群：
+各リージョンの適切なクラスタに `HelloWorld` YAML を適用します：
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_R1_Z1}" -n sample \
-  -f helloworld-region1.zone1.yaml
+ -f helloworld-region1.zone1.yaml
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_R1_Z2}" -n sample \
-  -f helloworld-region1.zone2.yaml
+ -f helloworld-region1.zone2.yaml
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_R2_Z3}" -n sample \
-  -f helloworld-region2.zone3.yaml
+ -f helloworld-region2.zone3.yaml
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_R3_Z4}" -n sample \
-  -f helloworld-region3.zone4.yaml
+ -f helloworld-region3.zone4.yaml
 {{< /text >}}
 
-## 部署 `curl` {#deploy-curl}
+## `curl` のデプロイ {#deploy-curl}
 
-部署 `curl` 应用到 `region1` `zone1`：
+`curl` アプリケーションを `region1` `zone1` にデプロイします：
 
 {{< text bash >}}
 $ kubectl apply --context="${CTX_R1_Z1}" \
-  -f @samples/curl/curl.yaml@ -n sample
+ -f @samples/curl/curl.yaml@ -n sample
 {{< /text >}}
 
-## 等待 `HelloWorld` Pod {#wait-for-helloworld-pods}
+## `HelloWorld` Pod の待機 {#wait-for-helloworld-pods}
 
-等到 `HelloWorld` 在每个区域的 Pod 都为 `Running`：
+各リージョンの Pod で `HelloWorld` が `Running` になるまで待ちます：
 
 {{< text bash >}}
 $ kubectl get pod --context="${CTX_R1_Z1}" -n sample -l app="helloworld" \
-  -l version="region1.zone1"
-NAME                                       READY   STATUS    RESTARTS   AGE
-helloworld-region1.zone1-86f77cd7b-cpxhv   2/2     Running   0          30s
+ -l version="region1.zone1"
+NAME READY STATUS RESTARTS AGE
+helloworld-region1.zone1-86f77cd7b-cpxhv 2/2 Running 0 30s
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl get pod --context="${CTX_R1_Z2}" -n sample -l app="helloworld" \
-  -l version="region1.zone2"
-NAME                                       READY   STATUS    RESTARTS   AGE
-helloworld-region1.zone2-86f77cd7b-cpxhv   2/2     Running   0          30s
+ -l version="region1.zone2"
+NAME READY STATUS RESTARTS AGE
+helloworld-region1.zone2-86f77cd7b-cpxhv 2/2 Running 0 30s
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl get pod --context="${CTX_R2_Z3}" -n sample -l app="helloworld" \
-  -l version="region2.zone3"
-NAME                                       READY   STATUS    RESTARTS   AGE
-helloworld-region2.zone3-86f77cd7b-cpxhv   2/2     Running   0          30s
+ -l version="region2.zone3"
+NAME READY STATUS RESTARTS AGE
+helloworld-region2.zone3-86f77cd7b-cpxhv 2/2 Running 0 30s
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl get pod --context="${CTX_R3_Z4}" -n sample -l app="helloworld" \
-  -l version="region3.zone4"
-NAME                                       READY   STATUS    RESTARTS   AGE
-helloworld-region3.zone4-86f77cd7b-cpxhv   2/2     Running   0          30s
+ -l version="region3.zone4"
+NAME READY STATUS RESTARTS AGE
+helloworld-region3.zone4-86f77cd7b-cpxhv 2/2 Running 0 30s
 {{< /text >}}
 
-**恭喜您！** 您已成功完成系统配置，现在可以开始进行地域负载均衡任务了！
+**おめでとうございます！** システム構成が完了し、ローカリティ負荷分散タスクを始める準備ができました！
 
-## 下一步 {#next-steps}
+## 次のステップ {#next-steps}
 
-现在，您可以配置以下负载均衡选项之一：
+これで、以下のいずれかの負荷分散オプションを構成できます：
 
-- [地域故障转移](/zh/docs/tasks/traffic-management/locality-load-balancing/failover)
+- [ローカリティフェイルオーバー](/ja/docs/tasks/traffic-management/locality-load-balancing/failover)
 
-- [地域权重分布](/zh/docs/tasks/traffic-management/locality-load-balancing/distribute)
+- [ローカリティ重み付き分散](/ja/docs/tasks/traffic-management/locality-load-balancing/distribute)
 
 {{< warning >}}
-您只应配置负载均衡选项之一，因为这些选项是互斥的。尝试同时配置两个选项可能会导致意外行为。
+これらのオプションは排他的なので、どちらか一方のみを構成してください。両方を同時に構成しようとすると予期しない動作になる場合があります。
 {{< /warning >}}

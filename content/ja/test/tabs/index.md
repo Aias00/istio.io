@@ -1,75 +1,73 @@
 ---
-title: Tabs
-description: Basic tabs.
+title: タブ
+description: 基本的なタブ。
 skip_sitemap: true
 ---
 
 {{< tabset category-name="test" >}}
 
 {{< tab name="One" category-value="one" >}}
-One paragraph
+1 つの段落
 {{< /tab >}}
 
 {{< tab name="Two" category-value="two" >}}
-Three
+3 つの
 
-separate
+別々の
 
-paragraphs
+段落
 {{< /tab >}}
 
 {{< tab name="Three" category-value="three" >}}
 {{< warning >}}
-Warning in a tab
+タブ内の警告
 {{< /warning >}}
 {{< /tab >}}
 
 {{< tab name="Four" category-value="four" >}}
-Simple text
+シンプルなテキスト
 
-In two paragraphs
+2 つの段落
 
 {{< warning >}}
-Warning in a tab
+タブ内の警告
 {{< /warning >}}
 {{< /tab >}}
 
 {{< tab name="Five" category-value="five" >}}
-Simple text
+シンプルなテキスト
 
 {{< text plain >}}
-Text block in a tab
+タブ内のテキストブロック
 {{< /text >}}
 
 {{< /tab >}}
 
 {{< tab name="Six" category-value="six" >}}
-Simple text with _markdown_ in a tab
+タブ内の _マークダウン_ を含むシンプルなテキスト
 
 {{< warning >}}
-Warning with _markdown_ in a tab
+タブ内の _マークダウン_ を含む警告
 
 {{< text plain >}}
-Text block in a warning in a tab
+タブ内の警告内のテキストブロック
 {{< /text >}}
 
-And more _markdown_
+さらに _マークダウン_
 {{< /warning >}}
 
 {{< /tab >}}
 
 {{< tab name="Seven" category-value="seven" >}}
-Simple text with _markdown_ in a tab
+タブ内の _マークダウン_ を含むシンプルなテキスト
 
 {{< text plain >}}
-NoIndent:
-    FourIndent:
-        - EightIndent
-    FourIndentAgain:
-        - EightIndentAgain
+インデントなし：
+4 つインデント： - 8 つインデント
+再び 4 つインデント： - 再び 8 つインデント
 {{< /text >}}
 
-And more _markdown_
+さらに _マークダウン_
 {{< /tab >}}
 
 {{< /tabset >}}

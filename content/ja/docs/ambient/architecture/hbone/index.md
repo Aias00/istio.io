@@ -40,7 +40,7 @@ HBONE は HTTP/2、HTTP CONNECT、および mTLS の組み合わせにすぎな�
 HBONE トンネルデータパケットは以下のようになります：
 
 {{< image width="100%"
-link="hbone-packet.svg"
+link="./hbone-packet.svg"
 caption="HBONE L3 パケット形式"
 >}}
 

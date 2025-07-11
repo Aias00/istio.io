@@ -1,22 +1,22 @@
 ---
-title: 使用 Telemetry API 配置访问日志
-description: 此任务向您演示如何使用 Telemetry API 配置 Envoy 代理来发送访问日志。
+title: Telemetry API でアクセスログを設定する
+description: このタスクでは、Telemetry API を使って Envoy プロキシがアクセスログを送信するように設定する方法を紹介します。
 weight: 10
-keywords: [telemetry,logs]
+keywords: [telemetry, logs]
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-Telemetry API 如今在 Istio 中作为核心 API 已经有一段时间了。
-之前用户必须在 Istio 的 `MeshConfig` 中配置 Telemetry。
+Telemetry API は Istio のコア API としてしばらく前から導入されています。
+以前はユーザーが Istio の `MeshConfig` で Telemetry を設定する必要がありました。
 
 {{< boilerplate before-you-begin-egress >}}
 
 {{< boilerplate start-httpbin-service >}}
 
-## 安装  {#installation}
+## インストール {#installation}
 
-在本例中，我们将发送日志到 [Grafana Loki](https://grafana.com/oss/loki/)，确保它已被安装。
+この例では、[Grafana Loki](https://grafana.com/oss/loki/) にログを送信します。Loki がインストールされていることを確認してください。
 
 {{< text syntax=bash snip_id=install_loki >}}
 $ istioctl install -f @samples/open-telemetry/loki/iop.yaml@ --skip-confirmation
@@ -24,164 +24,165 @@ $ kubectl apply -f @samples/addons/loki.yaml@ -n istio-system
 $ kubectl apply -f @samples/open-telemetry/loki/otel.yaml@ -n istio-system
 {{< /text >}}
 
-## Telemetry API 入门  {#get-started-with-telemetry-api}
+## Telemetry API の使い方 {#get-started-with-telemetry-api}
 
-1. 启用访问日志记录
+1. アクセスログ記録を有効化する
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -n istio-system -f -
-    apiVersion: telemetry.istio.io/v1
-    kind: Telemetry
-    metadata:
-      name: mesh-logging-default
-    spec:
-      accessLogging:
-      - providers:
-        - name: otel
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -n istio-system -f -
+   apiVersion: telemetry.istio.io/v1
+   kind: Telemetry
+   metadata:
+   name: mesh-logging-default
+   spec:
+   accessLogging:
 
-    这个示例使用内置的 `envoy` 访问日志提供程序，我们除了默认设置外没有进行任何其他配置。
+   - providers: - name: otel
+     EOF
+     {{< /text >}}
 
-1. 禁用特定工作负载的访问日志
+   この例では組み込みの `envoy` アクセスログプロバイダーを使用しており、デフォルト設定以外は特に指定していません。
 
-    您可以使用以下配置禁用 `curl` 服务的访问日志：
+1. 特定のワークロードのアクセスログを無効化する
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -n default -f -
-    apiVersion: telemetry.istio.io/v1
-    kind: Telemetry
-    metadata:
-      name: disable-curl-logging
-      namespace: default
-    spec:
-      selector:
-        matchLabels:
-          app: curl
-      accessLogging:
-      - providers:
-        - name: otel
-        disabled: true
-    EOF
-    {{< /text >}}
+   次の設定で `curl` サービスのアクセスログを無効化できます：
 
-1. 通过工作负载模式过滤访问日志
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -n default -f -
+   apiVersion: telemetry.istio.io/v1
+   kind: Telemetry
+   metadata:
+   name: disable-curl-logging
+   namespace: default
+   spec:
+   selector:
+   matchLabels:
+   app: curl
+   accessLogging:
 
-    您可以使用以下配置禁用 `httpbin` 服务的入站访问日志：
+   - providers: - name: otel
+     disabled: true
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -n default -f -
-    apiVersion: telemetry.istio.io/v1
-    kind: Telemetry
-    metadata:
-      name: disable-httpbin-logging
-    spec:
-      selector:
-        matchLabels:
-          app: httpbin
-      accessLogging:
-      - providers:
-        - name: otel
-        match:
-          mode: SERVER
-        disabled: true
-    EOF
-    {{< /text >}}
+1. ワークロードモードでアクセスログをフィルタリングする
 
-1. 通过 CEL 表达式过滤访问日志
+   次の設定で `httpbin` サービスのインバウンドアクセスログを無効化できます：
 
-    只有响应码大于等于 500 时，以下配置才显示访问日志：
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -n default -f -
+   apiVersion: telemetry.istio.io/v1
+   kind: Telemetry
+   metadata:
+   name: disable-httpbin-logging
+   spec:
+   selector:
+   matchLabels:
+   app: httpbin
+   accessLogging:
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -n default -f -
-    apiVersion: telemetry.istio.io/v1alpha1
-    kind: Telemetry
-    metadata:
-      name: filter-curl-logging
-    spec:
-      selector:
-        matchLabels:
-          app: curl
-      accessLogging:
-      - providers:
-        - name: otel
-        filter:
-          expression: response.code >= 500
-    EOF
-    {{< /text >}}
+   - providers: - name: otel
+     match:
+     mode: SERVER
+     disabled: true
+     EOF
+     {{< /text >}}
 
-    {{< tip >}}
-    当连接失败时没有 `response.code` 属性。
-    在这种情况下，您应该使用 CEL 表达式 `!has(response.code) || response.code >= 500`。
-    {{< /tip >}}
+1. CEL 式でアクセスログをフィルタリングする
 
-1. 通过 CEL 表达式设置默认的过滤访问日志
+   レスポンスコードが 500 以上の場合のみ、次の設定でアクセスログが出力されます：
 
-    只有响应码大于等于 400 或请求转到 BlackHoleCluster 或 PassthroughCluster 时，
-    以下配置才显示访问日志（注意 `xds.cluster_name` 仅可用于 Istio 1.16.2 及更高版本）：
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -n default -f -
+   apiVersion: telemetry.istio.io/v1alpha1
+   kind: Telemetry
+   metadata:
+   name: filter-curl-logging
+   spec:
+   selector:
+   matchLabels:
+   app: curl
+   accessLogging:
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -f -
-    apiVersion: telemetry.istio.io/v1alpha1
-    kind: Telemetry
-    metadata:
-      name: default-exception-logging
-      namespace: istio-system
-    spec:
-      accessLogging:
-      - providers:
-        - name: otel
-        filter:
-          expression: "response.code >= 400 || xds.cluster_name == 'BlackHoleCluster' ||  xds.cluster_name == 'PassthroughCluster' "
+   - providers: - name: otel
+     filter:
+     expression: response.code >= 500
+     EOF
+     {{< /text >}}
 
-    EOF
-    {{< /text >}}
+   {{< tip >}}
+   接続失敗時は `response.code` 属性がありません。
+   この場合、CEL 式 `!has(response.code) || response.code >= 500` を使うべきです。
+   {{< /tip >}}
 
-1. 使用 CEL 表达式过滤健康检查访问日志
+1. CEL 式でデフォルトのアクセスログフィルタを設定する
 
-    仅当日志不是由 Amazon Route 53 健康检查服务所生成时，以下配置才显示访问日志。
-    注意：`request.useragent` 专用于 HTTP 流量，因此为了避免破坏 TCP 流量，
-    我们需要检查该字段是否存在。有关更多信息，请参阅
-    [CEL 类型检查](https://kubernetes.io/docs/reference/using-api/cel/#type-checking)
+   レスポンスコードが 400 以上、またはリクエストが BlackHoleCluster もしくは PassthroughCluster に送られた場合のみ、
+   次の設定でアクセスログが出力されます（`xds.cluster_name` は Istio 1.16.2 以降で利用可能）：
 
-    {{< text bash >}}
-    $ cat <<EOF | kubectl apply -f -
-    apiVersion: telemetry.istio.io/v1alpha1
-    kind: Telemetry
-    metadata:
-      name: filter-health-check-logging
-    spec:
-      accessLogging:
-      - providers:
-        - name: otel
-        filter:
-          expression: "!has(request.useragent) || !(request.useragent.startsWith("Amazon-Route53-Health-Check-Service"))"
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -f -
+   apiVersion: telemetry.istio.io/v1alpha1
+   kind: Telemetry
+   metadata:
+   name: default-exception-logging
+   namespace: istio-system
+   spec:
+   accessLogging:
 
-    有关更多信息，请参阅[使用赋值表达式](/zh/docs/tasks/observability/metrics/customize-metrics/#use-expressions-for-values)。
+   - providers:
+     - name: otel
+       filter:
+       expression: "response.code >= 400 || xds.cluster_name == 'BlackHoleCluster' || xds.cluster_name == 'PassthroughCluster' "
 
-## 使用 OpenTelemetry 提供程序  {#work-with-otel-provider}
+   EOF
+   {{< /text >}}
 
-Istio 支持使用 [OpenTelemetry](https://opentelemetry.io/) 协议发送访问日志，
-如[此处](/zh/docs/tasks/observability/logs/otel-provider)所述。
+1. CEL 式でヘルスチェックアクセスログをフィルタリングする
 
-## 清理  {#cleanup}
+   Amazon Route 53 のヘルスチェックサービスによるログでない場合のみ、次の設定でアクセスログが出力されます。
+   注意：`request.useragent` は HTTP トラフィック専用なので、TCP トラフィックを壊さないように
+   このフィールドの存在をチェックする必要があります。詳細は
+   [CEL の型チェック](https://kubernetes.io/docs/reference/using-api/cel/#type-checking) を参照してください。
 
-1.  移除所有 Telemetry API：
+   {{< text bash >}}
+   $ cat <<EOF | kubectl apply -f -
+   apiVersion: telemetry.istio.io/v1alpha1
+   kind: Telemetry
+   metadata:
+   name: filter-health-check-logging
+   spec:
+   accessLogging:
+
+   - providers: - name: otel
+     filter:
+     expression: "!has(request.useragent) || !(request.useragent.startsWith(\"Amazon-Route53-Health-Check-Service\"))"
+     EOF
+     {{< /text >}}
+
+   詳細は[値に式を使う](/zh/docs/tasks/observability/metrics/customize-metrics/#use-expressions-for-values)も参照してください。
+
+## OpenTelemetry プロバイダーの利用 {#work-with-otel-provider}
+
+Istio は [OpenTelemetry](https://opentelemetry.io/) プロトコルでのアクセスログ送信をサポートしています。
+詳細は[こちら](/zh/docs/tasks/observability/logs/otel-provider)を参照してください。
+
+## クリーンアップ {#cleanup}
+
+1.  すべての Telemetry API を削除：
 
     {{< text bash >}}
     $ kubectl delete telemetry --all -A
     {{< /text >}}
 
-1.  移除 `loki`：
+1.  `loki` を削除：
 
     {{< text bash >}}
     $ kubectl delete -f @samples/addons/loki.yaml@ -n istio-system
     $ kubectl delete -f @samples/open-telemetry/loki/otel.yaml@ -n istio-system
     {{< /text >}}
 
-1.  从集群中卸载 Istio：
+1.  クラスタから Istio をアンインストール：
 
     {{< text bash >}}
     $ istioctl uninstall --purge --skip-confirmation

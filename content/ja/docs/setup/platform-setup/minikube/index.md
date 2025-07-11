@@ -1,87 +1,85 @@
 ---
 title: minikube
-description: 在 minikube 上配置 Istio。
+description: minikube 上での Istio 設定。
 weight: 50
 skip_seealso: true
 aliases:
-    - /zh/docs/setup/kubernetes/prepare/platform-setup/minikube/
-    - /zh/docs/setup/kubernetes/platform-setup/minikube/
-keywords: [platform-setup,kubernetes,minikube]
+  - /zh/docs/setup/kubernetes/prepare/platform-setup/minikube/
+  - /zh/docs/setup/kubernetes/platform-setup/minikube/
+keywords: [platform-setup, kubernetes, minikube]
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-按照文档安装 minikube，为 Istio 与一些基础应用准备足够的系统资源。
+ドキュメントに従って minikube をインストールし、Istio や基本的なアプリケーションのために十分なシステムリソースを確保してください。
 
 ## 前提条件 {#prerequisites}
 
-- 运行 minikube 需要管理员权限。
+- minikube の実行には管理者権限が必要です。
 
-- 如果要启用[秘钥发现服务](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret#sds-configuration)（SDS），
-  需要为 Kubernetes Deployment 添加[额外的配置](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection)。
-  查阅 [`api-server` 参考文档](https://kubernetes.io/zh-cn/docs/reference/command-line-tools-reference/kube-apiserver/)了解最新的可选参数。
+- [シークレットディスカバリーサービス](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret#sds-configuration)（SDS）を有効にする場合、
+  Kubernetes Deployment に[追加設定](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection)が必要です。
+  最新のオプションパラメータについては [`api-server` リファレンス](https://kubernetes.io/ja/docs/reference/command-line-tools-reference/kube-apiserver/)を参照してください。
 
-## 安装步骤 {#installation-steps}
+## インストール手順 {#installation-steps}
 
-1. 安装最新版的 [minikube](https://kubernetes.io/zh-cn/docs/tasks/tools/#minikube)
-   和 [minikube 虚拟机驱动](https://minikube.sigs.k8s.io/docs/start/#install-a-hypervisor)。
+1. 最新版の [minikube](https://kubernetes.io/ja/docs/tasks/tools/#minikube)
+   および [minikube 仮想マシンドライバ](https://minikube.sigs.k8s.io/docs/start/#install-a-hypervisor) をインストールします。
 
-1. 如果您没有使用默认的驱动，需要配置 minikube 虚拟机驱动。
+1. デフォルト以外のドライバを使用する場合は、minikube 仮想マシンドライバを設定してください。
 
-    比如，如果您安装了 KVM 虚拟机，使用如下命令设置 minikube 的 `driver` 配置：
+   例えば、KVM 仮想マシンをインストールしている場合、次のコマンドで minikube の `driver` 設定を行います：
 
-    {{< text bash >}}
-    $ minikube config set driver kvm2
-    {{< /text >}}
+   {{< text bash >}}
+   $ minikube config set driver kvm2
+   {{< /text >}}
 
-1. 以 16384 `MB` 内存和 4 `CPUs` 启动 minikube。这个例子使用了 Kubernetes **1.26.1**。
-    您可以设置 `--kubernetes-version` 的值以指定任意 Istio 支持的 Kubernetes 版本：
+1. 16384 `MB` のメモリと 4 `CPUs` で minikube を起動します。この例では Kubernetes **1.26.1** を使用しています。
+   `--kubernetes-version` の値を設定することで、任意の Istio 対応 Kubernetes バージョンを指定できます：
 
-    {{< text bash >}}
-    $ minikube start --memory=16384 --cpus=4 --kubernetes-version=v1.26.1
-    {{< /text >}}
+   {{< text bash >}}
+   $ minikube start --memory=16384 --cpus=4 --kubernetes-version=v1.26.1
+   {{< /text >}}
 
-    取决于您使用的虚拟机版本以及所运行的平台，最小内存要求也不同。16384 `MB` 足够运行
-    Istio 和 bookinfo。
+   使用する仮想マシンやプラットフォームによって最小メモリ要件は異なりますが、16384 `MB` で Istio と bookinfo の両方が十分に動作します。
 
-    {{< tip >}}
-    如果您没有足够的内存分配给 minikube 虚拟机，可能出现如下报错：
+   {{< tip >}}
+   minikube 仮想マシンに十分なメモリが割り当てられていない場合、以下のようなエラーが発生することがあります：
 
-    - image pull failures
-    - healthcheck timeout failures
-    - kubectl failures on the host
-    - general network instability of the virtual machine and the host
-    - complete lock-up of the virtual machine
-    - host NMI watchdog reboots
+   - イメージのプル失敗
+   - ヘルスチェックのタイムアウト失敗
+   - ホスト上での kubectl の失敗
+   - 仮想マシンやホストのネットワーク不安定
+   - 仮想マシンの完全なフリーズ
+   - ホスト NMI ウォッチドッグによる再起動
 
-    minikube 中有一个不错的方法查看内存占用，即 `ssh` 到 minikube 虚拟机，然后从命令行运行 top 命令：
+   minikube にはメモリ使用量を確認する便利な方法があります。minikube 仮想マシンに `ssh` で接続し、コマンドラインで top コマンドを実行します：
 
-    {{< text bash >}}
-    $ minikube ssh
-    {{< /text >}}
+   {{< text bash >}}
+   $ minikube ssh
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ top
-    GiB Mem : 12.4/15.7
-    {{< /text >}}
+   {{< text bash >}}
+   $ top
+   GiB Mem : 12.4/15.7
+   {{< /text >}}
 
-    这里显示虚拟机内全部的 15.7G 内存已占用了 12.4G。这个数据是在一个 16G 内存的 Macbook Pro 13"
-    中运行着 Istio 1.2 和 bookinfo 的 VMWare Fusion 虚拟机中生成的。
-    {{< /tip >}}
+   この例では、仮想マシン全体の 15.7G メモリのうち 12.4G が使用中です。これは 16G メモリの Macbook Pro 13" 上で、Istio 1.2 と bookinfo を VMWare Fusion 仮想マシンで動作させた際のデータです。
+   {{< /tip >}}
 
-1. （可选，推荐）如果您希望 minikube 提供一个负载均衡给 Istio，您可以使用
-    [minikube tunnel](https://minikube.sigs.k8s.io/docs/tasks/loadbalancer/#using-minikube-tunnel)。
-    在另一个终端运行这个命令，因为 minikube tunnel 会阻塞的您的终端用于显示网络诊断信息：
+1. （オプション・推奨）minikube で Istio 用のロードバランサを提供したい場合は、
+   [minikube tunnel](https://minikube.sigs.k8s.io/docs/tasks/loadbalancer/#using-minikube-tunnel) を利用できます。
+   minikube tunnel はネットワーク診断情報を表示するため、別のターミナルで実行してください：
 
-    {{< text bash >}}
-    $ minikube tunnel
-    {{< /text >}}
+   {{< text bash >}}
+   $ minikube tunnel
+   {{< /text >}}
 
-    {{< warning >}}
-    有时 minikube 不会正确清理 tunnel network。强制清理使用如下命令：
+   {{< warning >}}
+   minikube が tunnel network を正しくクリーンアップしない場合があります。強制的にクリーンアップするには次のコマンドを使用してください：
 
-    {{< text bash >}}
-    $ minikube tunnel --cleanup
-    {{< /text >}}
+   {{< text bash >}}
+   $ minikube tunnel --cleanup
+   {{< /text >}}
 
-    {{< /warning >}}
+   {{< /warning >}}

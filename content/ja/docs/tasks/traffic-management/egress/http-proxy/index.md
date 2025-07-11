@@ -1,224 +1,211 @@
 ---
-title: 使用外部 HTTPS 代理
-description: 描述如何配置 Istio 以允许应用程序使用外部 HTTPS 代理。
+title: 外部 HTTPS プロキシの利用
+description: Istio でアプリケーションが外部 HTTPS プロキシを利用できるように構成する方法を説明します。
 weight: 60
-keywords: [traffic-management,egress]
+keywords: [traffic-management, egress]
 aliases:
   - /zh/docs/examples/advanced-gateways/http-proxy/
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-[配置 Egress 网关](/zh/docs/tasks/traffic-management/egress/egress-gateway/)
-示例展示如何通过名为 Egress 网关的 Istio 组件将流量从网格引导到外部服务。但是，
-有些情况下需要一个外部的传统（非 Istio）HTTPS 代理来访问外部服务。例如，您的公司可能已经有了这样的代理，
-并且可能需要所有应用程序通过代理来引导其流量。
+[egress ゲートウェイの構成](/ja/docs/tasks/traffic-management/egress/egress-gateway/) の例では、Istio の egress ゲートウェイコンポーネントを使ってメッシュ外のサービスへトラフィックを誘導する方法を紹介しました。しかし、場合によっては外部の従来型（非 Istio）HTTPS プロキシを経由して外部サービスへアクセスする必要があります。たとえば、企業内に既存のプロキシがあり、すべてのアプリケーションがそのプロキシ経由でトラフィックを送る必要がある場合などです。
 
-此示例演示如何启用对外部 HTTPS 代理的访问。由于应用程序使用 HTTP [CONNECT](https://tools.ietf.org/html/rfc7231#section-4.3.6)
-方法与 HTTPS 代理建立连接，因此配置流量到外部 HTTPS 代理不同于将流量配置为外部 HTTP 和 HTTPS 服务。
+この例では、外部 HTTPS プロキシへのアクセスを有効にする方法を説明します。アプリケーションは HTTP の [CONNECT](https://tools.ietf.org/html/rfc7231#section-4.3.6) メソッドを使って HTTPS プロキシと接続を確立するため、外部 HTTP/HTTPS サービスへのトラフィック構成とは異なります。
 
 {{< boilerplate before-you-begin-egress >}}
 
-*   [启用 Envoy 的访问日志](/zh/docs/tasks/observability/logs/access-log/#enable-envoy-s-access-logging)
+- [Envoy のアクセスログを有効化](/ja/docs/tasks/observability/logs/access-log/#enable-envoy-s-access-logging)
 
-## 部署 HTTPS 代理  {#deploy-an-https-proxy}
+## HTTPS プロキシのデプロイ {#deploy-an-https-proxy}
 
-本例中为了模拟传统代理，在集群内部署了一个 HTTPS 代理。此外，为了模拟在集群外运行的更真实的代理，
-通过代理的 IP 地址而不是 Kubernetes 服务的域名来寻址代理的 Pod。本例使用的是
-[squid](http://www.squid-cache.org)，但是您可以使用任何支持 HTTP CONNECT 连接的 HTTPS 代理。
+この例では従来型プロキシを模倣するため、クラスタ内に HTTPS プロキシをデプロイします。また、より現実的な「クラスタ外」プロキシを模擬するため、Kubernetes サービスのドメイン名ではなくプロキシ Pod の IP アドレスでプロキシを指定します。ここでは [squid](http://www.squid-cache.org) を使いますが、HTTP CONNECT に対応した任意の HTTPS プロキシが利用可能です。
 
-1. 为 HTTPS 代理创建一个命名空间，而不打上 Sidecar 注入所用的标签。如果没有此标签，则在新命名空间中
-   SideCar 注入是被禁用的，因此 Istio 将无法控制这个命名空间的流量。您需要在集群之外通过这种行为来模拟代理。
+1. HTTPS プロキシ用の名前空間を作成します。Sidecar 注入用のラベルを付与しなければ、この名前空間では Sidecar 注入が無効となり、Istio でこの名前空間のトラフィックは制御されません。これによりクラスタ外のプロキシを模擬できます。
 
-    {{< text bash >}}
-    $ kubectl create namespace external
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl create namespace external
+   {{< /text >}}
 
-1. 为 Squid 代理创建配置文件。
+1. Squid プロキシの設定ファイルを作成します。
 
-    {{< text bash >}}
-    $ cat <<EOF > ./proxy.conf
-    http_port 3128
+   {{< text bash >}}
+   $ cat <<EOF > ./proxy.conf
+   http_port 3128
 
-    acl SSL_ports port 443
-    acl CONNECT method CONNECT
+   acl SSL_ports port 443
+   acl CONNECT method CONNECT
 
-    http_access deny CONNECT !SSL_ports
-    http_access allow localhost manager
-    http_access deny manager
-    http_access allow all
+   http_access deny CONNECT !SSL_ports
+   http_access allow localhost manager
+   http_access deny manager
+   http_access allow all
 
-    coredump_dir /var/spool/squid
-    EOF
-    {{< /text >}}
+   coredump_dir /var/spool/squid
+   EOF
+   {{< /text >}}
 
-1. 创建 Kubernetes [ConfigMap](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-pod-configmap/)
-   以保存代理的配置：
+1. Kubernetes [ConfigMap](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-pod-configmap/) を作成し、プロキシの設定を保存します：
 
-    {{< text bash >}}
-    $ kubectl create configmap proxy-configmap -n external --from-file=squid.conf=./proxy.conf
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl create configmap proxy-configmap -n external --from-file=squid.conf=./proxy.conf
+   {{< /text >}}
 
-1. 使用 Squid 部署容器：
+1. Squid コンテナをデプロイします：
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-      name: squid
-      namespace: external
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          app: squid
-      template:
-        metadata:
-          labels:
-            app: squid
-        spec:
-          volumes:
-          - name: proxy-config
-            configMap:
-              name: proxy-configmap
-          containers:
-          - name: squid
-            image: sameersbn/squid:3.5.27
-            imagePullPolicy: IfNotPresent
-            volumeMounts:
-            - name: proxy-config
-              mountPath: /etc/squid
-              readOnly: true
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+   name: squid
+   namespace: external
+   spec:
+   replicas: 1
+   selector:
+   matchLabels:
+   app: squid
+   template:
+   metadata:
+   labels:
+   app: squid
+   spec:
+   volumes: - name: proxy-config
+   configMap:
+   name: proxy-configmap
+   containers: - name: squid
+   image: sameersbn/squid:3.5.27
+   imagePullPolicy: IfNotPresent
+   volumeMounts: - name: proxy-config
+   mountPath: /etc/squid
+   readOnly: true
+   EOF
+   {{< /text >}}
 
-1. 在 `external` 命名空间中部署 [curl]({{< github_tree >}}/samples/curl) 示例，以测试到代理的通信量，
-   而不进行 Istio 流量控制。
+1. `external` 名前空間に [curl]({{< github_tree >}}/samples/curl) サンプルをデプロイし、プロキシ経由の通信をテストします（Istio のトラフィック制御は行われません）。
 
-    {{< text bash >}}
-    $ kubectl apply -n external -f @samples/curl/curl.yaml@
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -n external -f @samples/curl/curl.yaml@
+   {{< /text >}}
 
-1. 获取代理 Pod 的 IP 地址并定义 `PROXY_IP` 环境变量来存储它：
+1. プロキシ Pod の IP アドレスを取得し、`PROXY_IP` 環境変数に格納します：
 
-    {{< text bash >}}
-    $ export PROXY_IP=$(kubectl get pod -n external -l app=squid -o jsonpath={.items..podIP})
-    {{< /text >}}
+   {{< text bash >}}
+   $ export PROXY_IP=$(kubectl get pod -n external -l app=squid -o jsonpath={.items..podIP})
+   {{< /text >}}
 
-1. 定义 `PROXY_PORT` 环境变量以存储代理的端口。本例子中 Squid 使用 3128 端口。
+1. プロキシのポート番号（この例では 3128）を `PROXY_PORT` 環境変数に格納します。
 
-    {{< text bash >}}
-    $ export PROXY_PORT=3128
-    {{< /text >}}
+   {{< text bash >}}
+   $ export PROXY_PORT=3128
+   {{< /text >}}
 
-1. 从 `external` 命名空间中的 curl Pod 通过代理向外部服务发送请求：
+1. `external` 名前空間の curl Pod からプロキシ経由で外部サービスにリクエストを送信します：
 
-    {{< text bash >}}
-    $ kubectl exec -it $(kubectl get pod -n external -l app=curl -o jsonpath={.items..metadata.name}) -n external -- sh -c "HTTPS_PROXY=$PROXY_IP:$PROXY_PORT curl https://en.wikipedia.org/wiki/Main_Page" | grep -o "<title>.*</title>"
-    <title>Wikipedia, the free encyclopedia</title>
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl exec -it $(kubectl get pod -n external -l app=curl -o jsonpath={.items..metadata.name}) -n external -- sh -c "HTTPS_PROXY=$PROXY_IP:$PROXY_PORT curl https://en.wikipedia.org/wiki/Main_Page" | grep -o "<title>.\*</title>"
+   <title>Wikipedia, the free encyclopedia</title>
+   {{< /text >}}
 
-1. 检查您请求的代理的访问日志：
+1. プロキシのアクセスログを確認します：
 
-    {{< text bash >}}
-    $ kubectl exec -it $(kubectl get pod -n external -l app=squid -o jsonpath={.items..metadata.name}) -n external -- tail -f /var/log/squid/access.log
-    1544160065.248    228 172.30.109.89 TCP_TUNNEL/200 87633 CONNECT en.wikipedia.org:443 - HIER_DIRECT/91.198.174.192 -
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl exec -it $(kubectl get pod -n external -l app=squid -o jsonpath={.items..metadata.name}) -n external -- tail -f /var/log/squid/access.log
+   1544160065.248 228 172.30.109.89 TCP_TUNNEL/200 87633 CONNECT en.wikipedia.org:443 - HIER_DIRECT/91.198.174.192 -
+   {{< /text >}}
 
-现在，您在没有 Istio 的情况下完成了以下任务：
+これで Istio を使わずに以下のことができました：
 
-* 您部署了 HTTPS 代理。
-* 您使用 curl 通过代理访问 wikipedia.org 外部服务。
+- HTTPS プロキシをデプロイした
+- curl でプロキシ経由で wikipedia.org へアクセスした
 
-下一步，您必须配置 Istio 启用的 Pod 的流量到 HTTPS 代理。
+次に、Istio 対応 Pod のトラフィックを HTTPS プロキシ経由に構成します。
 
-## 配置流量到外部 HTTPS 代理  {#configure-traffic-to-external-https-proxy}
+## 外部 HTTPS プロキシへのトラフィック構成 {#configure-traffic-to-external-https-proxy}
 
-1. 为 HTTPS 代理定义 TCP（不是 HTTP！）服务入口。尽管应用程序使用 HTTP CONNECT 方法与
-   HTTPS 代理建立连接，但必须为 TCP 通信而不是 HTTP 通信配置代理。一旦建立了连接，代理就简单地充当 TCP 隧道。
+1. HTTPS プロキシ用の TCP（HTTP ではありません！）ServiceEntry を定義します。アプリケーションは HTTP CONNECT で HTTPS プロキシと接続しますが、通信自体は TCP なので HTTP ではなく TCP で構成する必要があります。接続確立後、プロキシは単なる TCP トンネルとして動作します。
 
-    {{< text bash >}}
-    $ kubectl apply -f - <<EOF
-    apiVersion: networking.istio.io/v1
-    kind: ServiceEntry
-    metadata:
-      name: proxy
-    spec:
-      hosts:
-      - my-company-proxy.com # ignored
-      addresses:
-      - $PROXY_IP/32
-      ports:
-      - number: $PROXY_PORT
-        name: tcp
-        protocol: TCP
-      location: MESH_EXTERNAL
-      resolution: NONE
-    EOF
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f - <<EOF
+   apiVersion: networking.istio.io/v1
+   kind: ServiceEntry
+   metadata:
+   name: proxy
+   spec:
+   hosts:
 
-1. 从 `external` 命名空间中的 curl Pod 发送请求。因为 curl Pod 有 Sidecar，可以让 Istio 控制其流量。
+   - my-company-proxy.com # 無視されます
+     addresses:
+   - $PROXY_IP/32
+     ports:
+   - number: $PROXY_PORT
+     name: tcp
+     protocol: TCP
+     location: MESH_EXTERNAL
+     resolution: NONE
+     EOF
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec -it $SOURCE_POD -c curl -- sh -c "HTTPS_PROXY=$PROXY_IP:$PROXY_PORT curl https://en.wikipedia.org/wiki/Main_Page" | grep -o "<title>.*</title>"
-    <title>Wikipedia, the free encyclopedia</title>
-    {{< /text >}}
+1. `external` 名前空間の curl Pod からリクエストを送信します。curl Pod には Sidecar があるため、Istio でトラフィックを制御できます。
 
-1. 查看您的请求的 Istio Sidecar 代理的日志：
+   {{< text bash >}}
+   $ kubectl exec -it $SOURCE_POD -c curl -- sh -c "HTTPS_PROXY=$PROXY_IP:$PROXY_PORT curl https://en.wikipedia.org/wiki/Main_Page" | grep -o "<title>.\*</title>"
+   <title>Wikipedia, the free encyclopedia</title>
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl logs $SOURCE_POD -c istio-proxy
-    [2018-12-07T10:38:02.841Z] "- - -" 0 - 702 87599 92 - "-" "-" "-" "-" "172.30.109.95:3128" outbound|3128||my-company-proxy.com 172.30.230.52:44478 172.30.109.95:3128 172.30.230.52:44476 -
-    {{< /text >}}
+1. Istio Sidecar プロキシのログを確認します：
 
-1. 查看您请求的代理的访问日志：
+   {{< text bash >}}
+   $ kubectl logs $SOURCE_POD -c istio-proxy
+   [2018-12-07T10:38:02.841Z] "- - -" 0 - 702 87599 92 - "-" "-" "-" "-" "172.30.109.95:3128" outbound|3128||my-company-proxy.com 172.30.230.52:44478 172.30.109.95:3128 172.30.230.52:44476 -
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl exec -it $(kubectl get pod -n external -l app=squid -o jsonpath={.items..metadata.name}) -n external -- tail -f /var/log/squid/access.log
-    1544160065.248    228 172.30.109.89 TCP_TUNNEL/200 87633 CONNECT en.wikipedia.org:443 - HIER_DIRECT/91.198.174.192 -
-    {{< /text >}}
+1. プロキシのアクセスログを確認します：
 
-## 理解原理  {#understanding-what-happened}
+   {{< text bash >}}
+   $ kubectl exec -it $(kubectl get pod -n external -l app=squid -o jsonpath={.items..metadata.name}) -n external -- tail -f /var/log/squid/access.log
+   1544160065.248 228 172.30.109.89 TCP_TUNNEL/200 87633 CONNECT en.wikipedia.org:443 - HIER_DIRECT/91.198.174.192 -
+   {{< /text >}}
 
-在本例中，您采取了以下步骤：
+## 仕組みの理解 {#understanding-what-happened}
 
-1. 部署了一个 HTTPS 代理来模拟外部代理。
-1. 创建了一个 TCP 服务入口，用来将 Istio 控制的流量引导到外部代理。
+この例では、次の手順を実施しました：
 
-请注意，您不能为通过外部代理访问的外部服务创建服务入口，例如 wikipedia.org。
-这是因为从 Istio 的角度来看，请求只发送到外部代理；Istio 并不知道外部代理会进一步转发请求。
+1. 外部プロキシを模擬するため HTTPS プロキシをデプロイ
+1. Istio で制御するトラフィックを外部プロキシに誘導するため TCP ServiceEntry を作成
 
-## 清理  {#cleanup}
+注意：外部プロキシ経由でアクセスする外部サービス（例：wikipedia.org）に対して ServiceEntry を作成することはできません。Istio から見るとリクエストは外部プロキシにしか送信されず、プロキシがその先にリクエストを転送することは Istio からは見えないためです。
 
-1. 关闭 [curl]({{< github_tree >}}/samples/curl) 服务：
+## クリーンアップ {#cleanup}
 
-    {{< text bash >}}
-    $ kubectl delete -f @samples/curl/curl.yaml@
-    {{< /text >}}
+1. [curl]({{< github_tree >}}/samples/curl) サービスを削除します：
 
-1. 关闭 `external` 命名空间中的 [curl]({{< github_tree >}}/samples/curl) 服务：
+   {{< text bash >}}
+   $ kubectl delete -f @samples/curl/curl.yaml@
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete -f @samples/curl/curl.yaml@ -n external
-    {{< /text >}}
+1. `external` 名前空間の [curl]({{< github_tree >}}/samples/curl) サービスを削除します：
 
-1. 关闭 Squid 代理，删除 ConfigMap 和配置文件：
+   {{< text bash >}}
+   $ kubectl delete -f @samples/curl/curl.yaml@ -n external
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete -n external deployment squid
-    $ kubectl delete -n external configmap proxy-configmap
-    $ rm ./proxy.conf
-    {{< /text >}}
+1. Squid プロキシを停止し、ConfigMap と設定ファイルを削除します：
 
-1. 删除 `external` 命名空间：
+   {{< text bash >}}
+   $ kubectl delete -n external deployment squid
+   $ kubectl delete -n external configmap proxy-configmap
+   $ rm ./proxy.conf
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete namespace external
-    {{< /text >}}
+1. `external` 名前空間を削除します：
 
-1. 删除 Service Entry：
+   {{< text bash >}}
+   $ kubectl delete namespace external
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl delete serviceentry proxy
-    {{< /text >}}
+1. Service Entry を削除します：
+
+   {{< text bash >}}
+   $ kubectl delete serviceentry proxy
+   {{< /text >}}

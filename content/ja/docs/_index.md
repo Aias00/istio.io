@@ -1,7 +1,7 @@
 ---
-title: 文档
-linktitle: 文档
-description: 了解如何部署、使用和运维 Istio。
+title: ドキュメント
+linktitle: ドキュメント
+description: Istio のデプロイ、利用、運用方法について学びます。
 weight: 1
 skip_toc: true
 skip_sidebar: true
@@ -9,8 +9,8 @@ test: table-of-contents
 doc_type: docs
 ---
 
-另外，除了上面的文档链接，我们还提供了以下资源：
+また、上記のドキュメントリンクに加えて、以下のリソースも提供しています：
 
-- [FAQ](/zh/about/faq)
-- [词汇表](/zh/docs/reference/glossary)。
-- [文档归档](https://istio.io/archive/)中包括了历史版本的快照。
+- [FAQ](/ja/about/faq)
+- [用語集](/ja/docs/reference/glossary)
+- [ドキュメントアーカイブ](https://istio.io/archive/) には過去バージョンのスナップショットが含まれています。

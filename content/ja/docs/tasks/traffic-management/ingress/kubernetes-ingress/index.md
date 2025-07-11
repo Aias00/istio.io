@@ -1,71 +1,68 @@
 ---
 title: Kubernetes Ingress
-description: 展示如何配置 Kubernetes Ingress 对象，使得从服务网格外部可以访问网格内服务。
+description: Kubernetes Ingress オブジェクトを構成して、サービスメッシュ外部からメッシュ内サービスへアクセスする方法を示します。
 weight: 40
-keywords: [traffic-management,ingress]
+keywords: [traffic-management, ingress]
 owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-此任务描述如何使用 [Kubernetes Ingress](https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/)
-为 Istio 配置入口网关以暴露服务网格集群内的服务。
+このタスクでは、[Kubernetes Ingress](https://kubernetes.io/ja/docs/concepts/services-networking/ingress/) を使って、Istio でサービスメッシュクラスタ内のサービスを外部に公開するためのエントリーゲートウェイを構成する方法を説明します。
 
 {{< tip >}}
-建议使用 [Gateway](/zh/docs/tasks/traffic-management/ingress/ingress-control/)
-而不是 Ingress 来利用 Istio 提供的完整功能集，例如丰富的流量管理和安全功能。
+Istio の豊富なトラフィック管理やセキュリティ機能を活用するには、Ingress よりも [Gateway](/ja/docs/tasks/traffic-management/ingress/ingress-control/) の利用を推奨します。
 {{< /tip >}}
 
-## 准备工作 {#before-you-begin}
+## 準備 {#before-you-begin}
 
-请按照[入口网关任务](/zh/docs/tasks/traffic-management/ingress/ingress-control/)中的
-[准备工作](/zh/docs/tasks/traffic-management/ingress/ingress-control/#before-you-begin)、
-[确定 Ingress IP 和端口](/zh/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-ip-and-ports)的说明进行操作。
+[エントリーゲートウェイのタスク](/ja/docs/tasks/traffic-management/ingress/ingress-control/)の [準備](/ja/docs/tasks/traffic-management/ingress/ingress-control/#before-you-begin) および [Ingress IP とポートの確認](/ja/docs/tasks/traffic-management/ingress/ingress-control/#determining-the-ingress-ip-and-ports) の手順に従ってください。
 
-## 使用 Ingress 资源配置入口网关 {#configuring-ingress-using-an-ingress-resource}
+## Ingress リソースでエントリーゲートウェイを構成する {#configuring-ingress-using-an-ingress-resource}
 
-[Kubernetes Ingress](https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/)
-公开了从集群外到集群内服务的 HTTP 和 HTTPS 路由。
+[Kubernetes Ingress](https://kubernetes.io/ja/docs/concepts/services-networking/ingress/) は、クラスタ外部からクラスタ内サービスへの HTTP および HTTPS ルーティングを公開します。
 
-让我们看看如何在端口 80 上配置 `Ingress` 以实现 HTTP 流量。
+ここでは、ポート 80 で HTTP トラフィック用に `Ingress` を構成する方法を見てみましょう。
 
-1.  创建 `Ingress` 资源和 `IngressClass`：
+1.  `Ingress` リソースと `IngressClass` を作成します：
 
     {{< text bash >}}
     $ kubectl apply -f - <<EOF
     apiVersion: networking.k8s.io/v1
     kind: IngressClass
     metadata:
-      name: istio
+    name: istio
     spec:
-      controller: istio.io/ingress-controller
-    ---
+    controller: istio.io/ingress-controller
+
+    ***
+
     apiVersion: networking.k8s.io/v1
     kind: Ingress
     metadata:
-      name: ingress
+    name: ingress
     spec:
-      ingressClassName: istio
-      rules:
-      - host: httpbin.example.com
-        http:
-          paths:
-          - path: /status
-            pathType: Prefix
-            backend:
-              service:
-                name: httpbin
-                port:
-                  number: 8000
-    EOF
-    {{< /text >}}
+    ingressClassName: istio
+    rules:
 
-    `IngressClass` 资源向 Kubernetes 标识 Istio 网关控制器，
-    `ingressClassName: istio` 值指示 Kubernetes Istio 网关控制器应该处理以下 `Ingress`。
+    - host: httpbin.example.com
+      http:
+      paths: - path: /status
+      pathType: Prefix
+      backend:
+      service:
+      name: httpbin
+      port:
+      number: 8000
+      EOF
+      {{< /text >}}
 
-    旧版本的 Ingress API 使用 `kubernetes.io/ingress.class` 注解，
-    虽然它仍然有效，但[它在 Kubernetes 中已被弃用](https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/#deprecated-annotation)一段时间了。
+    `IngressClass` リソースは Kubernetes に Istio ゲートウェイコントローラーを示し、
+    `ingressClassName: istio` の値は Kubernetes に Istio ゲートウェイコントローラーがこの `Ingress` を処理すべきであることを指示します。
 
-1.  使用 **curl** 访问 **httpbin** 服务：
+    古いバージョンの Ingress API では `kubernetes.io/ingress.class` アノテーションが使われていましたが、
+    これは依然として有効ですが [Kubernetes で非推奨](https://kubernetes.io/ja/docs/concepts/services-networking/ingress/#deprecated-annotation) となっています。
+
+1.  **curl** を使って **httpbin** サービスにアクセスします：
 
     {{< text bash >}}
     $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
@@ -76,11 +73,10 @@ test: yes
     ...
     {{< /text >}}
 
-    注意，您需要使用 `-H` 标志将 **Host** 的 HTTP 头设置为 "httpbin.example.com"，
-    因为 `Ingress` 中已经配置为处理访问 "httpbin.example.com" 的请求，但是在测试环境中，
-    该 host 并没有相应的 DNS 绑定。
+    `-H` フラグで **Host** HTTP ヘッダーを "httpbin.example.com" に設定する必要があります。
+    これは `Ingress` で "httpbin.example.com" へのリクエストを処理するよう構成されているためですが、テスト環境ではこのホストに DNS バインドがないためです。
 
-1.  访问未显式公开的其他 URL 时，将返回 HTTP 404 错误：
+1.  明示的に公開されていない他の URL にアクセスすると、HTTP 404 エラーが返されます：
 
     {{< text bash >}}
     $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/headers"
@@ -88,24 +84,23 @@ test: yes
     ...
     {{< /text >}}
 
-## 下一步 {#next-steps}
+## 次のステップ {#next-steps}
 
 ### TLS {#TLS}
 
-`Ingress` 支持[指定 TLS 设置](https://kubernetes.io/zh-cn/docs/concepts/services-networking/ingress/#tls)。
-Istio 支持此功能，但是引用的 `Secret` 必须存在于 `istio-ingressgateway` 部署的命名空间（通常是 `istio-system`）中。
-[cert-manager](/zh/docs/ops/integrations/certmanager/) 可用于生成这些证书。
+`Ingress` は [TLS 設定の指定](https://kubernetes.io/ja/docs/concepts/services-networking/ingress/#tls) をサポートしています。
+Istio もこの機能をサポートしていますが、参照される `Secret` は `istio-ingressgateway` がデプロイされている名前空間（通常は `istio-system`）に存在する必要があります。
+[cert-manager](/ja/docs/ops/integrations/certmanager/) を使ってこれらの証明書を生成できます。
 
-### 指定路径类型 {#specifying-path-type}
+### パスタイプの指定 {#specifying-path-type}
 
-Istio 默认路径类型为精确匹配，除非路径以 `/*` 或 `.*` 结尾，在这种情况下，
-路径类型为前缀匹配。不支持其他正则表达式。
+Istio のデフォルトのパスタイプは厳密一致ですが、パスが `/*` または `.*` で終わる場合はプレフィックス一致となります。他の正規表現はサポートされていません。
 
-在 Kubernetes 1.18 中，添加了一个新字段 `pathType`。这允许将路径明确声明为 `Exact` 或 `Prefix`。
+Kubernetes 1.18 で新しいフィールド `pathType` が追加されました。これにより、パスを明示的に `Exact` または `Prefix` として宣言できます。
 
-## 清除 {#cleanup}
+## クリーンアップ {#cleanup}
 
-删除 `IngressClass` 和 `Ingress` 配置，然后关闭 [httpbin]({{< github_tree >}}/samples/httpbin) 服务：
+`IngressClass` と `Ingress` の構成を削除し、[httpbin]({{< github_tree >}}/samples/httpbin) サービスを停止します：
 
 {{< text bash >}}
 $ kubectl delete ingress ingress

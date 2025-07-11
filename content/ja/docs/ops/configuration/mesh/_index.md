@@ -1,7 +1,7 @@
 ---
-title: 网格配置
-description: 帮助您管理全局网格配置。
+title: メッシュ設定
+description: グローバルなメッシュ設定の管理をサポートします。
 weight: 10
-keywords: [ops,mesh]
+keywords: [ops, mesh]
 test: n/a
 ---

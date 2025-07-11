@@ -1,15 +1,15 @@
 ---
-title: 平台安装
-description: 在安装 Istio 之前如何准备各种 Kubernetes 平台。
+title: プラットフォームインストール
+description: Istio をインストールする前に各種 Kubernetes プラットフォームを準備する方法。
 weight: 10
 aliases:
-    - /zh/docs/setup/kubernetes/platform-setup/
+  - /zh/docs/setup/kubernetes/platform-setup/
 keywords: [platform-setup]
 test: table-of-contents
 ---
 
 {{< tip >}}
-Istio {{< istio_version >}} 支持以下这些
-[Kubernetes 版本](/zh/docs/releases/supported-releases#support-status-of-istio-releases)：
+Istio {{< istio_version >}} は以下の
+[Kubernetes バージョン](/ja/docs/releases/supported-releases#support-status-of-istio-releases) をサポートしています：
 {{< supported_kubernetes_versions >}}。
 {{< /tip >}}

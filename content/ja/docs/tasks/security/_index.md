@@ -1,9 +1,9 @@
 ---
-title: 安全
-description: 演示如何保护网格。
+title: セキュリティ
+description: メッシュを保護する方法を紹介します。
 weight: 19
 aliases:
-    - /zh/docs/tasks/istio-auth.html
-    - /zh/docs/tasks/security/authz-permissive
+  - /zh/docs/tasks/istio-auth.html
+  - /zh/docs/tasks/security/authz-permissive
 test: table-of-contents
 ---

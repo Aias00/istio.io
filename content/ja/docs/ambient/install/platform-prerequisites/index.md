@@ -1,55 +1,50 @@
 ---
-title: 平台特定的前提条件
-description: 安装 Ambient 模式的 Istio 时平台特定的前提条件。
+title: プラットフォーム固有の前提条件
+description: Ambient モードの Istio をインストールする際のプラットフォーム固有の前提条件。
 weight: 2
 aliases:
-  - /zh/docs/ops/ambient/install/platform-prerequisites
-  - /zh/latest/docs/ops/ambient/install/platform-prerequisites
+  - /ja/docs/ops/ambient/install/platform-prerequisites
+  - /ja/latest/docs/ops/ambient/install/platform-prerequisites
 owner: istio/wg-environments-maintainers
 test: no
 ---
 
-本文档涵盖了安装 Ambient 模式的 Istio 时各类平台或环境特定的前提条件。
+本ドキュメントでは、Ambient モードの Istio をインストールする際の各種プラットフォームや環境固有の前提条件について説明します。
 
-## 平台 {#platform}
+## プラットフォーム {#platform}
 
-某些 Kubernetes 环境需要您设置各种配置选项才能支持 Istio。
+一部の Kubernetes 環境では、Istio をサポートするためにさまざまな設定オプションを構成する必要があります。
 
 ### Google Kubernetes Engine（GKE） {#google-kubernetes-engine-gke}
 
-#### 命名空间限制 {#namespace-restrictions}
+#### ネームスペースの制限 {#namespace-restrictions}
 
-在 GKE 上，任何具有 [system-node-critical](https://kubernetes.io/zh-cn/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/)
-`priorityClassName` 的 Pod 只能安装在定义了
-[ResourceQuota](https://kubernetes.io/zh-cn/docs/concepts/policy/resource-quotas/) 的命名空间中。
-默认情况下，在 GKE 中，只有 `kube-system` 为 `node-critical` 类定义了 ResourceQuota。
-Istio CNI 节点代理和 `ztunnel` 都需要 `node-critical` 类，
-因此在 GKE 中，两个组件都必须满足以下任一条件：
+GKE では、[system-node-critical](https://kubernetes.io/ja/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/) `priorityClassName` を持つ Pod は、
+[ResourceQuota](https://kubernetes.io/ja/docs/concepts/policy/resource-quotas/) が定義されたネームスペースにのみインストールできます。
+デフォルトでは、GKE では `kube-system` のみが `node-critical` クラスの ResourceQuota を定義しています。
+Istio CNI ノードエージェントと `ztunnel` の両方が `node-critical` クラスを必要とするため、GKE では次のいずれかの条件を満たす必要があります：
 
-- 安装到 `kube-system`（**不是** `istio-system`）
-- 安装到另一个已手动创建 ResourceQuota 的命名空间（如 `istio-system`），例如：
+- `kube-system`（**`istio-system` ではありません**）にインストールする
+- 手動で ResourceQuota を作成した別のネームスペース（例：`istio-system`）にインストールする。例：
 
 {{< text syntax=yaml >}}
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: gcp-critical-pods
-  namespace: istio-system
+name: gcp-critical-pods
+namespace: istio-system
 spec:
-  hard:
-    pods: 1000
-  scopeSelector:
-    matchExpressions:
-    - operator: In
-      scopeName: PriorityClass
-      values:
-      - system-node-critical
+hard:
+pods: 1000
+scopeSelector:
+matchExpressions: - operator: In
+scopeName: PriorityClass
+values: - system-node-critical
 {{< /text >}}
 
-#### 平台配置文件 {#platform-profile}
+#### プラットフォームプロファイル {#platform-profile}
 
-使用 GKE 时，您必须将正确的 `platform` 值附加到安装命令中，
-因为 GKE 对 CNI 二进制文件使用非标准位置，这需要 Helm 覆盖。
+GKE を使用する場合、CNI バイナリの非標準パスのため、インストールコマンドに正しい `platform` 値を追加し、Helm のオーバーライドが必要です。
 
 {{< tabset category-name="install-method" >}}
 
@@ -73,40 +68,38 @@ spec:
 
 ### Amazon Elastic Kubernetes Service（EKS） {#amazon-elastic-kubernetes-service-EKS}
 
-如果您使用 EKS：
+EKS を使用している場合：
 
-- 使用亚马逊的 VPC CNI
-- 启用 Pod ENI 中继
-- **并且**您正在通过 [SecurityGroupPolicy](https://aws.github.io/aws-eks-best-practices/networking/sgpp/#enforcing-mode-use-strict-mode-for-isolating-pod-and-node-traffic)
-  使用 EKS Pod 附加的安全组
+- Amazon の VPC CNI を使用している
+- Pod ENI リレーを有効にしている
+- **かつ** [SecurityGroupPolicy](https://aws.github.io/aws-eks-best-practices/networking/sgpp/#enforcing-mode-use-strict-mode-for-isolating-pod-and-node-traffic) を使って EKS Pod にセキュリティグループを割り当てている
 
-[`POD_SECURITY_GROUP_ENFORCING_MODE` 必须明确设置为 `standard`](https://github.com/aws/amazon-vpc-cni-k8s/blob/master/README.md#pod_security_group_enforcing_mode-v1110)，
-否则 Pod 运行状况探测将失败。这是因为 Istio 使用链路本地 SNAT 地址来识别 kubelet 运行状况探测，
-而 VPC CNI 当前在 Pod 安全组 `strict` 模式下错误路由链路本地数据包。
-明确将链路本地地址的 CIDR 排除添加到您的安全组将不起作用，
-因为 VPC CNI 的 Pod 安全组模式通过静默路由链路之间的流量来工作，
-将它们循环通过中继 `Pod ENI` 以实施安全组策略。
-由于[链路本地流量无法跨链路路由](https://datatracker.ietf.org/doc/html/rfc3927#section-2.6.2)，
-Pod 安全组功能无法将策略强制应用于它们，这是设计约束，并且在 `strict` 模式下会丢弃数据包。
+[`POD_SECURITY_GROUP_ENFORCING_MODE` を明示的に `standard` に設定する必要があります](https://github.com/aws/amazon-vpc-cni-k8s/blob/master/README.md#pod_security_group_enforcing_mode-v1110)。
+そうしないと Pod のヘルスチェックが失敗します。これは、Istio が kubelet のヘルスチェックを識別するためにリンクローカル SNAT アドレスを使用しており、
+VPC CNI が Pod セキュリティグループの `strict` モードでリンクローカルパケットを誤ってルーティングするためです。
+リンクローカルアドレスの CIDR 除外をセキュリティグループに追加しても効果はありません。
+VPC CNI の Pod セキュリティグループモードは、リレー Pod ENI を経由してトラフィックをルーティングし、
+セキュリティグループポリシーを適用するため、
+[リンクローカルトラフィックはリンクをまたいでルーティングできません](https://datatracker.ietf.org/doc/html/rfc3927#section-2.6.2)。
+このため、Pod セキュリティグループ機能はこれらのトラフィックにポリシーを適用できず、`strict` モードではパケットが破棄されます。
 
-[VPC CNI 组件上有一个未解决的问题](https://github.com/aws/amazon-vpc-cni-k8s/issues/2797)针对此限制。
-如果您使用 Pod 安全组，VPC CNI 团队目前的建议是禁用 `strict` 模式来解决此问题，
-或者为您的 Pod 使用基于 `exec` 的 Kubernetes 探测器，而不是基于 kubelet 的探测器。
+[VPC CNI コンポーネントには未解決の問題があります](https://github.com/aws/amazon-vpc-cni-k8s/issues/2797)。
+Pod セキュリティグループを使用している場合、VPC CNI チームの現時点での推奨は `strict` モードを無効にするか、
+Pod で kubelet ベースではなく exec ベースの Kubernetes プローブを使用することです。
 
-您可以通过运行以下命令来检查是否启用了 Pod ENI 中继：
+Pod ENI リレーが有効かどうかは、次のコマンドで確認できます：
 
 {{< text syntax=bash >}}
 $ kubectl set env daemonset aws-node -n kube-system --list | grep ENABLE_POD_ENI
 {{< /text >}}
 
-您可以通过运行以下命令来检查集群中是否有任何附加 Pod 的安全组：
+クラスター内に Pod に割り当てられたセキュリティグループがあるかどうかは、次のコマンドで確認できます：
 
 {{< text syntax=bash >}}
 $ kubectl get securitygrouppolicies.vpcresources.k8s.aws
 {{< /text >}}
 
-您可以通过运行以下命令设置  `POD_SECURITY_GROUP_ENFORCING_MODE=standard`，
-并回收受影响的 Pod：
+`POD_SECURITY_GROUP_ENFORCING_MODE=standard` を設定し、影響を受ける Pod を再起動するには、次のコマンドを実行します：
 
 {{< text syntax=bash >}}
 $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING_MODE=standard
@@ -114,17 +107,16 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 ### k3d
 
-当使用 [k3d](https://k3d.io/) 与默认的 Flannel CNI 时，
-您必须将正确的 `platform` 值附加到安装命令中，
-因为 k3d 使用非标准位置进行 CNI 配置和二进制文件，这需要一些 Helm 覆盖。
+[k3d](https://k3d.io/) とデフォルトの Flannel CNI を使用する場合、
+CNI 設定やバイナリのパスが非標準のため、インストールコマンドに正しい `platform` 値を追加し、Helm のオーバーライドが必要です。
 
-1. 创建一个禁用 Traefik 的集群，以免与 Istio 的入口网关冲突：
+1.  Traefik を無効化したクラスターを作成し、Istio のイングレスゲートウェイと競合しないようにします：
 
     {{< text bash >}}
-    $ k3d cluster create --api-port 6550 -p '9080:80@loadbalancer' -p '9443:443@loadbalancer' --agents 2 --k3s-arg '--disable=traefik@server:*'
+    $ k3d cluster create --api-port 6550 -p '9080:80@loadbalancer' -p '9443:443@loadbalancer' --agents 2 --k3s-arg '--disable=traefik@server:\*'
     {{< /text >}}
 
-1. 安装 Istio Chart 时设置 `global.platform=k3d`。例如：
+1.  Istio Chart をインストールする際に `global.platform=k3d` を指定します。例：
 
     {{< tabset category-name="install-method" >}}
 
@@ -148,10 +140,9 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 ### K3s
 
-使用 [K3s](https://k3s.io/) 及其绑定的 CNI 之一时，
-您必须将正确的 `platform` 值附加到安装命令中，
-因为 K3s 对 CNI 配置和二进制文件使用非标准位置，这需要一些 Helm 覆盖。
-对于默认的 K3s 路径，Istio 根据 `global.platform` 值提供内置覆盖。
+[K3s](https://k3s.io/) およびバンドルされている CNI のいずれかを使用する場合、
+CNI 設定やバイナリのパスが非標準のため、インストールコマンドに正しい `platform` 値を追加し、Helm のオーバーライドが必要です。
+K3s のデフォルトパスについては、Istio は `global.platform` の値に応じた組み込みオーバーライドを提供しています。
 
 {{< tabset category-name="install-method" >}}
 
@@ -173,9 +164,10 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 {{< /tabset >}}
 
-但是，根据 K3s 文档，这些位置可能会在 K3s 中被覆盖。
-如果您将 K3s 与自定义、非捆绑的 CNI 一起使用，则必须手动为这些 CNI 指定正确的路径，
-比如 `/etc/cni/net.d` - [有关详细信息，请参阅 K3s 文档](https://docs.k3s.io/zh/networking/basic-network-options#custom-cni)。例如：
+ただし、K3s のドキュメントによると、これらのパスは K3s で上書きされる場合があります。
+K3s でカスタムまたはバンドルされていない CNI を使用する場合は、
+CNI の正しいパス（例：`/etc/cni/net.d`）を手動で指定する必要があります。
+[詳細は K3s ドキュメントを参照](https://docs.k3s.io/ja/networking/basic-network-options#custom-cni)。例：
 
 {{< tabset category-name="install-method" >}}
 
@@ -199,9 +191,9 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 ### MicroK8s
 
-如果您要在 [MicroK8s](https://microk8s.io/) 上安装 Istio，
-则必须在安装命令中附加正确的 `platform` 值，
-因为 MicroK8s [使用非标准位置来存放 CNI 配置和二进制文件](https://microk8s.io/docs/change-cidr)。例如：
+[MicroK8s](https://microk8s.io/) で Istio をインストールする場合、
+インストールコマンドに正しい `platform` 値を追加する必要があります。
+MicroK8s は [CNI 設定やバイナリのパスが非標準](https://microk8s.io/docs/change-cidr) です。例：
 
 {{< tabset category-name="install-method" >}}
 
@@ -226,10 +218,8 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 ### minikube
 
-如果您正在使用 [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
-和 [Docker 驱动程序](https://minikube.sigs.k8s.io/docs/drivers/docker/)，
-您必须将正确的 `platform` 值附加到安装命令中，
-因为带有 Docker 的 minikube 使用非标准的容器绑定挂载路径。例如：
+[minikube](https://kubernetes.io/ja/docs/tasks/tools/install-minikube/) と [Docker ドライバー](https://minikube.sigs.k8s.io/docs/drivers/docker/) を使用する場合、
+minikube（Docker 利用時）は非標準のコンテナバインドマウントパスを使用するため、インストールコマンドに正しい `platform` 値を追加する必要があります。例：
 
 {{< tabset category-name="install-method" >}}
 
@@ -253,20 +243,20 @@ $ kubectl set env daemonset aws-node -n kube-system POD_SECURITY_GROUP_ENFORCING
 
 ### Red Hat OpenShift {#red-hat-openshift}
 
-OpenShift 要求在 `kube-system` 命名空间中安装 `ztunnel` 和 `istio-cni` 组件，
-并且要求为所有 Chart 设置 `global.platform=openshift`。
+OpenShift では、`ztunnel` および `istio-cni` コンポーネントを `kube-system` ネームスペースにインストールし、
+すべてのチャートで `global.platform=openshift` を設定する必要があります。
 
 {{< tabset category-name="install-method" >}}
 
 {{< tab name="Helm" category-value="helm" >}}
 
-    您必须为安装的**每个** Chart 并设置 `--set global.platform=openshift`，例如 `istiod` Chart：
+    インストールする**すべての**チャートで `--set global.platform=openshift` を指定してください。例：`istiod` チャート：
 
     {{< text syntax=bash >}}
     $ helm install istiod istio/istiod -n istio-system --set profile=ambient --set global.platform=openshift --wait
     {{< /text >}}
 
-    此外，必须在 `kube-system` 命名空间中安装 `istio-cni` 和 `ztunnel`，例如：
+    また、`istio-cni` と `ztunnel` は `kube-system` ネームスペースにインストールしてください。例：
 
     {{< text syntax=bash >}}
     $ helm install istio-cni istio/cni -n kube-system --set profile=ambient --set global.platform=openshift --wait
@@ -285,46 +275,44 @@ OpenShift 要求在 `kube-system` 命名空间中安装 `ztunnel` 和 `istio-cni
 
 {{< /tabset >}}
 
-## CNI 插件 {#cni-plugins}
+## CNI プラグイン {#cni-plugins}
 
-当使用某些 {{< gloss "CNI" >}}CNI 插件{{< /gloss >}}时，以下配置适用于所有平台：
+一部の {{< gloss "CNI" >}}CNI プラグイン{{< /gloss >}} を使用する場合、以下の設定はすべてのプラットフォームに適用されます：
 
 ### Cilium
 
-1. Cilium 目前默认会主动删除其他 CNI 插件及其配置，
-   并且必须配置 `cni.exclusive = false` 才能正确支持链式。
-   更多细节请参阅 [Cilium 文档](https://docs.cilium.io/en/stable/helm-reference/)。
-1. Cilium 的 BPF 伪装目前默认处于禁用状态，
-   并且在 Istio 使用本地链路 IP 进行 Kubernetes 健康检查时存在问题。
-   目前不支持通过 `bpf.masquerade=true` 启用 BPF 伪装，
-   这会导致 Istio Ambient 中的 Pod 健康检查无法正常工作。
-   Cilium 的默认 iptables 伪装实现应该可以继续正常运行。
-1. 由于 Cilium 管理节点身份的方式以及在内部将节点级健康探针列入 Pod
-   的白名单的方式，在 Ambient 模式下在 Istio 底层的 Cilium CNI
-   安装中应用任何默认 DENY `NetworkPolicy` 都将导致 `kubelet`
-   健康探测（默认情况下 Cilium 会默默地免除所有策略实施）被阻止。
-   这是因为 Istio 对于 kubelet 健康探测使用 Cilium 无法识别的链路本地 SNAT 地址，
-   并且 Cilium 没有免除链路本地地址执行策略的选项。
+1. Cilium はデフォルトで他の CNI プラグインやその設定を積極的に削除します。
+   チェーン利用を正しくサポートするには `cni.exclusive = false` を設定してください。
+   詳細は [Cilium ドキュメント](https://docs.cilium.io/ja/stable/helm-reference/) を参照してください。
+1. Cilium の BPF マスカレードは現在デフォルトで無効になっており、
+   Istio がローカルリンク IP を使って Kubernetes のヘルスチェックを行う場合に問題があります。
+   `bpf.masquerade=true` で BPF マスカレードを有効にすることは現在サポートされていません。
+   これにより Istio Ambient の Pod ヘルスチェックが正しく動作しなくなります。
+   Cilium のデフォルトの iptables マスカレード実装は引き続き動作します。
+1. Cilium がノード ID の管理やノードレベルのヘルスプローブを Pod のホワイトリストに追加する方法のため、
+   Ambient モードで Cilium CNI を使う場合、デフォルト DENY の `NetworkPolicy` を適用すると kubelet のヘルスチェック（Cilium はデフォルトで全てのポリシー適用を黙認）
+   がブロックされます。これは、Istio が kubelet のヘルスチェックに Cilium で認識できないリンクローカル SNAT アドレスを使い、
+   Cilium にはリンクローカルアドレスをポリシー適用から除外するオプションがないためです。
 
-    这可以通过应用以下 `CiliumClusterWideNetworkPolicy` 来解决：
+   以下の `CiliumClusterWideNetworkPolicy` を適用することで解決できます：
 
-    {{< text syntax=yaml >}}
-    apiVersion: "cilium.io/v2"
-    kind: CiliumClusterwideNetworkPolicy
-    metadata:
-      name: "allow-ambient-hostprobes"
-    spec:
-      description: "Allows SNAT-ed kubelet health check probes into ambient pods"
-      enableDefaultDeny:
-        egress: false
-        ingress: false
-      endpointSelector: {}
-      ingress:
-      - fromCIDR:
-        - "169.254.7.127/32"
-    {{< /text >}}
+   {{< text syntax=yaml >}}
+   apiVersion: "cilium.io/v2"
+   kind: CiliumClusterwideNetworkPolicy
+   metadata:
+   name: "allow-ambient-hostprobes"
+   spec:
+   description: "Allows SNAT-ed kubelet health check probes into ambient pods"
+   enableDefaultDeny:
+   egress: false
+   ingress: false
+   endpointSelector: {}
+   ingress:
 
-    除非您的集群中已经应用了其他默认拒绝的 `NetworkPolicies` 或 `CiliumNetworkPolicies`，否则不需要覆盖此策略。
+   - fromCIDR: - "169.254.7.127/32"
+     {{< /text >}}
 
-    更多细节请参阅 [Issue #49277](https://github.com/istio/istio/issues/49277)
-    和 [CiliumClusterWideNetworkPolicy](https://docs.cilium.io/en/stable/network/kubernetes/policy/#ciliumclusterwidenetworkpolicy)。
+   すでに他のデフォルト拒否の `NetworkPolicies` や `CiliumNetworkPolicies` を適用している場合を除き、このポリシーの上書きは不要です。
+
+   詳細は [Issue #49277](https://github.com/istio/istio/issues/49277)
+   および [CiliumClusterWideNetworkPolicy](https://docs.cilium.io/ja/stable/network/kubernetes/policy/#ciliumclusterwidenetworkpolicy) を参照してください。

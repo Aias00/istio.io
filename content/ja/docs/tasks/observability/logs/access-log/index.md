@@ -1,164 +1,160 @@
 ---
-title: 获取 Envoy 访问日志
-description: 此任务向您展示如何配置 Envoy 代理将访问日志打印到其标准输出。
+title: Envoy アクセスログの取得
+description: このタスクでは、Envoy プロキシがアクセスログを標準出力に出力するように設定する方法を紹介します。
 weight: 10
-keywords: [telemetry,logs]
+keywords: [telemetry, logs]
 aliases:
-    - /zh/docs/tasks/telemetry/access-log
-    - /zh/docs/tasks/telemetry/logs/access-log/
+  - /zh/docs/tasks/telemetry/access-log
+  - /zh/docs/tasks/telemetry/logs/access-log/
 owner: istio/wg-policies-and-telemetry-maintainers
 test: yes
 ---
 
-Istio 最简单的日志类型是
-[Envoy 的访问日志](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage)。
-Envoy 代理打印访问信息到标准输出。Envoy 容器的标准输出能够通过 `kubectl logs` 命令打印出来。
+Istio で最も基本的なログの種類は
+[Envoy のアクセスログ](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage) です。
+Envoy プロキシはアクセス情報を標準出力に出力します。Envoy コンテナの標準出力は `kubectl logs` コマンドで確認できます。
 
 {{< boilerplate before-you-begin-egress >}}
 
 {{< boilerplate start-httpbin-service >}}
 
-## 开启 Envoy 访问日志  {#enable-envoy-s-access-logging}
+## Envoy アクセスログの有効化 {#enable-envoy-s-access-logging}
 
-Istio 提供了几种启用访问日志的方法，建议使用 Telemetry API。
+Istio ではアクセスログを有効化する方法がいくつか用意されており、Telemetry API の利用が推奨されています。
 
-### 使用 Telemetry API  {#using-telemetry-API}
+### Telemetry API を使う {#using-telemetry-API}
 
-Telemetry API 可以开启或关闭访问日志：
+Telemetry API でアクセスログを有効化または無効化できます：
 
 {{< text yaml >}}
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: mesh-default
-  namespace: istio-system
+name: mesh-default
+namespace: istio-system
 spec:
-  accessLogging:
-    - providers:
-      - name: envoy
+accessLogging: - providers: - name: envoy
 {{< /text >}}
 
-上面的示例使用默认的 `envoy` 访问日志提供程序，除了默认设置外，我们没有配置任何其他内容。
+上記の例ではデフォルトの `envoy` アクセスログプロバイダを使用しており、デフォルト設定以外は特に指定していません。
 
-类似的配置也可以应用于单独的命名空间或单独的工作负载，以在细粒度级别控制日志记录。
+同様の設定は個別の名前空間やワークロード単位にも適用でき、きめ細かいログ制御が可能です。
 
-关于使用 Telemetry API 的更多信息，请参见 [Telemetry API 概述](/zh/docs/tasks/observability/telemetry/)。
+Telemetry API の詳細は [Telemetry API 概要](/zh/docs/tasks/observability/telemetry/) をご覧ください。
 
-### 使用网格配置  {#using-mesh-config}
+### メッシュ設定を使う {#using-mesh-config}
 
-如果您使用 `IstioOperator` 配置来安装 Istio，请在您的配置中添加以下字段：
+`IstioOperator` 設定で Istio をインストールする場合、次のフィールドを追加してください：
 
 {{< text yaml >}}
 spec:
-  meshConfig:
-    accessLogFile: /dev/stdout
+meshConfig:
+accessLogFile: /dev/stdout
 {{< /text >}}
 
-或者，在原来的 `istioctl install` 命令中添加相同的设置，例如：
+または、元の `istioctl install` コマンドに同じ設定を追加します。例：
 
 {{< text syntax=bash snip_id=none >}}
 $ istioctl install <flags-you-used-to-install-Istio> --set meshConfig.accessLogFile=/dev/stdout
 {{< /text >}}
 
-您也可以通过设置 `accessLogEncoding` 为 `JSON` 或 `TEXT` 来在两种格式之间切换。
+`accessLogEncoding` を `JSON` または `TEXT` に設定することで、2 つのフォーマットを切り替えることもできます。
 
-您也许希望通过设置 `accessLogFormat`
-来自定义访问日志的[格式](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-rules)。
+また、`accessLogFormat` を設定することで、アクセスログの[フォーマット](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-rules)をカスタマイズできます。
 
-有关所有这三个设置的更多信息，请参阅
-[global mesh options](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig)：
+これら 3 つの設定の詳細は [global mesh options](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig) を参照してください：
 
-* `meshConfig.accessLogFile`
-* `meshConfig.accessLogEncoding`
-* `meshConfig.accessLogFormat`
+- `meshConfig.accessLogFile`
+- `meshConfig.accessLogEncoding`
+- `meshConfig.accessLogFormat`
 
-## 默认访问日志格式  {#default-access-log-format}
+## デフォルトのアクセスログフォーマット {#default-access-log-format}
 
-如果没有指定 `accessLogFormat` Istio 将使用以下默认的访问日志格式：
+`accessLogFormat` を指定しない場合、Istio は次のデフォルトのアクセスログフォーマットを使用します：
 
 {{< text plain >}}
-[%START_TIME%] \"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\" %RESPONSE_CODE% %RESPONSE_FLAGS% %RESPONSE_CODE_DETAILS% %CONNECTION_TERMINATION_DETAILS%
-\"%UPSTREAM_TRANSPORT_FAILURE_REASON%\" %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \"%REQ(X-FORWARDED-FOR)%\" \"%REQ(USER-AGENT)%\" \"%REQ(X-REQUEST-ID)%\"
-\"%REQ(:AUTHORITY)%\" \"%UPSTREAM_HOST%\" %UPSTREAM_CLUSTER_RAW% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n
+[%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%" %RESPONSE_CODE% %RESPONSE_FLAGS% %RESPONSE_CODE_DETAILS% %CONNECTION_TERMINATION_DETAILS%
+"%UPSTREAM_TRANSPORT_FAILURE_REASON%" %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%"
+"%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%" %UPSTREAM_CLUSTER_RAW% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n
 {{< /text >}}
 
-下表显示了一个使用默认的访问日志格式的示例，请求从 `curl` 发送到 `httpbin`：
+下表はデフォルトのアクセスログフォーマットを使った例で、`curl` から `httpbin` へのリクエスト時の出力です：
 
-| 日志运算符                                                       | curl 中的访问日志 | httpbin 中的访问日志 |
-|--------------------------------------------------------------------|--------------------|-----------------------|
-| `[%START_TIME%]`                                                   | `[2020-11-25T21:26:18.409Z]` | `[2020-11-25T21:26:18.409Z]`
-| `\"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\"` | `"GET /status/418 HTTP/1.1"` | `"GET /status/418 HTTP/1.1"`
-| `%RESPONSE_CODE%`                                                  | `418` | `418`
-| `%RESPONSE_FLAGS%`                                                 | `-` | `-`
-| `%RESPONSE_CODE_DETAILS%`                                          | `via_upstream` | `via_upstream`
-| `%CONNECTION_TERMINATION_DETAILS%`                                 | `-` | `-`
-| `\"%UPSTREAM_TRANSPORT_FAILURE_REASON%\"`                          | `"-"` | `"-"`
-| `%BYTES_RECEIVED%`                                                 | `0` | `0`
-| `%BYTES_SENT%`                                                     | `135` | `135`
-| `%DURATION%`                                                       | `4` | `3`
-| `%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`                            | `4` | `1`
-| `\"%REQ(X-FORWARDED-FOR)%\"`                                       | `"-"` | `"-"`
-| `\"%REQ(USER-AGENT)%\"`                                            | `"curl/7.73.0-DEV"` | `"curl/7.73.0-DEV"`
-| `\"%REQ(X-REQUEST-ID)%\"`                                          | `"84961386-6d84-929d-98bd-c5aee93b5c88"` | `"84961386-6d84-929d-98bd-c5aee93b5c88"`
-| `\"%REQ(:AUTHORITY)%\"`                                            | `"httpbin:8000"` | `"httpbin:8000"`
-| `\"%UPSTREAM_HOST%\"`                                              | `"10.44.1.27:80"` | `"127.0.0.1:80"`
-| `%UPSTREAM_CLUSTER_RAW%`                                           | <code>outbound&#124;8000&#124;&#124;httpbin.foo.svc.cluster.local</code> | <code>inbound&#124;8000&#124;&#124;</code>
-| `%UPSTREAM_LOCAL_ADDRESS%`                                         | `10.44.1.23:37652` | `127.0.0.1:41854`
-| `%DOWNSTREAM_LOCAL_ADDRESS%`                                       | `10.0.45.184:8000` | `10.44.1.27:80`
-| `%DOWNSTREAM_REMOTE_ADDRESS%`                                      | `10.44.1.23:46520` | `10.44.1.23:37652`
-| `%REQUESTED_SERVER_NAME%`                                          | `-` | `outbound_.8000_._.httpbin.foo.svc.cluster.local`
-| `%ROUTE_NAME%`                                                     | `default` | `default`
+| ログ演算子                                                       | curl のアクセスログ                                                      | httpbin のアクセスログ                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------- |
+| `[%START_TIME%]`                                                 | `[2020-11-25T21:26:18.409Z]`                                             | `[2020-11-25T21:26:18.409Z]`                      |
+| `"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"` | `"GET /status/418 HTTP/1.1"`                                             | `"GET /status/418 HTTP/1.1"`                      |
+| `%RESPONSE_CODE%`                                                | `418`                                                                    | `418`                                             |
+| `%RESPONSE_FLAGS%`                                               | `-`                                                                      | `-`                                               |
+| `%RESPONSE_CODE_DETAILS%`                                        | `via_upstream`                                                           | `via_upstream`                                    |
+| `%CONNECTION_TERMINATION_DETAILS%`                               | `-`                                                                      | `-`                                               |
+| `"%UPSTREAM_TRANSPORT_FAILURE_REASON%"`                          | `"-"`                                                                    | `"-"`                                             |
+| `%BYTES_RECEIVED%`                                               | `0`                                                                      | `0`                                               |
+| `%BYTES_SENT%`                                                   | `135`                                                                    | `135`                                             |
+| `%DURATION%`                                                     | `4`                                                                      | `3`                                               |
+| `%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`                          | `4`                                                                      | `1`                                               |
+| `"%REQ(X-FORWARDED-FOR)%"`                                       | `"-"`                                                                    | `"-"`                                             |
+| `"%REQ(USER-AGENT)%"`                                            | `"curl/7.73.0-DEV"`                                                      | `"curl/7.73.0-DEV"`                               |
+| `"%REQ(X-REQUEST-ID)%"`                                          | `"84961386-6d84-929d-98bd-c5aee93b5c88"`                                 | `"84961386-6d84-929d-98bd-c5aee93b5c88"`          |
+| `"%REQ(:AUTHORITY)%"`                                            | `"httpbin:8000"`                                                         | `"httpbin:8000"`                                  |
+| `"%UPSTREAM_HOST%"`                                              | `"10.44.1.27:80"`                                                        | `"127.0.0.1:80"`                                  |
+| `%UPSTREAM_CLUSTER_RAW%`                                         | <code>outbound&#124;8000&#124;&#124;httpbin.foo.svc.cluster.local</code> | <code>inbound&#124;8000&#124;&#124;</code>        |
+| `%UPSTREAM_LOCAL_ADDRESS%`                                       | `10.44.1.23:37652`                                                       | `127.0.0.1:41854`                                 |
+| `%DOWNSTREAM_LOCAL_ADDRESS%`                                     | `10.0.45.184:8000`                                                       | `10.44.1.27:80`                                   |
+| `%DOWNSTREAM_REMOTE_ADDRESS%`                                    | `10.44.1.23:46520`                                                       | `10.44.1.23:37652`                                |
+| `%REQUESTED_SERVER_NAME%`                                        | `-`                                                                      | `outbound_.8000_._.httpbin.foo.svc.cluster.local` |
+| `%ROUTE_NAME%`                                                   | `default`                                                                | `default`                                         |
 
-## 测试访问日志  {#test-the-access-log}
+## アクセスログのテスト {#test-the-access-log}
 
-1. 从 `curl` 向 `httpbin` 发送一个请求：
+1. `curl` から `httpbin` へリクエストを送信します：
 
-    {{< text bash >}}
-    $ kubectl exec "$SOURCE_POD" -c curl -- curl -sS -v httpbin:8000/status/418
-    ...
-    < HTTP/1.1 418 Unknown
-    ...
-    < server: envoy
-    ...
+   {{< text bash >}}
+   $ kubectl exec "$SOURCE_POD" -c curl -- curl -sS -v httpbin:8000/status/418
+   ...
+   < HTTP/1.1 418 Unknown
+   ...
+   < server: envoy
+   ...
 
-    I'm a teapot!
-    ...
-    {{< /text >}}
+   I'm a teapot!
+   ...
+   {{< /text >}}
 
-1. 检查 `curl` 的日志：
+1. `curl` のログを確認します：
 
-    {{< text bash >}}
-    $ kubectl logs -l app=curl -c istio-proxy
-    [2019-03-06T09:31:27.354Z] "GET /status/418 HTTP/1.1" 418 - "-" 0 135 11 10 "-" "curl/7.60.0" "d209e46f-9ed5-9b61-bbdd-43e22662702a" "httpbin:8000" "172.30.146.73:80" outbound|8000||httpbin.default.svc.cluster.local - 172.21.13.94:8000 172.30.146.82:60290 -
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl logs -l app=curl -c istio-proxy
+   [2019-03-06T09:31:27.354Z] "GET /status/418 HTTP/1.1" 418 - "-" 0 135 11 10 "-" "curl/7.60.0" "d209e46f-9ed5-9b61-bbdd-43e22662702a" "httpbin:8000" "172.30.146.73:80" outbound|8000||httpbin.default.svc.cluster.local - 172.21.13.94:8000 172.30.146.82:60290 -
+   {{< /text >}}
 
-1. 检查 `httpbin` 的日志：
+1. `httpbin` のログを確認します：
 
-    {{< text bash >}}
-    $ kubectl logs -l app=httpbin -c istio-proxy
-    [2019-03-06T09:31:27.360Z] "GET /status/418 HTTP/1.1" 418 - "-" 0 135 5 2 "-" "curl/7.60.0" "d209e46f-9ed5-9b61-bbdd-43e22662702a" "httpbin:8000" "127.0.0.1:80" inbound|8000|http|httpbin.default.svc.cluster.local - 172.30.146.73:80 172.30.146.82:38618 outbound_.8000_._.httpbin.default.svc.cluster.local
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl logs -l app=httpbin -c istio-proxy
+   [2019-03-06T09:31:27.360Z] "GET /status/418 HTTP/1.1" 418 - "-" 0 135 5 2 "-" "curl/7.60.0" "d209e46f-9ed5-9b61-bbdd-43e22662702a" "httpbin:8000" "127.0.0.1:80" inbound|8000|http|httpbin.default.svc.cluster.local - 172.30.146.73:80 172.30.146.82:38618 outbound*.8000*.\_.httpbin.default.svc.cluster.local
+   {{< /text >}}
 
-请注意，与请求相对应的信息分别出现在源（`curl`）和目标（`httpbin`）的 Istio
-代理日志中。您可以在日志中看到 HTTP 动词（`GET`）、HTTP 路径（`/status/418`）、
-响应码（`418`）和其他[请求相关信息](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-rules)。
+リクエストに対応する情報が、送信元（`curl`）と宛先（`httpbin`）の Istio
+プロキシログにそれぞれ出力されていることに注目してください。ログには HTTP メソッド（`GET`）、HTTP パス（`/status/418`）、
+レスポンスコード（`418`）やその他の[リクエスト関連情報](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-rules)が含まれています。
 
-## 清理 {#cleanup}
+## クリーンアップ {#cleanup}
 
-关闭 [curl]({{<github_tree>}}/samples/curl) 和
-[httpbin]({{<github_tree>}}/samples/httpbin) 服务：
+[curl]({{<github_tree>}}/samples/curl) と
+[httpbin]({{<github_tree>}}/samples/httpbin) サービスを停止します：
 
 {{< text bash >}}
 $ kubectl delete -f @samples/curl/curl.yaml@
 $ kubectl delete -f @samples/httpbin/httpbin.yaml@
 {{< /text >}}
 
-### 关闭 Envoy 的访问日志  {#disable-envoy-s-access-logging}
+### Envoy のアクセスログを無効化する {#disable-envoy-s-access-logging}
 
-编辑 `istio` 配置文件然后设置 `meshConfig.accessLogFile` 为 `""`。
+`istio` 設定ファイルを編集し、`meshConfig.accessLogFile` を `""` に設定します。
 
 {{< tip >}}
-在下面的例子中，将 `default` 替换为安装 Istio 时使用的配置文件的名称。
+以下の例では、`default` を Istio インストール時に使用したプロファイル名に置き換えてください。
 {{< /tip >}}
 
 {{< text bash >}}

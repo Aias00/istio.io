@@ -1,229 +1,229 @@
 ---
-title: 虚拟机安装
-description: 部署 Istio，接入虚拟机中运行的工作负载。
+title: 仮想マシンインストール
+description: Istio をデプロイし、仮想マシン上で動作するワークロードをメッシュに参加させます。
 weight: 60
 keywords:
-- kubernetes
-- virtual-machine
-- gateways
-- vms
+  - kubernetes
+  - virtual-machine
+  - gateways
+  - vms
 owner: istio/wg-environments-maintainers
 test: yes
 ---
 
-请遵循本指南部署 Istio，并接入虚拟机。
+このガイドに従って Istio をデプロイし、仮想マシンをメッシュに参加させてください。
 
-## 先决条件 {#prerequisites}
+## 前提条件 {#prerequisites}
 
-1. [下载 Istio 发行版](/zh/docs/setup/additional-setup/download-istio-release/)
-1. 执行必要的[平台安装](/zh/docs/setup/platform-setup/)
-1. 检查 [Pod 和 Service 的要求](/zh/docs/ops/deployment/application-requirements/)
-1. 虚拟机必须 IP 连通到目标网格的入口网关，如果有更高的性能需求，也可通过三层网络连通网格中的每个 Pod。
-1. 阅读[虚拟机架构](/zh/docs/ops/deployment/vm-architecture/)来理解 Istio 虚拟机集成的高级架构。
+1. [Istio リリースをダウンロード](/zh/docs/setup/additional-setup/download-istio-release/)
+1. 必要な[プラットフォームセットアップ](/zh/docs/setup/platform-setup/)を実行
+1. [Pod と Service の要件](/zh/docs/ops/deployment/application-requirements/)を確認
+1. 仮想マシンは、ターゲットメッシュのイングレスゲートウェイに IP 到達可能である必要があります。より高いパフォーマンス要件がある場合は、メッシュ内の各 Pod へのレイヤ 3 ネットワーク接続も可能です。
+1. [仮想マシンアーキテクチャ](/zh/docs/ops/deployment/vm-architecture/)を読んで、Istio 仮想マシン統合のアーキテクチャ概要を理解してください。
 
-## 准备指导环境  {#prepare-the-guide-environment}
+## ガイド用環境の準備 {#prepare-the-guide-environment}
 
-1. 创建虚拟机
-1. 在集群的计算机上设置环境变量 `VM_APP`、`WORK_DIR`、`VM_NAMESPACE` 和 `SERVICE_ACCOUNT`
-   （例如：`WORK_DIR="${HOME}/vmintegration"`）：
+1. 仮想マシンを作成
+1. クラスタのマシン上で環境変数 `VM_APP`、`WORK_DIR`、`VM_NAMESPACE`、`SERVICE_ACCOUNT` を設定します
+   （例：`WORK_DIR="${HOME}/vmintegration"`）：
 
-    {{< tabset category-name="network-mode" >}}
+   {{< tabset category-name="network-mode" >}}
 
-    {{< tab name="单一网络" category-value="single" >}}
+   {{< tab name="単一ネットワーク" category-value="single" >}}
 
-    {{< text bash >}}
-    $ VM_APP="<将在这台虚机上运行的应用名>"
-    $ VM_NAMESPACE="<您的服务所在的命名空间>"
-    $ WORK_DIR="<证书工作目录>"
-    $ SERVICE_ACCOUNT="<为这台虚机提供的 Kubernetes 的服务账号名称>"
-    $ CLUSTER_NETWORK=""
-    $ VM_NETWORK=""
-    $ CLUSTER="Kubernetes"
-    {{< /text >}}
+   {{< text bash >}}
+   $ VM_APP="<この仮想マシンで動作するアプリ名>"
+   $ VM_NAMESPACE="<サービスが属するネームスペース>"
+   $ WORK_DIR="<証明書作業ディレクトリ>"
+   $ SERVICE_ACCOUNT="<この仮想マシン用の Kubernetes サービスアカウント名>"
+   $ CLUSTER_NETWORK=""
+   $ VM_NETWORK=""
+   $ CLUSTER="Kubernetes"
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< tab name="聚合网络" category-value="multiple" >}}
+   {{< tab name="複数ネットワーク" category-value="multiple" >}}
 
-    {{< text bash >}}
-    $ VM_APP="<将在这台虚机上运行的应用名>"
-    $ VM_NAMESPACE="<您的服务所在的命名空间>"
-    $ WORK_DIR="<证书工作目录>"
-    $ SERVICE_ACCOUNT="<为这台虚机提供的 Kubernetes 的服务账号名称>"
-    $ # 根据您的需要自定义多集群/多网络的参数
-    $ CLUSTER_NETWORK="kube-network"
-    $ VM_NETWORK="vm-network"
-    $ CLUSTER="cluster1"
-    {{< /text >}}
+   {{< text bash >}}
+   $ VM_APP="<この仮想マシンで動作するアプリ名>"
+   $ VM_NAMESPACE="<サービスが属するネームスペース>"
+   $ WORK_DIR="<証明書作業ディレクトリ>"
+   $ SERVICE_ACCOUNT="<この仮想マシン用の Kubernetes サービスアカウント名>"
+   $ # 必要に応じてマルチクラスタ/マルチネットワークのパラメータをカスタマイズ
+   $ CLUSTER_NETWORK="kube-network"
+   $ VM_NETWORK="vm-network"
+   $ CLUSTER="cluster1"
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< /tabset >}}
+   {{< /tabset >}}
 
-1. 创建工作目录：
+1. 作業ディレクトリを作成：
 
-    {{< text syntax=bash snip_id=setup_wd >}}
-    $ mkdir -p "${WORK_DIR}"
-    {{< /text >}}
+   {{< text syntax=bash snip_id=setup_wd >}}
+   $ mkdir -p "${WORK_DIR}"
+   {{< /text >}}
 
-## 安装 Istio 控制平面 {#install-control-plane}
+## Istio コントロールプレーンのインストール {#install-control-plane}
 
-如果您的集群已经有一个 Istio 控制平面，您可以跳过安装步骤，但是仍然需要为虚拟机访问公开控制平面。
+クラスタにすでに Istio コントロールプレーンがある場合は、インストール手順をスキップできますが、仮想マシンからコントロールプレーンへの公開アクセスは必要です。
 
-安装 Istio，打开控制平面的对外访问，以便您的虚拟机可以访问它。
+Istio をインストールし、コントロールプレーンへの外部アクセスを有効にして、仮想マシンがアクセスできるようにします。
 
-1. 创建用于安装 Istio 的 `IstioOperator`。
+1. Istio インストール用の `IstioOperator` を作成します。
 
-    {{< text syntax="bash yaml" snip_id=setup_iop >}}
-    $ cat <<EOF > ./vm-cluster.yaml
-    apiVersion: install.istio.io/v1alpha1
-    kind: IstioOperator
-    metadata:
-      name: istio
-    spec:
-      values:
-        global:
-          meshID: mesh1
-          multiCluster:
-            clusterName: "${CLUSTER}"
+   {{< text syntax="bash yaml" snip_id=setup_iop >}}
+   $ cat <<EOF > ./vm-cluster.yaml
+   apiVersion: install.istio.io/v1alpha1
+   kind: IstioOperator
+   metadata:
+   name: istio
+   spec:
+   values:
+   global:
+   meshID: mesh1
+   multiCluster:
+   clusterName: "${CLUSTER}"
           network: "${CLUSTER_NETWORK}"
-    EOF
-    {{< /text >}}
+   EOF
+   {{< /text >}}
 
-1. 安装 Istio。
+1. Istio をインストールします。
 
-    {{< tabset category-name="registration-mode" >}}
+   {{< tabset category-name="registration-mode" >}}
 
-    {{< tab name="默认" category-value="default" >}}
+   {{< tab name="デフォルト" category-value="default" >}}
 
-    {{< text bash >}}
-    $ istioctl install -f vm-cluster.yaml
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl install -f vm-cluster.yaml
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< tab name="自动化 WorkloadEntry 创建" category-value="autoreg" >}}
+   {{< tab name="WorkloadEntry 自動作成" category-value="autoreg" >}}
 
-    {{< boilerplate experimental >}}
+   {{< boilerplate experimental >}}
 
-    {{< text bash >}}
-    $ istioctl install -f vm-cluster.yaml --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION=true --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS=true
-    {{< /text >}}
+   {{< text bash >}}
+   $ istioctl install -f vm-cluster.yaml --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION=true --set values.pilot.env.PILOT_ENABLE_WORKLOAD_ENTRY_HEALTHCHECKS=true
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< /tabset >}}
+   {{< /tabset >}}
 
-1. 部署东西向网关：
+1. イーストウエストゲートウェイをデプロイ：
 
-    {{< warning >}}
-    如果控制平面安装的是一个修正版本，请将参数 `--revision rev` 添加到 `gen-eastwest-gateway.sh` 命令。
-    {{< /warning >}}
+   {{< warning >}}
+   コントロールプレーンがリビジョン付きでインストールされている場合は、`gen-eastwest-gateway.sh` コマンドに `--revision rev` パラメータを追加してください。
+   {{< /warning >}}
 
-    {{< tabset category-name="network-mode" >}}
+   {{< tabset category-name="network-mode" >}}
 
-    {{< tab name="单一网络" category-value="single" >}}
+   {{< tab name="単一ネットワーク" category-value="single" >}}
 
-    {{< text syntax=bash snip_id=install_eastwest >}}
-    $ @samples/multicluster/gen-eastwest-gateway.sh@ --single-cluster | istioctl install -y -f -
-    {{< /text >}}
+   {{< text syntax=bash snip_id=install_eastwest >}}
+   $ @samples/multicluster/gen-eastwest-gateway.sh@ --single-cluster | istioctl install -y -f -
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< tab name="聚合网络" category-value="multiple" >}}
+   {{< tab name="複数ネットワーク" category-value="multiple" >}}
 
-    {{< text bash >}}
-    $ @samples/multicluster/gen-eastwest-gateway.sh@ \
-    --network "${CLUSTER_NETWORK}" | \
-    istioctl install -y -f -
-    {{< /text >}}
+   {{< text bash >}}
+   $ @samples/multicluster/gen-eastwest-gateway.sh@ \
+   --network "${CLUSTER_NETWORK}" | \
+   istioctl install -y -f -
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< /tabset >}}
+   {{< /tabset >}}
 
-1. 使用东西向网关暴露集群内部服务：
+1. イーストウエストゲートウェイを使ってクラスタ内サービスを公開：
 
-    {{< tabset category-name="network-mode" >}}
+   {{< tabset category-name="network-mode" >}}
 
-    {{< tab name="单一网络" category-value="single" >}}
+   {{< tab name="単一ネットワーク" category-value="single" >}}
 
-    暴露控制平面：
+   コントロールプレーンを公開：
 
-    {{< text syntax=bash snip_id=expose_istio >}}
-    $ kubectl apply -f @samples/multicluster/expose-istiod.yaml@
-    {{< /text >}}
+   {{< text syntax=bash snip_id=expose_istio >}}
+   $ kubectl apply -f @samples/multicluster/expose-istiod.yaml@
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< tab name="聚合网络" category-value="multiple" >}}
+   {{< tab name="複数ネットワーク" category-value="multiple" >}}
 
-    暴露控制平面：
+   コントロールプレーンを公開：
 
-    {{< text bash >}}
-    $ kubectl apply -f @samples/multicluster/expose-istiod.yaml@
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f @samples/multicluster/expose-istiod.yaml@
+   {{< /text >}}
 
-    暴露集群服务：
+   クラスタサービスを公開：
 
-    {{< text bash >}}
-    $ kubectl apply -n istio-system -f @samples/multicluster/expose-services.yaml@
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -n istio-system -f @samples/multicluster/expose-services.yaml@
+   {{< /text >}}
 
-    确保使用定义的集群网络为 istio-system 命名空间打标签：
+   istio-system ネームスペースに定義したクラスタネットワークのラベルを付与してください：
 
-    {{< text bash >}}
-    $ kubectl label namespace istio-system topology.istio.io/network="${CLUSTER_NETWORK}"
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl label namespace istio-system topology.istio.io/network="${CLUSTER_NETWORK}"
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< /tabset >}}
+   {{< /tabset >}}
 
-## 配置虚拟机的命名空间 {#configure-the-virtual-machine-namespace}
+## 仮想マシン用ネームスペースの設定 {#configure-the-virtual-machine-namespace}
 
-1. 创建用于托管虚拟机的命名空间：
+1. 仮想マシン用のネームスペースを作成：
 
-    {{< text syntax=bash snip_id=install_namespace >}}
-    $ kubectl create namespace "${VM_NAMESPACE}"
-    {{< /text >}}
+   {{< text syntax=bash snip_id=install_namespace >}}
+   $ kubectl create namespace "${VM_NAMESPACE}"
+   {{< /text >}}
 
-1. 为虚拟机创建 ServiceAccount：
+1. 仮想マシン用の ServiceAccount を作成：
 
-    {{< text syntax=bash snip_id=install_sa >}}
-    $ kubectl create serviceaccount "${SERVICE_ACCOUNT}" -n "${VM_NAMESPACE}"
-    {{< /text >}}
+   {{< text syntax=bash snip_id=install_sa >}}
+   $ kubectl create serviceaccount "${SERVICE_ACCOUNT}" -n "${VM_NAMESPACE}"
+   {{< /text >}}
 
-## 创建要传输到虚拟机的文件 {#create-files-to-transfer-to-the-virtual-machine}
+## 仮想マシンに転送するファイルの作成 {#create-files-to-transfer-to-the-virtual-machine}
 
 {{< tabset category-name="registration-mode" >}}
 
-{{< tab name="默认" category-value="default" >}}
+{{< tab name="デフォルト" category-value="default" >}}
 
-首先，为虚拟机创建 `WorkloadGroup` 模板：
+まず、仮想マシン用の `WorkloadGroup` テンプレートを作成します：
 
 {{< text bash >}}
 $ cat <<EOF > workloadgroup.yaml
 apiVersion: networking.istio.io/v1
 kind: WorkloadGroup
 metadata:
-  name: "${VM_APP}"
+name: "${VM_APP}"
   namespace: "${VM_NAMESPACE}"
 spec:
-  metadata:
-    labels:
-      app: "${VM_APP}"
+metadata:
+labels:
+app: "${VM_APP}"
   template:
     serviceAccount: "${SERVICE_ACCOUNT}"
-    network: "${VM_NETWORK}"
+network: "${VM_NETWORK}"
 EOF
 {{< /text >}}
 
 {{< /tab >}}
 
-{{< tab name="自动化 WorkloadEntry 创建" category-value="autoreg" >}}
+{{< tab name="WorkloadEntry 自動作成" category-value="autoreg" >}}
 
-首先，为虚拟机创建 `WorkloadGroup` 模板：
+まず、仮想マシン用の `WorkloadGroup` テンプレートを作成します：
 
 {{< boilerplate experimental >}}
 
@@ -232,82 +232,79 @@ $ cat <<EOF > workloadgroup.yaml
 apiVersion: networking.istio.io/v1
 kind: WorkloadGroup
 metadata:
-  name: "${VM_APP}"
+name: "${VM_APP}"
   namespace: "${VM_NAMESPACE}"
 spec:
-  metadata:
-    labels:
-      app: "${VM_APP}"
+metadata:
+labels:
+app: "${VM_APP}"
   template:
     serviceAccount: "${SERVICE_ACCOUNT}"
-    network: "${VM_NETWORK}"
+network: "${VM_NETWORK}"
 EOF
 {{< /text >}}
 
-然后，将 `WorkLoadGroup` 应用到集群中：
+次に、`WorkLoadGroup` をクラスタに適用します：
 
 {{< text syntax=bash snip_id=apply_wg >}}
 $ kubectl --namespace "${VM_NAMESPACE}" apply -f workloadgroup.yaml
 {{< /text >}}
 
-使用自动创建 `WorkloadEntry` 的特性，还可以进行应用程序的健康检查。
-与 [Kubernetes Readiness Probes](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
-具有相同行为和 API 。
+WorkloadEntry の自動作成機能を使うと、アプリケーションのヘルスチェックも可能です。
+[Kubernetes Readiness Probes](https://kubernetes.io/zh-cn/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) と同じ動作・API です。
 
-例如，在应用程序的 `/ready` 端点上配置探针：
+例えば、アプリケーションの `/ready` エンドポイントでプローブを設定する場合：
 
 {{< text bash >}}
 $ cat <<EOF > workloadgroup.yaml
 apiVersion: networking.istio.io/v1
 kind: WorkloadGroup
 metadata:
-  name: "${VM_APP}"
+name: "${VM_APP}"
   namespace: "${VM_NAMESPACE}"
 spec:
-  metadata:
-    labels:
-      app: "${VM_APP}"
+metadata:
+labels:
+app: "${VM_APP}"
   template:
     serviceAccount: "${SERVICE_ACCOUNT}"
-    network: "${NETWORK}"
-  probe:
-    periodSeconds: 5
-    initialDelaySeconds: 1
-    httpGet:
-      port: 8080
-      path: /ready
+network: "${NETWORK}"
+probe:
+periodSeconds: 5
+initialDelaySeconds: 1
+httpGet:
+port: 8080
+path: /ready
 EOF
 {{< /text >}}
 
-通过这个配置，自动生成的 `WorkloadEntry` 在探针成功之前不会被标记为 "Ready"。
+この設定により、プローブが成功するまで自動生成された `WorkloadEntry` は "Ready" としてマークされません。
 
 {{< /tab >}}
 
 {{< /tabset >}}
 
 {{< warning >}}
-在开始生成 `istio-token` 之前，作为 `istioctl x workload entry` 的一部分，
-您应该按照[文档](/zh/docs/ops/best-practices/security/#configure-third-party-service-account-tokens)
-来验证集群中是否使用了第三方服务账号令牌。如果没有使用第三方服务账户令牌，您应该为 Istio
-安装指令添加参数 `--set values.global.jwtPolicy=first-party-jwt`。
+`istioctl x workload entry` で `istio-token` を生成する前に、
+[ドキュメント](/zh/docs/ops/best-practices/security/#configure-third-party-service-account-tokens)に従って、クラスタでサードパーティサービスアカウントトークンが使われているか確認してください。もし使われていない場合は、Istio インストールコマンドに `--set values.global.jwtPolicy=first-party-jwt` を追加してください。
 {{< /warning >}}
 
-接下来，使用 `istioctl x workload entry` 命令来生成：
+次に、`istioctl x workload entry` コマンドを使って以下を生成します：
 
-* `cluster.env`：包含用来识别命名空间、服务帐户、网络 CIDR、和入站端口（可选）的元数据。
-* `istio-token`：用来从 CA 获取证书的 Kubernetes 令牌。
-* `mesh.yaml`：提供 `ProxyConfig` 来配置 `discoveryAddress`、健康检查以及一些认证操作。
-* `root-cert.pem`：用于认证的根证书。
-* `hosts`：`/etc/hosts` 的补充，代理将使用该补充从 Istiod 获取 xDS.*。
+- `cluster.env`：ネームスペース、サービスアカウント、ネットワーク CIDR、インバウンドポート（オプション）などのメタデータを含みます。
+- `istio-token`：CA から証明書を取得するための Kubernetes トークン。
+- `mesh.yaml`：`ProxyConfig` を提供し、`discoveryAddress`、ヘルスチェック、認証操作などを設定します。
+- `root-cert.pem`：認証用のルート証明書。
+- `hosts`：`/etc/hosts` の補助ファイルで、プロキシが Istiod から xDS を取得する際に使用します。
 
 {{< idea >}}
-一个复杂的选项涉及在虚拟机中配置 DNS 以引用外部 DNS 服务器。
-此选项超出了本指南的范围。
+より複雑なオプションとして、仮想マシンで外部 DNS サーバを参照するように DNS を設定する方法もあります。
+このオプションは本ガイドの範囲外です。
 {{< /idea >}}
 
 {{< tabset category-name="registration-mode" >}}
 
-{{< tab name="默认" category-value="default" >}}
+{{< tab name="デフォルト" category-value="default" >}}
 
 {{< text bash >}}
 $ istioctl x workload entry configure -f workloadgroup.yaml -o "${WORK_DIR}" --clusterID "${CLUSTER}"
@@ -315,7 +312,7 @@ $ istioctl x workload entry configure -f workloadgroup.yaml -o "${WORK_DIR}" --c
 
 {{< /tab >}}
 
-{{< tab name="自动化 WorkloadEntry 创建" category-value="autoreg" >}}
+{{< tab name="WorkloadEntry 自動作成" category-value="autoreg" >}}
 
 {{< boilerplate experimental >}}
 
@@ -327,141 +324,138 @@ $ istioctl x workload entry configure -f workloadgroup.yaml -o "${WORK_DIR}" --c
 
 {{< /tabset >}}
 
-## 配置虚拟机 {#configure-the-virtual-machine}
+## 仮想マシンの設定 {#configure-the-virtual-machine}
 
-在要添加到 Istio 网格的虚拟机上，运行以下命令：
+Istio メッシュに追加する仮想マシン上で、以下のコマンドを実行します：
 
-1. 将文件从 `"${WORK_DIR}"` 安全上传到虚拟机。如何安全的传输这些文件，
-   这需要考虑到您的信息安全策略。本指南为方便起见，将所有必备文件上传到虚拟机中的
-   `"${HOME}"` 目录。
+1. "${WORK_DIR}" から仮想マシンへファイルを安全にアップロードします。安全な転送方法は、セキュリティポリシーに従ってください。本ガイドでは、すべての必須ファイルを仮想マシンの "${HOME}" ディレクトリにアップロードする例を示します。
 
-1. 将根证书安装到目录 `/etc/certs`：
+1. ルート証明書を `/etc/certs` ディレクトリにインストール：
 
-    {{< text bash >}}
-    $ sudo mkdir -p /etc/certs
-    $ sudo cp "${HOME}"/root-cert.pem /etc/certs/root-cert.pem
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo mkdir -p /etc/certs
+   $ sudo cp "${HOME}"/root-cert.pem /etc/certs/root-cert.pem
+   {{< /text >}}
 
-1. 将令牌安装到目录 `/var/run/secrets/tokens`：
+1. トークンを `/var/run/secrets/tokens` ディレクトリにインストール：
 
-    {{< text bash >}}
-    $ sudo  mkdir -p /var/run/secrets/tokens
-    $ sudo cp "${HOME}"/istio-token /var/run/secrets/tokens/istio-token
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo mkdir -p /var/run/secrets/tokens
+   $ sudo cp "${HOME}"/istio-token /var/run/secrets/tokens/istio-token
+   {{< /text >}}
 
-1. 安装包含 Istio 虚拟机集成运行时（runtime）的包：
+1. Istio 仮想マシン統合ランタイムを含むパッケージをインストール：
 
-    {{< tabset category-name="vm-os" >}}
+   {{< tabset category-name="vm-os" >}}
 
-    {{< tab name="Debian" category-value="debian" >}}
+   {{< tab name="Debian" category-value="debian" >}}
 
-    {{< text bash >}}
-    $ curl -LO https://storage.googleapis.com/istio-release/releases/{{< istio_full_version >}}/deb/istio-sidecar.deb
-    $ sudo dpkg -i istio-sidecar.deb
-    {{< /text >}}
+   {{< text bash >}}
+   $ curl -LO https://storage.googleapis.com/istio-release/releases/{{< istio_full_version >}}/deb/istio-sidecar.deb
+   $ sudo dpkg -i istio-sidecar.deb
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< tab name="CentOS" category-value="centos" >}}
+   {{< tab name="CentOS" category-value="centos" >}}
 
-    注意：目前仅支持 CentOS 8。
+   注意：現在サポートされているのは CentOS 8 のみです。
 
-    {{< text bash >}}
-    $ curl -LO https://storage.googleapis.com/istio-release/releases/{{< istio_full_version >}}/rpm/istio-sidecar.rpm
-    $ sudo rpm -i istio-sidecar.rpm
-    {{< /text >}}
+   {{< text bash >}}
+   $ curl -LO https://storage.googleapis.com/istio-release/releases/{{< istio_full_version >}}/rpm/istio-sidecar.rpm
+   $ sudo rpm -i istio-sidecar.rpm
+   {{< /text >}}
 
-    {{< /tab >}}
+   {{< /tab >}}
 
-    {{< /tabset >}}
+   {{< /tabset >}}
 
-1. 将 `cluster.env` 安装到目录 `/var/lib/istio/envoy/` 中：
+1. `cluster.env` を `/var/lib/istio/envoy/` ディレクトリにインストール：
 
-    {{< text bash >}}
-    $ sudo cp "${HOME}"/cluster.env /var/lib/istio/envoy/cluster.env
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo cp "${HOME}"/cluster.env /var/lib/istio/envoy/cluster.env
+   {{< /text >}}
 
-1. 将网格配置文件 [Mesh Config](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig)
-   安装到目录 `/etc/istio/config/mesh`：
+1. メッシュ設定ファイル [Mesh Config](/zh/docs/reference/config/istio.mesh.v1alpha1/#MeshConfig) を `/etc/istio/config/mesh` ディレクトリにインストール：
 
-    {{< text bash >}}
-    $ sudo cp "${HOME}"/mesh.yaml /etc/istio/config/mesh
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo cp "${HOME}"/mesh.yaml /etc/istio/config/mesh
+   {{< /text >}}
 
-1. 将 istiod 主机添加到 `/etc/hosts`：
+1. istiod ホストを `/etc/hosts` に追加：
 
-    {{< text bash >}}
-    $ sudo sh -c 'cat $(eval echo ~$SUDO_USER)/hosts >> /etc/hosts'
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo sh -c 'cat $(eval echo ~$SUDO_USER)/hosts >> /etc/hosts'
+   {{< /text >}}
 
-1. 把文件 `/etc/certs/` 和 `/var/lib/istio/envoy/` 的所有权转移给 Istio 代理：
+1. `/etc/certs/` および `/var/lib/istio/envoy/` の所有権を Istio プロキシに変更：
 
-    {{< text bash >}}
-    $ sudo mkdir -p /etc/istio/proxy
-    $ sudo chown -R istio-proxy /var/lib/istio /etc/certs /etc/istio/proxy /etc/istio/config /var/run/secrets /etc/certs/root-cert.pem
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo mkdir -p /etc/istio/proxy
+   $ sudo chown -R istio-proxy /var/lib/istio /etc/certs /etc/istio/proxy /etc/istio/config /var/run/secrets /etc/certs/root-cert.pem
+   {{< /text >}}
 
-## 在虚拟机中启动 Istio {#start-within-the-virtual-machine}
+## 仮想マシンで Istio を起動 {#start-within-the-virtual-machine}
 
-1. 启动 Istio 代理：
+1. Istio プロキシを起動：
 
-    {{< text bash >}}
-    $ sudo systemctl start istio
-    {{< /text >}}
+   {{< text bash >}}
+   $ sudo systemctl start istio
+   {{< /text >}}
 
-## 验证 Istio 是否成功工作 {#verify-works-successfully}
+## Istio が正常に動作しているかの確認 {#verify-works-successfully}
 
-1. 检查 `/var/log/istio/istio.log` 中的日志，您应该能看到类似于以下的内容：
+1. `/var/log/istio/istio.log` のログを確認し、以下のような内容が出力されていれば正常です：
 
-    {{< text bash >}}
-    $ 2020-08-21T01:32:17.748413Z info sds resource:default pushed key/cert pair to proxy
-    $ 2020-08-21T01:32:20.270073Z info sds resource:ROOTCA new connection
-    $ 2020-08-21T01:32:20.270142Z info sds Skipping waiting for gateway secret
-    $ 2020-08-21T01:32:20.270279Z info cache adding watcher for file ./etc/certs/root-cert.pem
-    $ 2020-08-21T01:32:20.270347Z info cache GenerateSecret from file ROOTCA
-    $ 2020-08-21T01:32:20.270494Z info sds resource:ROOTCA pushed root cert to proxy
-    $ 2020-08-21T01:32:20.270734Z info sds resource:default new connection
-    $ 2020-08-21T01:32:20.270763Z info sds Skipping waiting for gateway secret
-    $ 2020-08-21T01:32:20.695478Z info cache GenerateSecret default
-    $ 2020-08-21T01:32:20.695595Z info sds resource:default pushed key/cert pair to proxy
-    {{< /text >}}
+   {{< text bash >}}
+   $ 2020-08-21T01:32:17.748413Z info sds resource:default pushed key/cert pair to proxy
+   $ 2020-08-21T01:32:20.270073Z info sds resource:ROOTCA new connection
+   $ 2020-08-21T01:32:20.270142Z info sds Skipping waiting for gateway secret
+   $ 2020-08-21T01:32:20.270279Z info cache adding watcher for file ./etc/certs/root-cert.pem
+   $ 2020-08-21T01:32:20.270347Z info cache GenerateSecret from file ROOTCA
+   $ 2020-08-21T01:32:20.270494Z info sds resource:ROOTCA pushed root cert to proxy
+   $ 2020-08-21T01:32:20.270734Z info sds resource:default new connection
+   $ 2020-08-21T01:32:20.270763Z info sds Skipping waiting for gateway secret
+   $ 2020-08-21T01:32:20.695478Z info cache GenerateSecret default
+   $ 2020-08-21T01:32:20.695595Z info sds resource:default pushed key/cert pair to proxy
+   {{< /text >}}
 
-1. 创建命名空间，用以部署基于 Pod 的服务：
+1. Pod ベースのサービスをデプロイするためのネームスペースを作成：
 
-    {{< text bash >}}
-    $ kubectl create namespace sample
-    $ kubectl label namespace sample istio-injection=enabled
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl create namespace sample
+   $ kubectl label namespace sample istio-injection=enabled
+   {{< /text >}}
 
-1. 部署 `HelloWorld` 服务：
+1. `HelloWorld` サービスをデプロイ：
 
-    {{< text bash >}}
-    $ kubectl apply -f @samples/helloworld/helloworld.yaml@
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl apply -f @samples/helloworld/helloworld.yaml@
+   {{< /text >}}
 
-1. 从虚拟机向服务发送请求：
+1. 仮想マシンからサービスにリクエストを送信：
 
-    {{< text bash >}}
-    $ curl helloworld.sample.svc:5000/hello
-    Hello version: v1, instance: helloworld-v1-578dd69f69-fxwwk
-    {{< /text >}}
+   {{< text bash >}}
+   $ curl helloworld.sample.svc:5000/hello
+   Hello version: v1, instance: helloworld-v1-578dd69f69-fxwwk
+   {{< /text >}}
 
-## 下一步 {#next-step}
+## 次のステップ {#next-step}
 
-更多关于虚拟机的信息：
+仮想マシンに関する詳細情報：
 
-* [调试虚拟机](/zh/docs/ops/diagnostic-tools/virtual-machines/)解决虚拟机问题。
-* [部署在虚拟机上的 Bookinfo](/zh/docs/examples/virtual-machines/) 设置虚拟机的示例部署。
+- [仮想マシンのデバッグ](/zh/docs/ops/diagnostic-tools/virtual-machines/)で仮想マシンの問題を解決
+- [仮想マシン上の Bookinfo デプロイ](/zh/docs/examples/virtual-machines/)で仮想マシンのサンプルデプロイを確認
 
-## 卸载 {#uninstall}
+## アンインストール {#uninstall}
 
-在虚拟机中停止 Istio：
+仮想マシンで Istio を停止：
 
 {{< text bash >}}
 $ sudo systemctl stop istio
 {{< /text >}}
 
-然后，删除 Istio-sidecar 的发行包：
+次に、Istio-sidecar のパッケージを削除：
 
 {{< tabset category-name="vm-os" >}}
 
@@ -484,15 +478,15 @@ $ sudo rpm -e istio-sidecar
 
 {{< /tabset >}}
 
-要卸载 Istio，请运行以下命令：
+Istio をアンインストールするには、次のコマンドを実行してください：
 
 {{< text bash >}}
 $ kubectl delete -f @samples/multicluster/expose-istiod.yaml@
 $ istioctl uninstall -y --purge
 {{< /text >}}
 
-默认情况下，控制平面的命名空间（比如：`istio-system`）并不会被删除。
-如果确认不再使用，使用下面命令删除：
+デフォルトでは、コントロールプレーンのネームスペース（例：`istio-system`）は削除されません。
+不要な場合は、以下のコマンドで削除してください：
 
 {{< text bash >}}
 $ kubectl delete namespace istio-system

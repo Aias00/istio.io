@@ -1,6 +1,6 @@
 ---
-title: Sidecar 自动注入问题
-description: 解决 Istio 使用 Kubernetes Webhooks 进行 Sidecar 自动注入的常见问题。
+title: Sidecar 自動インジェクションの問題
+description: Istio が Kubernetes Webhook を使って Sidecar を自動インジェクションする際のよくある問題の解決方法。
 force_inline_toc: true
 weight: 40
 aliases:
@@ -9,179 +9,170 @@ owner: istio/wg-user-experience-maintainers
 test: n/a
 ---
 
-## 注入的结果和预期不一致 {#the-result-of-sidecar-injection-was-not-what-i-expected}
+## インジェクション結果が期待と異なる {#the-result-of-sidecar-injection-was-not-what-i-expected}
 
-不一致包括 Sidecar 的非预期注入和预期未注入。
+期待しない Sidecar のインジェクションや、期待したのにインジェクションされない場合が含まれます。
 
-1. 确保您的 Pod 不在 `kube-system` 或 `kube-public` 命名空间中。
-   这些命名空间中的 Pod 将忽略 Sidecar 自动注入。
+1. Pod が `kube-system` または `kube-public` 名前空間にないことを確認してください。
+   これらの名前空間の Pod には Sidecar 自動インジェクションは適用されません。
 
-1. 确保您的 Pod 在其 Pod 定义中没有 `hostNetwork：true`。
-  `hostNetwork：true` 的 Pod 将忽略 Sidecar 自动注入。
+1. Pod の定義で `hostNetwork: true` になっていないことを確認してください。
+   `hostNetwork: true` の Pod には Sidecar 自動インジェクションは適用されません。
 
-    Sidecar 模型假定 iptables 会拦截所有 Pod 中的流量给 Envoy，但是
-    `hostNetwork：true` 的 Pod 不符合此假设，并且会导致主机级别的路由失败。
+   Sidecar モデルは iptables が Pod 内のすべてのトラフィックを Envoy にリダイレクトすることを前提としていますが、
+   `hostNetwork: true` の Pod ではこの前提が成り立たず、ホストレベルのルーティング失敗を引き起こします。
 
-1. 通过检查 webhook 的 `namespaceSelector` 以确定目标命名空间是否包含在 webhook 范围内。
+1. webhook の `namespaceSelector` を確認し、対象の名前空間が webhook の範囲内かどうかを調べてください。
 
-    包含在范围内的 `namespaceSelector` 如下所示：
+   範囲内の `namespaceSelector` 例：
 
-    {{< text bash yaml >}}
-    $ kubectl get mutatingwebhookconfiguration istio-sidecar-injector -o yaml | grep "namespaceSelector:" -A5
-      namespaceSelector:
-        matchLabels:
-          istio-injection: enabled
-      rules:
-      - apiGroups:
-        - ""
-    {{< /text >}}
+   {{< text bash yaml >}}
+   $ kubectl get mutatingwebhookconfiguration istio-sidecar-injector -o yaml | grep "namespaceSelector:" -A5
+   namespaceSelector:
+   matchLabels:
+   istio-injection: enabled
+   rules:
 
-    在有 `istio-injection=enabled` 标签的命名空间中创建 Pod 就会调用注入 webhook。
+   - apiGroups: - ""
+     {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl get namespace -L istio-injection
-    NAME           STATUS    AGE       ISTIO-INJECTION
-    default        Active    18d       enabled
-    istio-system   Active    3d
-    kube-public    Active    18d
-    kube-system    Active    18d
-    {{< /text >}}
+   `istio-injection=enabled` ラベルが付いた名前空間で Pod を作成すると、インジェクション webhook が呼び出されます。
 
-    不包含在注入范围的 `namespaceSelector` 如下所示：
+   {{< text bash >}}
+   $ kubectl get namespace -L istio-injection
+   NAME STATUS AGE ISTIO-INJECTION
+   default Active 18d enabled
+   istio-system Active 3d
+   kube-public Active 18d
+   kube-system Active 18d
+   {{< /text >}}
 
-    {{< text bash >}}
-    $ kubectl get mutatingwebhookconfiguration istio-sidecar-injector -o yaml | grep "namespaceSelector:" -A5
-      namespaceSelector:
-        matchExpressions:
-        - key: istio-injection
-          operator: NotIn
-          values:
-          - disabled
-      rules:
-      - apiGroups:
-        - ""
-    {{< /text >}}
+   インジェクション範囲外の `namespaceSelector` 例：
 
-    在没有标记 `istio-injection=disabled` 标签的命名空间中创建 Pod，注入 webhook 就会被调用。
+   {{< text bash >}}
+   $ kubectl get mutatingwebhookconfiguration istio-sidecar-injector -o yaml | grep "namespaceSelector:" -A5
+   namespaceSelector:
+   matchExpressions: - key: istio-injection
+   operator: NotIn
+   values: - disabled
+   rules:
 
-    {{< text bash >}}
-    $ kubectl get namespace -L istio-injection
-    NAME           STATUS    AGE       ISTIO-INJECTION
-    default        Active    18d
-    istio-system   Active    3d        disabled
-    kube-public    Active    18d       disabled
-    kube-system    Active    18d       disabled
-    {{< /text >}}
+   - apiGroups: - ""
+     {{< /text >}}
 
-    验证应用程序 Pod 的命名空间是否已相应地被正确（重新）标记，例如：
+   `istio-injection=disabled` ラベルが付いていない名前空間で Pod を作成すると、インジェクション webhook が呼び出されます。
 
-    {{< text bash >}}
-    $ kubectl label namespace istio-system istio-injection=disabled --overwrite
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl get namespace -L istio-injection
+   NAME STATUS AGE ISTIO-INJECTION
+   default Active 18d
+   istio-system Active 3d disabled
+   kube-public Active 18d disabled
+   kube-system Active 18d disabled
+   {{< /text >}}
 
-    （对所有需要自动注入 webhook 的命名空间都重复上述步骤）
+   アプリケーション Pod の名前空間が正しく（再）ラベル付けされているか確認してください。例：
 
-    {{< text bash >}}
-    $ kubectl label namespace default istio-injection=enabled --overwrite
-    {{< /text >}}
+   {{< text bash >}}
+   $ kubectl label namespace istio-system istio-injection=disabled --overwrite
+   {{< /text >}}
 
-1. 检查默认策略
+   （自動インジェクション webhook が必要なすべての名前空間で上記を繰り返してください）
 
-    在 `istio-sidecar-injector configmap` 中检查默认注入策略。
+   {{< text bash >}}
+   $ kubectl label namespace default istio-injection=enabled --overwrite
+   {{< /text >}}
 
-    {{< text bash yaml >}}
-    $ kubectl -n istio-system get configmap istio-sidecar-injector -o jsonpath='{.data.config}' | grep policy:
-    policy: enabled
-    {{< /text >}}
+1. デフォルトポリシーの確認
 
-    策略允许的值为 `disabled` 或者 `enabled`。仅当 webhook 的 `namespaceSelector`
-    与目标命名空间匹配时，默认策略才会生效。无法识别的策略值会导致完全禁用注入。
+   `istio-sidecar-injector configmap` でデフォルトのインジェクションポリシーを確認します。
 
-1. 检查每个 Pod 的标签
+   {{< text bash yaml >}}
+   $ kubectl -n istio-system get configmap istio-sidecar-injector -o jsonpath='{.data.config}' | grep policy:
+   policy: enabled
+   {{< /text >}}
 
-    可以使用 pod template spec metadata 中的标签 `sidecar.istio.io/inject`
-    来覆盖默认策略，如果这样的话，Deployment 相应的 metadata 将被忽略。标签值为
-    `true` 会被强制注入 Sidecar，为 `false` 则会强制不注入 Sidecar。
+   ポリシーの値は `disabled` または `enabled` です。webhook の `namespaceSelector` が対象名前空間と一致する場合のみ、デフォルトポリシーが有効です。不明な値の場合、インジェクションは完全に無効化されます。
 
-    以下标签会覆盖默认策略并强制注入 Sidecar：
+1. 各 Pod のラベルを確認
 
-    {{< text bash yaml >}}
-    $ kubectl get deployment curl -o yaml | grep "sidecar.istio.io/inject:" -B4
-    template:
-      metadata:
-        labels:
-          app: curl
-          sidecar.istio.io/inject: "true"
-    {{< /text >}}
+   pod template spec metadata のラベル `sidecar.istio.io/inject` でデフォルトポリシーを上書きできます。この場合、Deployment の metadata は無視されます。ラベル値が `true` なら Sidecar 強制インジェクション、`false` なら強制非インジェクションです。
 
-## Pod 不能创建 {#pods-cannot-be-created-at-all}
+   以下のラベルはデフォルトポリシーを上書きし、Sidecar を強制インジェクションします：
 
-在失败的 Pod 的 Deployment 上运行 `kubectl describe -n namespace deployment name`。
-通常能在事件中看到调用注入 webhook 失败的原因。
+   {{< text bash yaml >}}
+   $ kubectl get deployment curl -o yaml | grep "sidecar.istio.io/inject:" -B4
+   template:
+   metadata:
+   labels:
+   app: curl
+   sidecar.istio.io/inject: "true"
+   {{< /text >}}
 
-### x509 证书相关的错误 {#x509-certificate-related-errors}
+## Pod が作成できない {#pods-cannot-be-created-at-all}
+
+失敗した Pod の Deployment で `kubectl describe -n namespace deployment name` を実行してください。
+イベントにインジェクション webhook 失敗の理由が表示されることが多いです。
+
+### x509 証明書関連のエラー {#x509-certificate-related-errors}
 
 {{< text plain >}}
-Warning  FailedCreate  3m (x17 over 8m)  replicaset-controller  Error creating: Internal error occurred: \
-    failed calling admission webhook "sidecar-injector.istio.io": Post https://istio-sidecar-injector.istio-system.svc:443/inject: \
-    x509: certificate signed by unknown authority (possibly because of "crypto/rsa: verification error" while trying \
-    to verify candidate authority certificate "Kubernetes.cluster.local")
+Warning FailedCreate 3m (x17 over 8m) replicaset-controller Error creating: Internal error occurred: \
+ failed calling admission webhook "sidecar-injector.istio.io": Post https://istio-sidecar-injector.istio-system.svc:443/inject: \
+ x509: certificate signed by unknown authority (possibly because of "crypto/rsa: verification error" while trying \
+ to verify candidate authority certificate "Kubernetes.cluster.local")
 {{< /text >}}
 
-`x509: certificate signed by unknown authority` 错误通常由 webhook
-配置中的空 `caBundle` 引起。
+`x509: certificate signed by unknown authority` エラーは、webhook 設定の空の `caBundle` が原因で発生することが多いです。
 
-验证 `mutatingwebhookconfiguration` 配置中的 `caBundle` 是否与
-`istio-sidecar-injector` 中 Pod 安装的根证书匹配。
+`mutatingwebhookconfiguration` 設定の `caBundle` が `istio-sidecar-injector` Pod にインストールされているルート証明書と一致しているか確認してください。
 
 {{< text bash >}}
 $ kubectl get mutatingwebhookconfiguration istio-sidecar-injector -o yaml -o jsonpath='{.webhooks[0].clientConfig.caBundle}' | md5sum
-4b95d2ba22ce8971c7c92084da31faf0  -
+4b95d2ba22ce8971c7c92084da31faf0 -
 $ kubectl -n istio-system get configmap istio-ca-root-cert -o jsonpath='{.data.root-cert\.pem}' | base64 -w 0 | md5sum
-4b95d2ba22ce8971c7c92084da31faf0  -
+4b95d2ba22ce8971c7c92084da31faf0 -
 {{< /text >}}
 
-CA 证书必须匹配，否则需要重新启动 sidecar-injector Pod。
+CA 証明書が一致しない場合は、sidecar-injector Pod を再起動してください。
 
 {{< text bash >}}
 $ kubectl -n istio-system patch deployment istio-sidecar-injector \
-    -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
+ -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
 deployment.extensions "istio-sidecar-injector" patched
 {{< /text >}}
 
-### Deployment 状态错误 {#errors-in-deployment-status}
+### Deployment ステータスエラー {#errors-in-deployment-status}
 
-当为 Pod 启用自动 Sidecar 注入时，如果注入因任何原因失败，
-Pod 创建也会失败。在这种情况下，您可以检查 Pod 的部署状态以识别错误。
-这些错误也会出现在与部署关联的命名空间的事件中。
+Pod で自動 Sidecar インジェクションを有効にしている場合、何らかの理由でインジェクションに失敗すると、Pod の作成も失敗します。この場合、Pod のデプロイメントステータスを確認してエラーを特定できます。
+これらのエラーは、デプロイメントが属する名前空間のイベントにも表示されます。
 
-例如，如果在您尝试部署 Pod 时 `istiod` 控制平面 Pod 没有运行，则事件将显示以下错误：
+たとえば、Pod をデプロイしようとしたときに `istiod` コントロールプレーン Pod が稼働していない場合、イベントには次のようなエラーが表示されます：
 
 {{< text bash >}}
 $ kubectl get events -n curl
 ...
-23m Normal   SuccessfulCreate replicaset/curl-9454cc476  Created pod: curl-9454cc476-khp45
-22m Warning  FailedCreate     replicaset/curl-9454cc476  Error creating: Internal error occurred: failed calling webhook "namespace.sidecar-injector.istio.io": failed to call webhook: Post "https://istiod.istio-system.svc:443/inject?timeout=10s": dial tcp 10.96.44.51:443: connect: connection refused
+23m Normal SuccessfulCreate replicaset/curl-9454cc476 Created pod: curl-9454cc476-khp45
+22m Warning FailedCreate replicaset/curl-9454cc476 Error creating: Internal error occurred: failed calling webhook "namespace.sidecar-injector.istio.io": failed to call webhook: Post "https://istiod.istio-system.svc:443/inject?timeout=10s": dial tcp 10.96.44.51:443: connect: connection refused
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl -n istio-system get pod -lapp=istiod
-NAME                            READY     STATUS    RESTARTS   AGE
-istiod-7d46d8d9db-jz2mh         1/1       Running     0         2d
+NAME READY STATUS RESTARTS AGE
+istiod-7d46d8d9db-jz2mh 1/1 Running 0 2d
 {{< /text >}}
 
 {{< text bash >}}
 $ kubectl -n istio-system get endpoints istiod
-NAME           ENDPOINTS                                                  AGE
-istiod   10.244.2.8:15012,10.244.2.8:15010,10.244.2.8:15017 + 1 more...   3h18m
+NAME ENDPOINTS AGE
+istiod 10.244.2.8:15012,10.244.2.8:15010,10.244.2.8:15017 + 1 more... 3h18m
 {{< /text >}}
 
-如果 istiod Pod 或 endpoint 尚未准备就绪，可以通过检查 Pod 日志和状态查找有关
-Webhook Pod 无法启动的原因。
+istiod Pod や endpoint がまだ準備できていない場合は、Pod のログやステータスを確認して Webhook Pod が起動できない理由を調べてください。
 
 {{< text bash >}}
 $ for pod in $(kubectl -n istio-system get pod -lapp=istiod -o jsonpath='{.items[*].metadata.name}'); do \
-    kubectl -n istio-system logs ${pod} \
+ kubectl -n istio-system logs ${pod} \
 done
 
 $ for pod in $(kubectl -n istio-system get pod -l app=istiod -o name); do \
@@ -190,68 +181,59 @@ done
 $
 {{< /text >}}
 
-## 如果 Kubernetes API server 有代理设置的话，Sidecar 的自动注入功能是不能用的 {#automatic-sidecar-injection-fails-if-the-Kubernetes-API-server-has-proxy-settings}
+## Kubernetes API server にプロキシ設定がある場合、Sidecar の自動インジェクションは動作しない {#automatic-sidecar-injection-fails-if-the-Kubernetes-API-server-has-proxy-settings}
 
-当 Kubernetes API server 包含诸如以下的代理设置时：
+Kubernetes API server に以下のようなプロキシ設定がある場合：
 
 {{< text yaml >}}
 env:
-  - name: http_proxy
-    value: http://proxy-wsa.esl.foo.com:80
-  - name: https_proxy
-    value: http://proxy-wsa.esl.foo.com:80
-  - name: no_proxy
-    value: 127.0.0.1,localhost,dockerhub.foo.com,devhub-docker.foo.com,10.84.100.125,10.84.100.126,10.84.100.127
-{{< /text >}}
 
-使用这些设置，Sidecar 自动注入就会失败。相关的报错可以在 `kube-apiserver`
-日志中找到：
+- name: http_proxy
+  value: http://proxy-wsa.esl.foo.com:80
+- name: https_proxy
+  value: http://proxy-wsa.esl.foo.com:80
+- name: no_proxy
+  value: 127.0.0.1,localhost,dockerhub.foo.com,devhub-docker.foo.com,10.84.100.125,10.84.100.126,10.84.100.127
+  {{< /text >}}
+
+このような設定では、Sidecar の自動インジェクションは失敗します。関連するエラーは `kube-apiserver` のログで確認できます：
 
 {{< text plain >}}
-W0227 21:51:03.156818       1 admission.go:257] Failed calling webhook, failing open sidecar-injector.istio.io: failed calling admission webhook "sidecar-injector.istio.io": Post https://istio-sidecar-injector.istio-system.svc:443/inject: Service Unavailable
+W0227 21:51:03.156818 1 admission.go:257] Failed calling webhook, failing open sidecar-injector.istio.io: failed calling admission webhook "sidecar-injector.istio.io": Post https://istio-sidecar-injector.istio-system.svc:443/inject: Service Unavailable
 {{< /text >}}
 
-根据 `*_proxy` 相关的环境变量设置，确保 Pod 和 service CIDR 是没有被代理的。检查
-`kube-apiserver` 的运行日志验证是否有请求正在被代理。
+`*_proxy` 関連の環境変数設定に応じて、Pod や service CIDR がプロキシされていないことを確認してください。`kube-apiserver` の実行ログでリクエストがプロキシ経由になっていないか確認します。
 
-一种解决方法是在 `kube-apiserver` 的配置中删除代理设置，另一种解决方法是把
-`istio-sidecar-injector.istio-system.svc` 或者 `.svc` 加到 `no_proxy`
-的 `value` 里面。每种解决方法都需要重新启动 `kube-apiserver`。
+1 つの解決策は `kube-apiserver` の設定からプロキシ設定を削除すること、もう 1 つは `istio-sidecar-injector.istio-system.svc` または `.svc` を `no_proxy` の `value` に追加することです。いずれの場合も `kube-apiserver` の再起動が必要です。
 
-Kubernetes 与此有关的一个 [issue](https://github.com/kubernetes/kubeadm/issues/666)
-已被 [PR #58698](https://github.com/kubernetes/kubernetes/pull/58698#discussion_r163879443)
-解决。
+Kubernetes の関連 [issue](https://github.com/kubernetes/kubeadm/issues/666) は [PR #58698](https://github.com/kubernetes/kubernetes/pull/58698#discussion_r163879443) で解決されています。
 
-## 在 Pod 中使用 `tcpdump` 的限制 {#limitations-for-using-Tcpdump-in-pods}
+## Pod 内での `tcpdump` 利用の制限 {#limitations-for-using-Tcpdump-in-pods}
 
-`tcpdump` 在 Sidecar 中不能工作 - 因为该容器不以 root 身份运行。但是由于同一
-Pod 内容器的网络命名空间是共享的，因此 Pod 中的其他容器也能看到所有数据包。
-`iptables` 也能查看到 Pod 级别的相关配置。
+`tcpdump` は Sidecar では動作しません（root 権限で動作しないため）。ただし、同じ Pod 内の他のコンテナはネットワーク名前空間を共有しているため、すべてのパケットを観測できます。
+`iptables` も Pod レベルの設定を確認できます。
 
-Envoy 和应用程序之间的通信是通过 127.0.0.1 进行的，这个通讯过程未加密。
+Envoy とアプリケーション間の通信は 127.0.0.1 経由で行われ、暗号化されていません。
 
-## 集群不会自动缩小 {#cluster-is-not-scaled-down-automatically}
+## クラスタが自動縮小されない {#cluster-is-not-scaled-down-automatically}
 
-由于 Sidecar 容器安装了本地存储卷，因此节点自动缩放器无法使用注入的
-Pod 驱逐节点。这是一个[已知的问题](https://github.com/istio/istio/issues/19395)。
-解决方法是向 Pod 添加注解 `"cluster-autoscaler.kubernetes.io/safe-to-evict": "true"`。
+Sidecar コンテナがローカルストレージボリュームをマウントしているため、ノード自動スケーラーはインジェクションされた Pod をノードから退避できません。これは[既知の問題](https://github.com/istio/istio/issues/19395)です。
+回避策として、Pod にアノテーション `"cluster-autoscaler.kubernetes.io/safe-to-evict": "true"` を追加してください。
 
-## 如果 istio-proxy 还没有准备好，Pod 或容器会出现网络问题 {#pod-or-containers-start-with-network-issues-if-istio-proxy-is-not-ready}
+## istio-proxy が準備できていない場合、Pod やコンテナでネットワーク問題が発生する {#pod-or-containers-start-with-network-issues-if-istio-proxy-is-not-ready}
 
-许多应用程序在启动期间执行一些需要网络连接命令或检查。此时如果 istio-proxy
-Sidecar 容器没有准备好，可能会导致应用程序容器挂起或重新启动。
+多くのアプリケーションは起動時にネットワーク接続が必要なコマンドやチェックを実行します。このとき istio-proxy Sidecar コンテナがまだ準備できていないと、アプリケーションコンテナがハングしたり再起動したりすることがあります。
 
-要避免这种情况，可以将 `holdApplicationUntilProxyStarts` 设置为 `true`。
-这将会使 Sidecar 注入器在 Pod 的容器列表中的容器启动之前注入 Sidecar，
-并阻止所有其它容器的启动，直到代理就绪。
+これを防ぐには、`holdApplicationUntilProxyStarts` を `true` に設定してください。
+これにより Sidecar インジェクターは Pod のコンテナリストの他のコンテナを起動する前に Sidecar を注入し、プロキシが準備できるまで他のコンテナの起動をブロックします。
 
-这可以作为全局配置选项添加：
+これはグローバル設定オプションとして追加できます：
 
 {{< text yaml >}}
 values.global.proxy.holdApplicationUntilProxyStarts: true
 {{< /text >}}
 
-或者在 Pod 的 annotation 中添加：
+または Pod の annotation で指定できます：
 
 {{< text yaml >}}
 proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'

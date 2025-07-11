@@ -1,88 +1,67 @@
 ---
-title: 第三方负载均衡器
-description: Istio 如何集成第三方负载均衡器。
+title: サードパーティ製ロードバランサー
+description: Istio がサードパーティ製ロードバランサーとどのように統合できるか。
 weight: 90
-keywords: [traffic-management,ingress]
+keywords: [traffic-management, ingress]
 owner: istio/wg-networking-maintainers
 test: n/a
 ---
 
-Istio 提供了 Ingress 和服务网格实现，可以一起使用，也可以分开使用。
-尽管它们设计为无缝协同工作，但有时需要与第三方 Ingress 集成。
-这可能是出于迁移目的、功能要求或个人偏好。
+Istio は Ingress とサービスメッシュの両方の実装を提供しており、これらは一緒に、または個別に使用できます。設計上はシームレスに連携しますが、サードパーティ製 Ingress と統合が必要な場合もあります。これは移行、機能要件、または好みによるものです。
 
-## 集成模式 {#integration-modes}
+## 統合モード {#integration-modes}
 
-在“独立（standalone）”模式下，第三方 Ingress 直接发送到后端。
-在这种情况下，后端可能已注入了 Istio Sidecar。
+「スタンドアロン」モードでは、サードパーティ製 Ingress が直接バックエンドにトラフィックを送信します。この場合、バックエンドには Istio Sidecar が注入されていることがあります。
 
 {{< mermaid >}}
 graph LR
-    cc((客户端))
-    tpi(第三方 Ingress)
-    a(后端)
-    cc-->tpi-->a
+cc((クライアント))
+tpi(サードパーティ Ingress)
+a(バックエンド)
+cc-->tpi-->a
 {{< /mermaid >}}
 
-在这种模式下，大部分工作都是正常的。
-服务网格中的客户端无需知道它们连接的后端是否具有 Sidecar。
-但是，Ingress 将不使用 mTLS，这可能会导致非预期的行为。
-因此，此设置的大部分配置都与启用 mTLS 有关。
+このモードでは、ほとんどの動作は通常通りです。サービスメッシュ内のクライアントは、接続先のバックエンドに Sidecar があるかどうかを意識する必要はありません。ただし、Ingress では mTLS が使用されないため、予期しない動作が発生する可能性があります。そのため、この構成の多くは mTLS の有効化に関するものです。
 
-在“链路（chained）”模式下，我们按顺序使用第三方 Ingress 和 Istio
-自己的 Gateway。这对于想要两层功能的情况会很有用。特别是，
-这在托管云负载均衡器中非常有用，因为云负载均衡器具有全局地址和托管证书等特性。
+「チェイン」モードでは、サードパーティ Ingress と Istio 独自の Gateway を順番に使用します。これは 2 層の機能が必要な場合に便利です。特に、クラウドマネージドロードバランサーでは、グローバルアドレスやマネージド証明書などの機能があるため有用です。
 
 {{< mermaid >}}
 graph LR
-    cc((客户端))
-    tpi(第三方 Ingress)
-    ii(Istio Gateway)
-    a(后端)
-    cc-->tpi
-    tpi-->ii
-    ii-->a
+cc((クライアント))
+tpi(サードパーティ Ingress)
+ii(Istio Gateway)
+a(バックエンド)
+cc-->tpi
+tpi-->ii
+ii-->a
 {{< /mermaid >}}
 
-## 云负载均衡器 {#cloud-load-balancers}
+## クラウドロードバランサー {#cloud-load-balancers}
 
-通常情况下，云负载均衡器在独立模式下无需使用 mTLS 即可正常工作。
-需要特定的供应商配置才能支持链路模式或启用 mTLS 的独立模式。
+通常、クラウドロードバランサーはスタンドアロンモードで mTLS なしで動作します。チェインモードや mTLS 有効のスタンドアロンモードをサポートするには、ベンダー固有の設定が必要です。
 
-### Google HTTP 和 HTTPS 负载均衡器 {#google-https-load-balancer}
+### Google HTTP/HTTPS ロードバランサー {#google-https-load-balancer}
 
-Google HTTP 和 HTTPS 负载均衡器的集成只适用于独立模式，
-如果不需要 mTLS，则可以直接使用，因为不支持 mTLS。
+Google HTTP/HTTPS ロードバランサーの統合はスタンドアロンモードのみサポートされ、mTLS が不要な場合に直接利用できます（mTLS はサポートされていません）。
 
-链路模式是可能的。有关设置说明，请参见
-[Google 文档](https://cloud.google.com/architecture/exposing-service-mesh-apps-through-gke-ingress)。
+チェインモードも可能です。設定方法は[Google ドキュメント](https://cloud.google.com/architecture/exposing-service-mesh-apps-through-gke-ingress)を参照してください。
 
-## 集群中负载均衡器 {#in-cluster-load-balancers}
+## クラスタ内ロードバランサー {#in-cluster-load-balancers}
 
-通常，集群中的负载均衡器在独立模式下无需使用 mTLS 即可正常工作。
+通常、クラスタ内ロードバランサーはスタンドアロンモードで mTLS なしで動作します。
 
-可以通过将 Sidecar 插入到集群中负载均衡器的 Pod 中来实现带 mTLS 的独立模式。
-这通常需要超出标准 Sidecar 注入的两个步骤：
+mTLS 有効のスタンドアロンモードを実現するには、クラスタ内ロードバランサーの Pod に Sidecar を注入します。これは標準の Sidecar 注入に加えて 2 つの手順が必要です：
 
-1. 禁用入站流量重定向。
-   虽然不是必需的，但通常我们只想使用 Sidecar 处理**出站**流量。
-   来自客户端的入站连接已由负载均衡器本身处理。
-   这还允许保留原始客户端 IP 地址，否则该地址将丢失在 Sidecar 中。
-   可以通过在负载均衡器 `Pod` 上插入 `traffic.sidecar.istio.io/includeInboundPorts: ""`
-   注解来启用此模式。
-1. 启用服务路由。
-   当请求发送到服务而不是特定的 Pod IP 时，Istio Sidecar 才能正常工作。
-   大多数负载均衡器默认会发送到特定的 Pod IP，从而破坏 mTLS。
-   执行此操作的步骤是特定于供应商的；下面列出了一些示例，但建议查阅具体供应商的文档。
+1. インバウンドトラフィックのリダイレクトを無効化します。
+   必須ではありませんが、通常は Sidecar で**アウトバウンド**トラフィックのみを処理したい場合に推奨されます。クライアントからのインバウンド接続はロードバランサー自体が処理します。これにより、元のクライアント IP アドレスも保持されます（Sidecar で失われることがあります）。このモードは、ロードバランサー `Pod` に `traffic.sidecar.istio.io/includeInboundPorts: ""` アノテーションを追加することで有効化できます。
+1. サービスルーティングを有効化します。
+   サービス宛てのリクエストでなければ、Istio Sidecar は正しく動作しません。多くのロードバランサーはデフォルトで特定の Pod IP に送信しますが、これでは mTLS が機能しません。ベンダーごとの手順は異なりますが、以下にいくつか例を示します。詳細は各ベンダーのドキュメントを参照してください。
 
-   另外将 `Host` 标头设置为服务名称也可以起作用。
-   但是，这可能会导致意外行为；负载均衡器将选择特定的 Pod，但 Istio 将忽略它。
-   有关为什么这样做的更多信息，
-   请参见[此处](/zh/docs/ops/configuration/traffic-management/traffic-routing/#http)。
+   また、`Host` ヘッダーをサービス名に設定することも有効な場合がありますが、予期しない動作を招くことがあります。ロードバランサーは特定の Pod を選択しますが、Istio はそれを無視します。詳細は[こちら](/ja/docs/ops/configuration/traffic-management/traffic-routing/#http)を参照してください。
 
 ### ingress-nginx
 
-可以通过在 `Ingress` 资源上插入注解来配置 `ingress-nginx` 以执行服务路由：
+`ingress-nginx` でサービスルーティングを有効にするには、`Ingress` リソースにアノテーションを追加します：
 
 {{< text yaml >}}
 nginx.ingress.kubernetes.io/service-upstream: "true"
@@ -90,4 +69,4 @@ nginx.ingress.kubernetes.io/service-upstream: "true"
 
 ### Emissary-Ingress
 
-Emissary-ingress 默认使用服务路由，因此无需其他步骤。
+Emissary-ingress はデフォルトでサービスルーティングを使用するため、追加の手順は不要です。

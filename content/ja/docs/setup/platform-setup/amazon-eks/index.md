@@ -1,12 +1,12 @@
 ---
 title: Amazon EKS
-description: 有关在 AWS 云中的 Amazon EKS 上设置 Istio 的说明。
+description: AWS クラウド上の Amazon EKS で Istio をセットアップするための手順。
 weight: 7
 skip_seealso: true
-keywords: [platform-setup,aws-cloud,eks]
+keywords: [platform-setup, aws-cloud, eks]
 owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-按照 [EKS 上的 Istio](https://github.com/aws-samples/istio-on-eks)
-说明在 AWS 云中使用 Istio 设置配置 EKS 集群。
+[AWS EKS 上の Istio](https://github.com/aws-samples/istio-on-eks)
+の手順に従って、AWS クラウド上で Istio を利用するための EKS クラスタをセットアップしてください。

@@ -1,9 +1,9 @@
 ---
-title: 可观测性
-description: 帮助您管理正在运行的网格中的遥测收集和可视化。
+title: オブザーバビリティ
+description: 実行中のメッシュでのテレメトリ収集と可視化の管理をサポートします。
 weight: 40
-keywords: [ops,telemetry]
+keywords: [ops, telemetry]
 aliases:
-    - /zh/help/ops/telemetry
+  - /zh/help/ops/telemetry
 test: n/a
 ---

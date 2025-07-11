@@ -1,80 +1,80 @@
 ---
 title: 腾讯云
-description: 在腾讯云上快速创建 Istio 服务。
+description: Tencent Cloud 上での Istio サービスのクイック作成。
 weight: 65
 skip_seealso: true
-keywords: [platform-setup,tencent-cloud-mesh,tcm,tencent-cloud,tencentcloud]
+keywords: [platform-setup, tencent-cloud-mesh, tcm, tencent-cloud, tencentcloud]
 owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-## 准备工作 {#prerequisites}
+## 前提作業 {#prerequisites}
 
-请参考以下的说明为 Istio 搭建一个 [Tencent Kubernetes Engine](https://cloud.tencent.com/product/tke)
-或者 [Elastic Kubernetes Service](https://cloud.tencent.com/product/eks) 集群
+以下の手順に従って、Istio 用の [Tencent Kubernetes Engine](https://cloud.tencent.com/product/tke)
+または [Elastic Kubernetes Service](https://cloud.tencent.com/product/eks) クラスタをセットアップしてください。
 
-您可以在腾讯云上基于 [Tencent Kubernetes Engine](https://cloud.tencent.com/document/product/457/32189)
-或者 [Elastic Kubernetes Service](https://cloud.tencent.com/document/product/457/39813)
-部署一个 Kubernetes 集群，这两种集群都完全支持 Istio 的安装与部署。
+Tencent Cloud では [Tencent Kubernetes Engine](https://cloud.tencent.com/document/product/457/32189)
+または [Elastic Kubernetes Service](https://cloud.tencent.com/document/product/457/39813)
+を使って Kubernetes クラスタをデプロイできます。どちらのクラスタも Istio のインストールとデプロイに完全対応しています。
 
-{{< image link="./tke.png" caption="创建集群" >}}
+{{< image link="./tke.png" caption="クラスタの作成" >}}
 
-## 步骤 {#procedure}
+## 手順 {#procedure}
 
-在创建了一个 TKE 或者 EKS 集群之后，您能够在 [Tencent Cloud Mesh](https://cloud.tencent.com/product/tcm)
-中快速的部署和使用 Istio。
+TKE または EKS クラスタを作成した後、[Tencent Cloud Mesh](https://cloud.tencent.com/product/tcm)
+で Istio を素早くデプロイ・利用できます。
 
-{{< image link="./tcm.png" caption="创建腾讯服务网格" >}}
+{{< image link="./tcm.png" caption="Tencent サービスメッシュの作成" >}}
 
-1. 登陆到**容器服务**的控制台，然后点击左边导航栏中**服务网格**进入到**服务网格**的页面。
+1. **コンテナサービス**のコンソールにログインし、左側のナビゲーションバーから**サービスメッシュ**をクリックして**サービスメッシュ**ページに移動します。
 
-1. 点击左上角的**创建**按钮。
+1. 左上の**作成**ボタンをクリックします。
 
-1. 输入 Mesh 的名称。
+1. Mesh の名前を入力します。
 
-    {{< tip >}}
-    Mesh 的名称可以是长度为1到60的字符，可以包含数字、中文字符、英文字母以及连字符(-)。
-    {{< /tip >}}
+   {{< tip >}}
+   Mesh 名は 1 ～ 60 文字で、数字・日本語・英字・ハイフン（-）を含めることができます。
+   {{< /tip >}}
 
-1. 选择集群所在的**地域**。
+1. クラスタの**リージョン**を選択します。
 
-1. 选择安装的 Istio 的版本。Tencent Cloud Mesh 支持最新两个重要版本的 Istio 的安装。
+1. インストールする Istio のバージョンを選択します。Tencent Cloud Mesh では最新の 2 つの主要バージョンの Istio をサポートしています。
 
-1. 选择服务网格的部署模式：**独立网格**或者是**托管网格**。
+1. サービスメッシュのデプロイモードを選択します：**独立メッシュ**または**マネージドメッシュ**。
 
-    {{< tip >}}
-    Tencent Cloud Mesh 支持**独立网格模式**，Istiod 在用户集群中运行并由用户自身维护；
-    同时也支持**托管网格模式**，Istiod 在托管面中运行并由 Tencent Cloud Mesh 团队维护。
-    {{< /tip >}}
+   {{< tip >}}
+   Tencent Cloud Mesh は**独立メッシュモード**（Istiod がユーザークラスタ内で動作し、ユーザー自身が管理）と、
+   **マネージドメッシュモード**（Istiod が管理プレーンで動作し、Tencent Cloud Mesh チームが管理）をサポートしています。
+   {{< /tip >}}
 
-1. 配置 Egress 的流量规则：`Register Only` 或者是 `Allow Any`。
+1. Egress のトラフィックルールを設定します：`Register Only` または `Allow Any`。
 
-1. 选择相关的 **Tencent Kubernetes Engine** 或者 **Elastic Kubernetes Service** 集群。
+1. 関連する **Tencent Kubernetes Engine** または **Elastic Kubernetes Service** クラスタを選択します。
 
-1. 选择在指定 Namespaces 下开启 Sidecar 自动注入。
+1. 指定した Namespaces で Sidecar の自動インジェクションを有効にします。
 
-1. 配置外部请求绕过 Sidecar 直接访问的 IP 地址块，外部请求流量将无法使用 Istio
-   流量管理、可观测性等特性。默认所有外部请求转发至 Sidecar。
+1. 外部リクエストが Sidecar をバイパスして直接アクセスできる IP アドレスブロックを設定します。外部リクエストのトラフィックは Istio
+   のトラフィック管理や可観測性などの機能を利用できなくなります。デフォルトではすべての外部リクエストは Sidecar 経由で転送されます。
 
-1. 选择开启 Sidecar 就绪保障。
+1. Sidecar レディネス保証を有効にします。
 
-    {{< tip >}}
-    开启后业务容器将等待 Sidecar 就绪后再启动，将一定程度增加 Pod 启动时长，
-    建议对于业务逻辑中有 Sidecar 功能强依赖的服务开启。
-    {{< /tip >}}
+   {{< tip >}}
+   有効にすると、ビジネスコンテナは Sidecar の準備ができてから起動します。これにより Pod の起動時間が若干長くなりますが、
+   Sidecar 機能に強く依存するサービスには有効化を推奨します。
+   {{< /tip >}}
 
-    {{< image link="./ingress-egress.png" caption="配置 Gateway" >}}
+   {{< image link="./ingress-egress.png" caption="Gateway の設定" >}}
 
-1. 配置边缘代理网关，开启 Ingress Gateway 或者 Egress Gateway。
+1. エッジプロキシゲートウェイを設定し、Ingress Gateway または Egress Gateway を有効にします。
 
-    {{< image link="./tps.png" caption="配置可观测性服务" >}}
+   {{< image link="./tps.png" caption="可観測性サービスの設定" >}}
 
-1. 配置 Metrics，Tracing，Logging 相关的可观测性的能力。
+1. Metrics、Tracing、Logging などの可観測性機能を設定します。
 
-    {{< tip >}}
-    除了默认的云监控服务外，您能够选择开启高级外部服务，如
-    [Prometheus 监控服务](https://cloud.tencent.com/product/tmp)
-    和[日志服务](https://cloud.tencent.com/product/cls)。
-    {{< /tip >}}
+   {{< tip >}}
+   デフォルトのクラウド監視サービスに加え、
+   [Prometheus 監視サービス](https://cloud.tencent.com/product/tmp)
+   や[ログサービス](https://cloud.tencent.com/product/cls)などの高度な外部サービスも有効化できます。
+   {{< /tip >}}
 
-在完成这些步骤，并确认配置创建 Istio 后，就可以开始在 Tencent Cloud Mesh 中使用 Istio 了。
+これらの手順を完了し、設定を確認して Istio を作成すれば、Tencent Cloud Mesh で Istio を利用開始できます。

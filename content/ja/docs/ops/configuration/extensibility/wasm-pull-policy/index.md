@@ -1,8 +1,8 @@
 ---
-title: WebAssembly 模块的拉取策略
-description: 描述 Istio 如何决定是拉取 Wasm 模块还是使用缓存的版本。
+title: WebAssembly モジュールのプルポリシー
+description: Istio が Wasm モジュールをプルするかキャッシュバージョンを使うかをどのように決定するかを説明します。
 weight: 10
-keywords: [extensibility,Wasm,WebAssembly]
+keywords: [extensibility, Wasm, WebAssembly]
 owner: istio/wg-policies-and-telemetry-maintainers
 test: n/a
 status: Alpha
@@ -10,48 +10,45 @@ status: Alpha
 
 {{< boilerplate alpha >}}
 
-[WasmPlugin API](/zh/docs/reference/config/proxy_extensions/wasm-plugin)
-提供了一种[将 Wasm 模块分发给](/zh/docs/tasks/extensibility/wasm-module-distribution)代理的方法。
-由于每个代理将从远程镜像仓库或 HTTP 服务器中拉取 Wasm 模块，所以了解
-Istio 如何选择拉取模块的机制在可用性和性能方面都很重要。
+[WasmPlugin API](/ja/docs/reference/config/proxy_extensions/wasm-plugin) は、[Wasm モジュールをプロキシに配布する](/ja/docs/tasks/extensibility/wasm-module-distribution)方法を提供します。
+各プロキシはリモートのイメージレジストリや HTTP サーバーから Wasm モジュールをプルするため、
+Istio がどのような仕組みでモジュールのプルを選択するかを理解することは、可用性やパフォーマンスの観点で重要です。
 
-## 镜像拉取策略和异常 {#image-pull-policy-and-exceptions}
+## イメージプルポリシーと例外 {#image-pull-policy-and-exceptions}
 
-与 Kubernetes 的 `ImagePullPolicy` 类似，
-[WasmPlugin](/zh/docs/reference/config/proxy_extensions/wasm-plugin/#WasmPlugin)
-也有`IfNotPresent` 和 `Always` 的概念，这分别意味着“使用缓存模块”和“不管缓存而始终拉取模块”。
+Kubernetes の `ImagePullPolicy` と同様に、
+[WasmPlugin](/ja/docs/reference/config/proxy_extensions/wasm-plugin/#WasmPlugin) にも `IfNotPresent` と `Always` の概念があり、
+それぞれ「キャッシュされたモジュールを使う」「常にモジュールをプルする」ことを意味します。
 
-用户使用 `ImagePullPolicy` 字段显式配置 Wasm 模块检索的行为。
-但是，在以下场景中 Istio 可以覆盖用户提供的行为：
+ユーザーは `ImagePullPolicy` フィールドで Wasm モジュール取得の挙動を明示的に設定できます。
+ただし、以下のケースでは Istio がユーザー指定の挙動を上書きすることがあります：
 
-1. 如果用户在 [WasmPlugin](/zh/docs/reference/config/proxy_extensions/wasm-plugin/#WasmPlugin)
-   中设置 `sha256`，则不管 `ImagePullPolicy`，使用 `IfNotPresent` 策略。
+1. ユーザーが [WasmPlugin](/ja/docs/reference/config/proxy_extensions/wasm-plugin/#WasmPlugin) で `sha256` を指定した場合、`ImagePullPolicy` に関わらず `IfNotPresent` ポリシーが使われます。
 
-1. 如果 `url` 字段指向一个 OCI 镜像且该字段有一个摘要后缀（例如
-   `gcr.io/foo/bar@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`），
-   则使用 `IfNotPresent` 策略。
+1. `url` フィールドが OCI イメージを指し、その末尾にダイジェスト（例：
+   `gcr.io/foo/bar@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`）が付いている場合、
+   `IfNotPresent` ポリシーが使われます。
 
-如果没有为某资源指定 `ImagePullPolicy`，则 Istio  默认为 `IfNotPresent`
-行为。但是如果提供的 `url` 字段指定一个标记值为 `latest` 的 OCI 镜像，则
-Istio 将使用 `Always` 行为。
+リソースで `ImagePullPolicy` を指定しない場合、Istio のデフォルトは `IfNotPresent` です。
+ただし、`url` フィールドが `latest` タグ付きの OCI イメージを指定している場合は、
+Istio は `Always` 振る舞いを適用します。
 
-## 缓存模块的生命周期 {#lifecycle-of-cached-modules}
+## キャッシュされたモジュールのライフサイクル {#lifecycle-of-cached-modules}
 
-每个代理，无论是 Sidecar 代理还是网关，都会缓存 Wasm 模块。因此，缓存
-Wasm 模块的生存期受相应 Pod 的生存期限制。此外，还有一种过期机制可以将代理内存占用量保持在最小：
-如果在某个时间段内未使用缓存的 Wasm 模块，则会清除该模块。
+各プロキシ（Sidecar プロキシやゲートウェイ）は Wasm モジュールをキャッシュします。
+そのため、キャッシュされた Wasm モジュールの寿命は対応する Pod の寿命に依存します。
+また、プロキシのメモリ使用量を最小限に抑えるための有効期限メカニズムもあります：
+一定期間キャッシュされた Wasm モジュールが使われなければ、そのモジュールは削除されます。
 
-这个过期行为可以通过 [pilot-proxy](/zh/docs/reference/commands/pilot-agent/#envvars)
-的环境变量 `WASM_MODULE_EXPIRY` 和 `WASM_PURGE_INTERVAL` 进行配置，
-具体包括过期的持续时间和检查过期的时间间隔。
+この有効期限の挙動は [pilot-proxy](/ja/docs/reference/commands/pilot-agent/#envvars) の環境変数 `WASM_MODULE_EXPIRY` および `WASM_PURGE_INTERVAL` で設定できます。
+有効期限の長さやチェック間隔を調整できます。
 
-## “始终”的含义 {#the-meaning-of-always}
+## 「Always」の意味 {#the-meaning-of-always}
 
-在 Kubernetes 中，`ImagePullPolicy: Always` 意味着每次创建
-Pod 时都会直接从其镜像源中拉取镜像。每次新的 Pod 启动时，Kubernetes
-就会重新拉取新的镜像。
+Kubernetes では、`ImagePullPolicy: Always` は Pod 作成時に毎回イメージソースから直接イメージをプルすることを意味します。
+新しい Pod が起動するたびに、Kubernetes は新しいイメージを再度プルします。
 
-对于 `WasmPlugin`，`ImagePullPolicy: Always` 意味着每次创建或更改相应的
-`WasmPlugin` Kubernetes 资源时，Istio 将直接从其镜像源中拉取镜像。请注意，当使用
-`Always` 策略时，`spec` 和 `metadata` 中的变更都会触发 Wasm 模块的拉取。
-这可能意味着在 Pod 的生命周期和单个代理的生命周期内，会多次从镜像源中拉取镜像。
+`WasmPlugin` の場合、`ImagePullPolicy: Always` は、対応する `WasmPlugin` Kubernetes リソースが作成または変更されるたびに、
+Istio がイメージソースから直接モジュールをプルすることを意味します。
+`Always` ポリシーを使う場合、`spec` や `metadata` の変更が Wasm モジュールのプルをトリガーします。
+そのため、Pod のライフサイクルや単一プロキシのライフサイクル中に、イメージソースから複数回プルされる場合があります。

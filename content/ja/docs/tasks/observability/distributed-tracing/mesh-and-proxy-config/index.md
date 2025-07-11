@@ -1,11 +1,11 @@
 ---
-title: 使用 MeshConfig 和 Pod 注解配置链路追踪
-description: 如何使用 MeshConfig 和 Pod 注解配置链路追踪。
+title: MeshConfig と Pod アノテーションによるトレース設定
+description: MeshConfig と Pod アノテーションを使ってトレースを設定する方法。
 weight: 3
-keywords: [telemetry,tracing]
+keywords: [telemetry, tracing]
 aliases:
- - /zh/docs/tasks/observability/distributed-tracing/configurability/
- - /zh/docs/tasks/observability/distributed-tracing/configurability/mesh-and-proxy-config/
+  - /zh/docs/tasks/observability/distributed-tracing/configurability/
+  - /zh/docs/tasks/observability/distributed-tracing/configurability/mesh-and-proxy-config/
 owner: istio/wg-policies-and-telemetry-maintainers
 test: no
 status: Beta
@@ -13,227 +13,222 @@ status: Beta
 
 {{< boilerplate telemetry-tracing-tips >}}
 
-Istio 提供了配置高级链路追踪选项的能力，例如采样率和向报告的 span 中添加自定义标签。
+Istio は、サンプリングレートやレポートされる span にカスタムタグを追加するなど、高度なトレースオプションの設定機能を提供します。
 
-## 开始之前  {#before-you-begin}
+## 始める前に {#before-you-begin}
 
-1. 确保您的应用程序按照[此处](/zh/docs/tasks/observability/distributed-tracing/overview/)所述传输链路追踪的标头。
+1. アプリケーションが[こちら](/zh/docs/tasks/observability/distributed-tracing/overview/)で説明されているようにトレースヘッダーを伝播していることを確認してください。
 
-1. 按照位于[集成](/zh/docs/ops/integrations/)下的链路追踪安装指南，
-   根据您首选的链路追踪后端安装适当的软件并配置您的 Istio 代理以将链路发送到链路追踪部署。
+1. [統合](/zh/docs/ops/integrations/)の下にあるトレースインストールガイドに従い、希望するトレースバックエンドをインストールし、Istio プロキシがトレースをトレースデプロイメントに送信するように設定してください。
 
-## 可用的链路追踪配置  {#available-tracing-configurations}
+## 利用可能なトレース設定 {#available-tracing-configurations}
 
-您可以在 Istio 中配置以下链路追踪选项：
+Istio では、以下のトレースオプションを設定できます：
 
-1. 对生成追踪数据的请求按一定百分比进行随机采样。
+1. トレースデータを生成するリクエストを一定の割合でランダムサンプリングします。
 
-1. 请求路径的最大长度，之后路径将被截断报告。如果您在入口网关收集追踪信息，
-   这对于限制链路追踪的数据存储特别有用。
+1. リクエストパスの最大長。これを超えるとパスは切り捨ててレポートされます。イングレスゲートウェイでトレースを収集する場合、トレースデータストレージの制限に役立ちます。
 
-1. 在 span 中添加自定义标签。这些标签可以基于静态文字添加请求标头中的值、环境值或字段。
-   这可以用来在特定于您的环境的 span 中注入其他信息。
+1. span にカスタムタグを追加できます。これらのタグは、静的な文字列、リクエストヘッダーの値、環境変数、またはフィールドに基づいて追加できます。
+   これにより、span に環境固有の追加情報を注入できます。
 
-有两种方法可以配置链路追踪选项：
+トレースオプションの設定方法は 2 つあります：
 
-1. 全局地，通过 `MeshConfig` 选项。
+1. グローバルに `MeshConfig` オプションで設定
 
-1. 基于每个 Pod 的注释，用于特定工作负载的定制。
+1. 各 Pod のアノテーションで、特定のワークロードごとにカスタマイズ
 
 {{< warning >}}
-为了使新的链路追踪配置对其中任何一个 Pod 生效，您需要重新启动注入 Istio 代理的 Pod。
+新しいトレース設定を Pod に反映させるには、Istio プロキシがインジェクトされた Pod を再起動する必要があります。
 
-为链路追踪配置而添加的任何 Pod 注解都会覆盖全局设置。为了保留全局设置，
-您应该将它们从全局网格配置复制到 Pod 注解中，并进行特定于工作负载的定制。
-特别是要确保注解中始终提供链路追踪后端的地址，以确保正确地报告工作负载的追踪信息。
+トレース設定のために追加した Pod アノテーションはグローバル設定を上書きします。グローバル設定を維持したい場合は、グローバルメッシュ設定から Pod アノテーションにコピーし、ワークロード固有のカスタマイズを行ってください。
+特に、アノテーションには常にトレースバックエンドのアドレスを指定し、ワークロードのトレースが正しくレポートされるようにしてください。
 {{< /warning >}}
 
-## 安装  {#installation}
+## インストール {#installation}
 
-使用这些特性为在您的环境中管理链路追踪提供了新的可能性。
+これらの機能を使うことで、環境内でのトレース管理の新たな可能性が広がります。
 
-在本例中，我们将对所有追踪进行采样，并添加一个名为 `clusterID` 的标签，使用
-`ISTIO_META_CLUSTER_ID` 环境变量注入到您的 Pod 中（只使用该值的前 256 个字符）。
+この例では、すべてのトレースをサンプリングし、`clusterID` という名前のタグを追加します。
+このタグは Pod の `ISTIO_META_CLUSTER_ID` 環境変数（最初の 256 文字のみ）から注入されます。
 
 {{< text bash >}}
 $ cat <<EOF > ./tracing.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing:
-        sampling: 100.0
-        max_path_tag_length: 256
-        custom_tags:
-          clusterID:
-            environment:
-              name: ISTIO_META_CLUSTER_ID
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing:
+sampling: 100.0
+max_path_tag_length: 256
+custom_tags:
+clusterID:
+environment:
+name: ISTIO_META_CLUSTER_ID
 EOF
 $ istioctl install -f ./tracing.yaml
 {{< /text >}}
 
-### 使用 MeshConfig 进行链路追踪设置  {#using-mesh-config-for-trace-settings}
+### MeshConfig でのトレース設定 {#using-mesh-config-for-trace-settings}
 
-所有追踪选项都可以通过 `MeshConfig` 全局配置。
-为了简化配置，建议创建一个可以传递给 `istioctl install -f`
-命令的 YAML 文件。
+すべてのトレースオプションは `MeshConfig` のグローバル設定で指定できます。
+設定を簡単にするため、`istioctl install -f` コマンドに渡せる YAML ファイルを作成することを推奨します。
 
 {{< text yaml >}}
 cat <<'EOF' > tracing.yaml
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing:
-        sampling: 10
-        custom_tags:
-          my_tag_header:
-            header:
-              name: host
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing:
+sampling: 10
+custom_tags:
+my_tag_header:
+header:
+name: host
 EOF
 {{< /text >}}
 
-### 使用 `proxy.istio.io/config` 注解配置链路追踪  {#using-proxy-istio-io-config-annotation-for-trace-settings}
+### `proxy.istio.io/config` アノテーションによるトレース設定 {#using-proxy-istio-io-config-annotation-for-trace-settings}
 
-您可以添加 `proxy.istio.io/config` 注解到 Pod 元数据规约中，以覆盖任何网格范围的链路追踪配置。
-例如，要修改 Istio 附带的 `curl` Deployment，您需要在 `samples/curl/curl.yaml` 中添加以下内容：
+Pod のメタデータ仕様に `proxy.istio.io/config` アノテーションを追加することで、メッシュ全体のトレース設定を上書きできます。
+例えば、Istio に付属の `curl` Deployment を変更するには、`samples/curl/curl.yaml` に以下を追加します：
 
 {{< text yaml >}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: curl
+name: curl
 spec:
-  ...
-  template:
-    metadata:
-      ...
-      annotations:
-        ...
-        proxy.istio.io/config: |
-          tracing:
-            sampling: 10
-            custom_tags:
-              my_tag_header:
-                header:
-                  name: host
-    spec:
-      ...
+...
+template:
+metadata:
+...
+annotations:
+...
+proxy.istio.io/config: |
+tracing:
+sampling: 10
+custom_tags:
+my_tag_header:
+header:
+name: host
+spec:
+...
 {{< /text >}}
 
-## 自定义 {#customization}
+## カスタマイズ {#customization}
 
-### 自定义链路追踪采样 {#customizing-trace-sampling}
+### トレースサンプリングのカスタマイズ {#customizing-trace-sampling}
 
-采样率选项可用于控制向链路追踪系统报告的请求的百分比，
-这应该根据网格中的通信量和想要收集的追踪数据量进行配置，
-默认值为 1%。
+サンプリングレートオプションは、トレースシステムにレポートされるリクエストの割合を制御するために使用します。
+これは、メッシュ内の通信量や収集したいトレースデータ量に応じて設定してください。
+デフォルト値は 1% です。
 
 {{< warning >}}
-以前，推荐的方法是在网格设置期间更改 `values.pilot.traceSampling` 设置，或在
-istiod Deployment 中更改 `PILOT_TRACE_SAMPLE` 环境变量。
+以前は、メッシュセットアップ時に `values.pilot.traceSampling` を変更したり、
+istiod Deployment の `PILOT_TRACE_SAMPLE` 環境変数を変更する方法が推奨されていました。
 
-虽然这种改变抽样的方法仍然有效，但强烈建议改用以下方法。
+この方法も引き続き有効ですが、今後は以下の方法を強く推奨します。
 {{< /warning >}}
 
-要将默认随机抽样修改为 50，请在 `tracing.yaml` 文件中添加以下选项：
+デフォルトのランダムサンプリングを 50 に変更するには、`tracing.yaml` ファイルに以下を追加します：
 
 {{< text yaml >}}
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing:
-        sampling: 50
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing:
+sampling: 50
 {{< /text >}}
 
-采样率应在 0.0 到 100.0 的范围内，精度为 0.01。
-例如，要最终每 10000 个请求中的 5 个，使用 0.05 作为这里的值。
+サンプリングレートは 0.0 から 100.0 の範囲で、精度は 0.01 です。
+例えば、1 万リクエストごとに 5 件だけトレースしたい場合は、ここに 0.05 を指定します。
 
-### 定制追踪标签 {#customizing-tracing-tags}
+### トレースタグのカスタマイズ {#customizing-tracing-tags}
 
-可以根据文字、环境变量和客户端请求标头向 span 中添加自定义标签，
-以便在 span 中提供特定于您的环境的额外信息。
+span にカスタムタグを追加することで、文字列、環境変数、クライアントリクエストヘッダーなどに基づき、span に環境固有の追加情報を提供できます。
 
 {{< warning >}}
-可以添加的自定义标签的数量没有限制，但是标签名称必须是唯一的。
+追加できるカスタムタグの数に制限はありませんが、タグ名は一意でなければなりません。
 {{< /warning >}}
 
-您可以使用下面三个受支持的选项中的任何一个来定制标签。
+以下の 3 つのサポートされているオプションのいずれかを使ってタグをカスタマイズできます。
 
-1.  Literal 表示添加到每个 span 的静态值。
+1.  Literal は、各 span に静的な値を追加します。
 
     {{< text yaml >}}
     apiVersion: install.istio.io/v1alpha1
     kind: IstioOperator
     spec:
-      meshConfig:
-        enableTracing: true
-        defaultConfig:
-          tracing:
-            custom_tags:
-              my_tag_literal:
-                literal:
-                  value: <VALUE>
+    meshConfig:
+    enableTracing: true
+    defaultConfig:
+    tracing:
+    custom_tags:
+    my_tag_literal:
+    literal:
+    value: <VALUE>
     {{< /text >}}
 
-1.  在从工作负载代理环境变量填充自定义标签的值时，可以使用环境变量。
+1.  ワークロードプロキシの環境変数からカスタムタグの値を設定する場合は、環境変数を使用します。
 
     {{< text yaml >}}
     apiVersion: install.istio.io/v1alpha1
     kind: IstioOperator
     spec:
-      meshConfig:
-        enableTracing: true
-        defaultConfig:
-          tracing:
-            custom_tags:
-              my_tag_env:
-                environment:
-                  name: <ENV_VARIABLE_NAME>
-                  defaultValue: <VALUE>      # 可选
+    meshConfig:
+    enableTracing: true
+    defaultConfig:
+    tracing:
+    custom_tags:
+    my_tag_env:
+    environment:
+    name: <ENV_VARIABLE_NAME>
+    defaultValue: <VALUE> # オプション
     {{< /text >}}
 
     {{< warning >}}
-    为了添加基于环境变量的自定义标签，您必须修改根 Istio 系统命名空间中的
-    `istio-sidecar-injector` ConfigMap。
+    環境変数ベースのカスタムタグを追加するには、
+    Istio システムのルート名前空間にある `istio-sidecar-injector` ConfigMap を変更する必要があります。
     {{< /warning >}}
 
-1.  客户端请求头选项可用于填充来自传入客户端请求头的标签值。
+1.  クライアントリクエストヘッダーオプションは、受信クライアントリクエストヘッダーからタグ値を設定するために使用します。
 
     {{< text yaml >}}
     apiVersion: install.istio.io/v1alpha1
     kind: IstioOperator
     spec:
-      meshConfig:
-        enableTracing: true
-        defaultConfig:
-          tracing:
-            custom_tags:
-              my_tag_header:
-                header:
-                  name: <CLIENT-HEADER>
-                  defaultValue: <VALUE>      # 可选
+    meshConfig:
+    enableTracing: true
+    defaultConfig:
+    tracing:
+    custom_tags:
+    my_tag_header:
+    header:
+    name: <CLIENT-HEADER>
+    defaultValue: <VALUE> # オプション
     {{< /text >}}
 
-### 自定义链路追踪标签长度 {#customizing-tracing-tag-length}
+### トレースタグ長のカスタマイズ {#customizing-tracing-tag-length}
 
-默认情况下，`HttpUrl` span 标签中包含的请求路径的最大长度是 256。
-要修改此最大长度，请将以下内容添加到您的 `tracing.yaml` 文件。
+デフォルトでは、`HttpUrl` span タグに含まれるリクエストパスの最大長は 256 です。
+この最大長を変更するには、`tracing.yaml` ファイルに以下を追加してください。
 
 {{< text yaml >}}
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
-  meshConfig:
-    enableTracing: true
-    defaultConfig:
-      tracing:
-        max_path_tag_length: <VALUE>
+meshConfig:
+enableTracing: true
+defaultConfig:
+tracing:
+max_path_tag_length: <VALUE>
 {{< /text >}}

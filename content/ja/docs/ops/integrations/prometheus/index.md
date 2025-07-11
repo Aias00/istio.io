@@ -1,199 +1,164 @@
 ---
 title: Prometheus
-description: 如何集成 Prometheus。
+description: Prometheus との統合方法。
 weight: 30
-keywords: [integration,prometheus]
+keywords: [integration, prometheus]
 owner: istio/wg-environments-maintainers
 test: n/a
 ---
 
-[Prometheus](https://prometheus.io/) 是一个开源的监控系统、
-时间序列数据库。您可以利用 Prometheus 与 Istio 集成来收集指标（Metrics），
-通过这些指标判断 Istio 和网格内的应用的运行状况。您可以使用
-[Grafana](/zh/docs/ops/integrations/grafana/) 和
-[Kiali](/zh/docs/tasks/observability/kiali/) 来可视化这些指标。
+[Prometheus](https://prometheus.io/) はオープンソースの監視システムおよび時系列データベースです。Prometheus を Istio と統合することで、メトリクスを収集し、Istio やメッシュ内アプリケーションの稼働状況を把握できます。[Grafana](/ja/docs/ops/integrations/grafana/) や [Kiali](/ja/docs/tasks/observability/kiali/) でこれらのメトリクスを可視化できます。
 
-## 安装 {#installation}
+## インストール {#installation}
 
-### 选项 1：快速开始 {#option-1-quick-start}
+### オプション 1：クイックスタート {#option-1-quick-start}
 
-Istio 提供了一个简单地安装示例来快速安装、运行 Prometheus：
+Istio では Prometheus を素早く起動できる簡単なインストール例を提供しています：
 
 {{< text bash >}}
 $ kubectl apply -f {{< github_file >}}/samples/addons/prometheus.yaml
 {{< /text >}}
 
-这将会在您的集群中部署 Prometheus。这仅用于演示，并未针对性能或安全性进行调整。
+このコマンドで Prometheus がクラスタにデプロイされます。これはデモ用であり、パフォーマンスやセキュリティの調整はされていません。
 
 {{< warning >}}
-快速开始的配置仅适合小型集群和短期监控，不适用于大型网格和长时间的监控。
-特别的是，增加标签将会增加指标的基数，需要大量内存。并且，当尝试确定流量随时间的趋势变化，
-需要获取历史数据。
+クイックスタートの構成は小規模クラスタや短期監視向けであり、大規模メッシュや長期監視には適していません。特に、ラベルの追加はメトリクスのカーディナリティを増やし、多くのメモリを必要とします。また、トラフィックの傾向を把握するには履歴データが必要です。
 {{< /warning >}}
 
-### 选项 2：自定义安装 {#option-2-customizable-install}
+### オプション 2：カスタムインストール {#option-2-customizable-install}
 
-阅读 [Prometheus 文档](https://www.prometheus.io/)来在您的环境中安装、
-部署 Prometheus。阅读[配置](#configuration)
-来了解更多关于配置、部署 Prometheus 抓取更多 Istio 指标的信息。
+[Prometheus ドキュメント](https://www.prometheus.io/)を参照して、環境に合わせて Prometheus をインストール・デプロイしてください。[設定](#configuration)も参照し、より多くの Istio メトリクスを収集するための設定方法を確認してください。
 
-## 配置 {#configuration}
+## 設定 {#configuration}
 
-在 Istio 网格内，每个组件都有一个对外暴露指标的接口。Prometheus
-通过抓取这些接口的指标来收集数据。
+Istio メッシュ内の各コンポーネントは、外部にメトリクスを公開するエンドポイントを持っています。Prometheus はこれらのエンドポイントからメトリクスを収集します。
 
-通过 [Prometheus 配置文件](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)进行配置，
-该配置可以控制要查询的接口、端口、路径、TLS 配置等。
+[Prometheus 設定ファイル](https://prometheus.io/docs/prometheus/latest/configuration/configuration/)で、収集対象のエンドポイントやポート、パス、TLS 設定などを制御できます。
 
-要收集整个网格的指标，请配置 Prometheus：
+メッシュ全体のメトリクスを収集するには、Prometheus で以下を設定してください：
 
-1. 控制平面（`istiod` Deployment）
-1. 入口和出口网关
+1. コントロールプレーン（`istiod` Deployment）
+1. イングレス・エグレスゲートウェイ
 1. Envoy Sidecar
-1. 用户应用程序（如果这些应用程序向 Prometheus 暴露指标的话）
+1. ユーザーアプリケーション（アプリが Prometheus メトリクスを公開している場合）
 
-为了简化指标配置，Istio 提供了两种操作模式：
+メトリクス設定を簡素化するため、Istio では 2 つの運用モードを提供しています：
 
-### 选项 1：指标合并 {#option-1-metrics-merging}
+### オプション 1：メトリクスのマージ {#option-1-metrics-merging}
 
-为了简化配置，Istio 可以通过 `prometheus.io` 注解来控制指标的获取。
-这使得 Istio 抓取可以使用标准配置开箱即用，例如
-[Helm `stable/prometheus`](https://github.com/helm/charts/tree/master/stable/prometheus)
-Chart 提供的配置。
+Istio では `prometheus.io` アノテーションでメトリクス収集を制御できます。これにより、Helm の `stable/prometheus` Chart など、標準的な設定でそのままメトリクス収集が可能です。
 
 {{< tip >}}
-尽管 `prometheus.io` 并不是 Prometheus 的核心注解，
-但是该注解已经成为获取指标的标准注解。
+`prometheus.io` は Prometheus のコアアノテーションではありませんが、メトリクス収集の標準的なアノテーションとして広く使われています。
 {{< /tip >}}
 
-该选项默开启但是允许在[安装](/zh/docs/setup/install/istioctl/)时通过
-`--set meshConfig.enablePrometheusMerge=false` 关闭。当开启后，
-会将适当的 `prometheus.io` 注解添加到所有的数据平面容器中来设置指标收集。
-如果这些注解已经存在，他们将会被覆盖。使用该选项，Envoy Sidecar 将 Istio
-的指标与应用程序的指标合并。合并的指标将由 `:15020/stats/prometheus` 收集。
+このオプションはデフォルトで有効ですが、[インストール](/ja/docs/setup/install/istioctl/)時に `--set meshConfig.enablePrometheusMerge=false` で無効化できます。有効時は、すべてのデータプレーンコンテナに適切な `prometheus.io` アノテーションが追加され、メトリクス収集が設定されます。既存のアノテーションがある場合は上書きされます。このオプションでは、Envoy Sidecar が Istio のメトリクスとアプリケーションのメトリクスをマージします。マージされたメトリクスは `:15020/stats/prometheus` で収集されます。
 
-该选项以纯文本的形式显示所有指标。
+このオプションでは、すべてのメトリクスがプレーンテキストで表示されます。
 
-以下情况，该选项无法满足：
+以下の場合はこのオプションが適しません：
 
-* 您需要使用 TLS 收集指标。
-* 您的应用程序暴露的指标与 Istio 暴露的指标重名。例如，
-  您的应用程序暴露一个叫做 `istio_requests_total` 的指标。
-  如果应用程序本身正在运行 Envoy，这就有可能发生。
-* 您的 Prometheus Deployment 没有配置通过 `prometheus.io` 注解抓取指标。
+- TLS でメトリクスを収集したい場合
+- アプリケーションが Istio と同名のメトリクスを公開している場合（例：`istio_requests_total` など）。アプリが Envoy を実行している場合に発生することがあります。
+- Prometheus Deployment が `prometheus.io` アノテーションによる収集を設定していない場合
 
-如果需要，可以在 Pod 上添加 `prometheus.istio.io/merge-metrics: "false"`
-来禁用此功能。
+必要に応じて、Pod に `prometheus.istio.io/merge-metrics: "false"` を追加してこの機能を無効化できます。
 
-### 选项 2：自定义收集配置 {#option-2-customized-scraping-configurations}
+### オプション 2：カスタム収集設定 {#option-2-customized-scraping-configurations}
 
-要将现有的 Prometheus 示例配置为抓取 Istio 生成的统计信息，需要增加一些 Job。
+既存の Prometheus 設定で Istio のメトリクスを収集するには、いくつかの Job を追加する必要があります。
 
-* 要获取 `Istiod` 的状态，可以添加以下示例来抓取 `http-monitoring` 端口：
+- `Istiod` の状態を取得するには、`http-monitoring` ポートを収集する以下の例を追加します：
 
 {{< text yaml >}}
+
 - job_name: 'istiod'
   kubernetes_sd_configs:
   - role: endpoints
     namespaces:
-      names:
-      - istio-system
-  relabel_configs:
+    names: - istio-system
+    relabel_configs:
   - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
     action: keep
     regex: istiod;http-monitoring
-{{< /text >}}
+    {{< /text >}}
 
-* 要抓取 Envoy 的状态，包括 Sidecar 的代理和网关的代理，
-  可以将以下 Job 放在 `-envoy-prom` 的结尾，添加到收集端口：
+* Envoy の状態（Sidecar やゲートウェイのプロキシ）を収集するには、`-envoy-prom` ポートを収集する以下の Job を追加します：
 
-{{< text yaml >}}
-    - job_name: 'envoy-stats'
-      metrics_path: /stats/prometheus
-      kubernetes_sd_configs:
-      - role: pod
+{{< text yaml >}} - job_name: 'envoy-stats'
+metrics_path: /stats/prometheus
+kubernetes_sd_configs: - role: pod
 
       relabel_configs:
       - source_labels: [__meta_kubernetes_pod_container_port_name]
         action: keep
         regex: '.*-envoy-prom'
+
 {{< /text >}}
 
-* 对于应用程序的状态，如果禁止
-  [Strict mTLS](/zh/docs/tasks/security/authentication/authn-policy/#globally-enabling-istio-mutual-tls-in-strict-mode)，
-  您现有的收集配置仍然可以使用。否则需要将 Prometheus
-  配置为[使用 Istio 证书收集](#tls-settings)。
+- アプリケーションの状態については、[Strict mTLS](/ja/docs/tasks/security/authentication/authn-policy/#globally-enabling-istio-mutual-tls-in-strict-mode) を無効にしていれば既存の設定で収集できます。そうでない場合は、Prometheus を[Istio 証明書で収集](#tls-settings)するよう設定が必要です。
 
-#### TLS 设置 {#tls-settings}
+#### TLS 設定 {#tls-settings}
 
-控制平面，网关和 Envoy Sidecar 指标将会作为明文被收集。
-但是，应用程序指标将遵循为工作负载配置的任何
-[Istio 身份验证策略](/zh/docs/tasks/security/authentication/authn-policy)。
+コントロールプレーン、ゲートウェイ、Envoy Sidecar のメトリクスはプレーンテキストで収集されますが、アプリケーションのメトリクスはワークロードに設定された[Istio 認証ポリシー](/ja/docs/tasks/security/authentication/authn-policy)に従います。
 
-* 如果您使用 `STRICT` 模式，则需要将 Prometheus 配置为使用 Istio 证书进行抓取，如下所述。
-* 如果您使用 `PERMISSIVE` 模式，工作负载通常接受 TLS 和明文。
-  然而，Prometheus 无法发送 Istio 针对 `PERMISSIVE` 模式所需的 TLS 特殊变体。
-  因此，您不得在 Prometheus 中配置 TLS。
-* 如果您使用 `DISABLE` 模式，则 Prometheus 不需要 TLS 配置。
+- `STRICT` モードの場合、Prometheus を Istio 証明書で収集するよう設定が必要です。
+- `PERMISSIVE` モードの場合、ワークロードは通常 TLS とプレーンテキストの両方を受け入れます。ただし、Prometheus は `PERMISSIVE` モードで必要な TLS バリアントを送信できません。そのため、Prometheus では TLS 設定を行わないでください。
+- `DISABLE` モードの場合、Prometheus で TLS 設定は不要です。
 
 {{< tip >}}
-请注意，这仅适用于 Istio 终止的 TLS。如果您的应用程序直接处理 TLS：
+これは Istio が終端する TLS の場合のみ該当します。アプリケーションが直接 TLS を処理する場合：
 
-* 不支持 `STRICT` 模式，因为 Prometheus 将需要发送两层 TLS，但 Prometheus 无法做到这一点。
-* `PERMISSIVE` 模式和 `DISABLE` 模式应被配置为好似 Istio 不存在时的情形。
+- `STRICT` モードはサポートされません。Prometheus で 2 重 TLS を送信する必要がありますが、これはできません。
+- `PERMISSIVE` モードと `DISABLE` モードは、Istio が存在しない場合と同様に設定してください。
 
-有关更多信息，请参阅[了解 TLS 配置](/zh/docs/ops/configuration/traffic-management/tls-configuration/)。
+詳細は[TLS 設定の理解](/ja/docs/ops/configuration/traffic-management/tls-configuration/)を参照してください。
 {{< /tip >}}
 
-为 Prometheus 设置 Istio 证书的另一种方式是 Sidecar，该
-Sidecar 将会转发 SDS 证书并将其输出到可以与 Prometheus
-共享的 volume 中。然而，Sidecar 不应该拦截 Prometheus 的请求，
-因为 Prometheus 的端口的访问模式与 Istio 的 Sidecar 代理模型不兼容。
+Prometheus で Istio 証明書を利用するもう 1 つの方法は Sidecar です。Sidecar は SDS 証明書を転送し、Prometheus と共有できるボリュームに出力します。ただし、Sidecar で Prometheus のリクエストをインターセプトしてはいけません。Prometheus のポートのアクセスモードは Istio Sidecar プロキシモデルと互換性がありません。
 
-为此，请在 Prometheus 服务器容器上挂载证书 volume：
+このため、Prometheus サーバーコンテナで証明書ボリュームをマウントします：
 
 {{< text yaml >}}
 containers:
-  - name: prometheus-server
-    ...
-    volumeMounts:
-      mountPath: /etc/prom-certs/
-      name: istio-certs
-volumes:
-  - emptyDir:
-      medium: Memory
-    name: istio-certs
-{{< /text >}}
 
-然后，将一下注解添加到 Prometheus Deployment 的 Pod Template
-中，并且使用 [Sidecar 注入](/zh/docs/setup/additional-setup/sidecar-injection/)。
-这会将 Sidecar 配置为共享 volume 并写入证书，但是不会配置流量的重定向。
+- name: prometheus-server
+  ...
+  volumeMounts:
+  mountPath: /etc/prom-certs/
+  name: istio-certs
+  volumes:
+- emptyDir:
+  medium: Memory
+  name: istio-certs
+  {{< /text >}}
+
+次に、Prometheus Deployment の Pod Template に以下のアノテーションを追加し、[Sidecar インジェクション](/ja/docs/setup/additional-setup/sidecar-injection/)を利用します。これにより、Sidecar が共有ボリュームに証明書を書き込みますが、トラフィックリダイレクトは設定されません。
 
 {{< text yaml >}}
 spec:
-  template:
-    metadata:
-      annotations:
-        traffic.sidecar.istio.io/includeInboundPorts: ""   # 不拦截任何入口流量
-        traffic.sidecar.istio.io/includeOutboundIPRanges: ""  # 不拦截任何出口流量
-        proxy.istio.io/config: |  # 配置一个环境变量 `OUTPUT_CERTS` 来讲证书写入指定文件夹内
-          proxyMetadata:
-            OUTPUT_CERTS: /etc/istio-output-certs
-        sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs", "mountPath": "/etc/istio-output-certs"}]' # 在 Sidecar 挂载共享 volume
+template:
+metadata:
+annotations:
+traffic.sidecar.istio.io/includeInboundPorts: "" # 入口トラフィックをインターセプトしない
+traffic.sidecar.istio.io/includeOutboundIPRanges: "" # 出口トラフィックをインターセプトしない
+proxy.istio.io/config: | # 環境変数 `OUTPUT_CERTS` を設定し、証明書を指定フォルダに出力
+proxyMetadata:
+OUTPUT_CERTS: /etc/istio-output-certs
+sidecar.istio.io/userVolumeMount: '[{"name": "istio-certs", "mountPath": "/etc/istio-output-certs"}]' # Sidecar で共有ボリュームをマウント
 {{< /text >}}
 
-最后，按如下所示的设置收集 TLS 指标：
+最後に、TLS メトリクス収集のために以下のように設定します：
 
 {{< text yaml >}}
 scheme: https
 tls_config:
-  ca_file: /etc/prom-certs/root-cert.pem
-  cert_file: /etc/prom-certs/cert-chain.pem
-  key_file: /etc/prom-certs/key.pem
-  insecure_skip_verify: true  # Prometheus 不支持 Istio 安全命名，因此跳过验证目标 Pod 证书。
+ca_file: /etc/prom-certs/root-cert.pem
+cert_file: /etc/prom-certs/cert-chain.pem
+key_file: /etc/prom-certs/key.pem
+insecure_skip_verify: true # Prometheus は Istio のセキュアネームをサポートしないため、ターゲット Pod 証明書の検証をスキップします。
 {{< /text >}}
 
-## 最佳实践 {#best-practices}
+## ベストプラクティス {#best-practices}
 
-对于大型网格，高级配置可以帮助扩展 Prometheus。
-更多有关信息请查看[使用 Prometheus 监控 production-scale](/zh/docs/ops/best-practices/observability/#using-prometheus-for-production-scale-monitoring)。
+大規模メッシュでは、高度な設定で Prometheus をスケールさせることができます。詳細は[Prometheus で本番規模を監視](/ja/docs/ops/best-practices/observability/#using-prometheus-for-production-scale-monitoring)を参照してください。

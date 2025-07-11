@@ -1,62 +1,44 @@
 ---
-title: 概述
-description: Istio Ambient 数据平面模式概述。
+title: 概要
+description: Istio Ambient データプレーンモードの概要。
 weight: 1
 owner: istio/wg-docs-maintainers-english
 test: no
 ---
 
-在 **Ambient 模式**下，Istio 在每个节点使用
-Layer 4（L4）代理实现其[各项特性](/zh/docs/concepts)，
-还可以选择在每个命名空间使用 Layer 7（L7）代理。
+**Ambient モード**では、Istio は各ノードでレイヤー 4（L4）プロキシを使用して[さまざまな機能](/ja/docs/concepts)を実現し、必要に応じて各ネームスペースでレイヤー 7（L7）プロキシを選択的に使用できます。
 
-这种分层方法允许您以逐步递进的方式采用 Istio，您可以根据需要基于每个命名空间，
-从无网格平滑过渡到安全的 L4 覆盖，再到完整的 L7 处理和策略。此外，
-在不同 Istio {{< gloss "data plane" >}}数据平面{{< /gloss >}}模式下运行的工作负载可以无缝互操作，
-允许用户随时间变化的特定需求来混合和匹配各项功能。
+この階層的なアプローチにより、Istio を段階的に導入でき、必要に応じて各ネームスペース単位で、メッシュなしから安全な L4 カバレッジ、さらに完全な L7 処理とポリシーへとスムーズに移行できます。また、異なる Istio {{< gloss "data plane" >}}データプレーン{{< /gloss >}}モードで動作するワークロード同士もシームレスに相互運用でき、ユーザーは時間の経過とともに変化する特定のニーズに合わせて機能を組み合わせて利用できます。
 
-由于工作负载 Pod 不再需要在 Sidecar 中运行代理才能参与网格，
-因此 Ambient 模式通常被非正式地称为“无 Sidecar 网格”。
+ワークロードの Pod は、メッシュに参加するためにサイドカー内でプロキシを実行する必要がなくなったため、Ambient モードは非公式に「サイドカーレスメッシュ」と呼ばれることもあります。
 
-## 工作原理 {#how-it-works}
+## 仕組み {#how-it-works}
 
-Ambient 模式将 Istio 的功能分为两个不同的层。在底层，**ztunnel** 安全覆盖处理流量的路由和零信任安全。
-除此之外，在需要时，用户可以启用 L7 **waypoint 代理**来访问 Istio 的全部功能。
-waypoint 代理虽然比单独的 ztunnel 覆盖更重，但仍然作为基础设施的 Ambient 组件运行，
-不需要对应用程序 Pod 进行修改。
+Ambient モードは、Istio の機能を 2 つの異なるレイヤーに分割します。下位レイヤーでは、**ztunnel** がセキュアなカバレッジを提供し、トラフィックのルーティングとゼロトラストセキュリティを処理します。その上で、必要に応じて L7 **waypoint プロキシ**を有効化し、Istio の全機能にアクセスできます。waypoint プロキシは、ztunnel カバレッジ単体よりも重いものの、依然としてインフラの Ambient コンポーネントとして動作し、アプリケーション Pod の変更は不要です。
 
 {{< tip >}}
-使用 Sidecar 模式的 Pod 和工作负载可以与使用 Ambient 模式的 Pod 共存于同一网格内。
-术语“Ambient 网格”是指被安装时就支持 Ambient 模式的 Istio 网格，它可以支持使用任一类型数据平面的网格 Pod。
+サイドカーモードの Pod やワークロードは、Ambient モードの Pod と同じメッシュ内で共存できます。「Ambient メッシュ」という用語は、Ambient モードをサポートするようにインストールされた Istio メッシュを指し、どちらのデータプレーンタイプのメッシュ Pod もサポートします。
 {{< /tip >}}
 
-有关 Ambient 模式的设计以及它如何与 Istio {{< gloss "control plane" >}}控制平面{{< /gloss >}}交互的详细信息，
-请参阅[数据平面](/zh/docs/ambient/architecture/data-plane)和[控制平面](/zh/docs/ambient/architecture/control-plane)架构文档。
+Ambient モードの設計や、Istio の {{< gloss "control plane" >}}コントロールプレーン{{< /gloss >}}との連携について詳しくは、[データプレーン](/ja/docs/ambient/architecture/data-plane)および[コントロールプレーン](/ja/docs/ambient/architecture/control-plane)のアーキテクチャドキュメントをご覧ください。
 
 ## ztunnel
 
-ztunnel（Zero Trust tunnel，零信任隧道）组件是一个专门构建的基于每个节点的代理，
-为 Istio 的 Ambient 数据平面模式提供支持。
+ztunnel（Zero Trust tunnel、ゼロトラストトンネル）コンポーネントは、Istio の Ambient データプレーンモードをサポートするために特別に設計された、ノードごとのプロキシです。
 
-ztunnel 负责安全连接和验证网格内的工作负载。ztunnel 代理是用 Rust 编写的，
-旨在处理 L3 和 L4 功能，例如 mTLS、身份验证、L4 鉴权和遥测。
-ztunnel 不会终止工作负载 HTTP 流量或解析工作负载 HTTP 标头。
-ztunnel 确保 L3 和 L4 流量能够被高效、安全地传输到工作负载、其他 ztunnel 代理或 waypoint 代理。
+ztunnel は、メッシュ内のワークロード間のセキュアな接続と認証を担当します。ztunnel プロキシは Rust で実装されており、mTLS、認証、L4 認可、テレメトリーなど、L3 および L4 の機能を処理するよう設計されています。ztunnel はワークロードの HTTP トラフィックを終端したり、HTTP ヘッダーを解析したりしません。ztunnel は、L3 および L4 のトラフィックがワークロード、他の ztunnel プロキシ、または waypoint プロキシに効率的かつ安全に転送されることを保証します。
 
-术语“安全覆盖”用于统一描述通过 ztunnel 代理在 Ambient 网格中实现的 L4 网络功能集。
-在传输层，这是通过称为 [HBONE](/zh/docs/ambient/architecture/hbone)
-的基于 HTTP CONNECT 的流量隧道协议来实现的。
+「セキュアカバレッジ」という用語は、ztunnel プロキシを介して Ambient メッシュで実現される L4 ネットワーク機能群を総称して表現しています。トランスポート層では、[HBONE](/ja/docs/ambient/architecture/hbone)と呼ばれる HTTP CONNECT ベースのトンネリングプロトコルによって実現されます。
 
-## waypoint 代理 {#waypoint-proxies}
+## waypoint プロキシ {#waypoint-proxies}
 
-waypoint 代理是 {{< gloss >}}Envoy{{</ gloss >}} 代理的部署；与 Istio 用于 Sidecar 数据平面模式的引擎相同。
+waypoint プロキシは {{< gloss >}}Envoy{{</ gloss >}} プロキシのデプロイメントであり、Istio のサイドカーデータプレーンモードで使用されるエンジンと同じものです。
 
-waypoint 代理在应用程序 Pod 之外运行。它们的安装、升级和扩展独立于应用程序。
+waypoint プロキシはアプリケーション Pod の外部で動作します。インストール、アップグレード、スケーリングはアプリケーションから独立しています。
 
-Istio 在 Ambient 模式下的一些用例可以仅通过 L4 安全覆盖功能来解决，
-并且不需要 L7 功能，因此不需要部署 waypoint 代理。需要高级流量管理和 L7 网络功能的用例将需要部署 waypoint。
+Istio の Ambient モードのユースケースの中には、L4 セキュアカバレッジ機能のみで十分なものもあり、その場合は L7 機能や waypoint プロキシのデプロイは不要です。高度なトラフィック管理や L7 ネットワーク機能が必要な場合は、waypoint のデプロイが必要です。
 
-| 应用程序部署用例 | Ambient 模式配置 |
-| ------------------------------- | -------------------------- |
-| 通过双向 TLS、客户端应用程序流量的加密和隧道数据传输、L4 授权、L4 遥测实现零信任网络 | 仅 ztunnel（默认） |
-| 如上所述，加上高级 Istio 流量管理功能（包括 L7 授权、遥测和 VirtualService 路由） | ztunnel 及 waypoint 代理 |
+| アプリケーションデプロイユースケース                                                                                               | Ambient モード構成               |
+| ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 双方向 TLS、クライアントアプリケーショントラフィックの暗号化とトンネリング、L4 認可、L4 テレメトリーによるゼロトラストネットワーク | ztunnel のみ（デフォルト）       |
+| 上記に加え、高度な Istio トラフィック管理機能（L7 認可、テレメトリー、VirtualService ルーティングなど）                            | ztunnel および waypoint プロキシ |

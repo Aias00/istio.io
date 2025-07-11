@@ -1,6 +1,6 @@
 ---
-title: 授权
-description: 展示如何控制到 Istio 服务的访问。
+title: 認可
+description: Istio サービスへのアクセス制御方法を紹介します。
 weight: 30
 test: n/a
 ---
