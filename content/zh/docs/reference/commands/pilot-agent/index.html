@@ -945,9 +945,9 @@ https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ssl#fip
 </tr>
 <tr id='enable-native-sidecars'>
 <td><a href='#enable-native-sidecars'><code>ENABLE_NATIVE_SIDECARS</code></a></td>
-<td>Boolean</td>
-<td><code>false</code></td>
-<td>If set, used Kubernetes native Sidecar container support. Requires SidecarContainer feature flag.</td>
+<td>String</td>
+<td><code>auto</code></td>
+<td>If set to true, use Kubernetes native sidecar container support. Requires SidecarContainer feature flag. Set to true to unconditionally enable, false to unconditionally disable. Set to auto to automatically enable for supported scenarios</td>
 </tr>
 <tr id='enable-probe-keepalive-connections'>
 <td><a href='#enable-probe-keepalive-connections'><code>ENABLE_PROBE_KEEPALIVE_CONNECTIONS</code></a></td>
@@ -1466,8 +1466,8 @@ Only applies when traffic from all groups (i.e. &#34;*&#34;) is being redirected
 <tr id='pilot-enable-ca-crl'>
 <td><a href='#pilot-enable-ca-crl'><code>PILOT_ENABLE_CA_CRL</code></a></td>
 <td>Boolean</td>
-<td><code>false</code></td>
-<td>If set to true, Istio will watch for ca-crl.pem file in /etc/cacerts directory and will distribute crl data in each namespace in the cluster for proxies to consume. </td>
+<td><code>true</code></td>
+<td>If set to false, Istio will not watch for the ca-crl.pem file in the /etc/cacerts directory and will not distribute CRL data to namespaces for proxies to consume.</td>
 </tr>
 <tr id='pilot-enable-cds-cache'>
 <td><a href='#pilot-enable-cds-cache'><code>PILOT_ENABLE_CDS_CACHE</code></a></td>
@@ -1678,6 +1678,18 @@ Only applies when traffic from all groups (i.e. &#34;*&#34;) is being redirected
 <td>String</td>
 <td><code></code></td>
 <td>Comma separated list of potentially insecure kubeconfig authentication options that are allowed for multicluster authentication.Support values: all authProviders (`gcp`, `azure`, `exec`, `openstack`), `clientKey`, `clientCertificate`, `tokenFile`, and `exec`.</td>
+</tr>
+<tr id='pilot-ip-autoallocate-ipv4-prefix'>
+<td><a href='#pilot-ip-autoallocate-ipv4-prefix'><code>PILOT_IP_AUTOALLOCATE_IPV4_PREFIX</code></a></td>
+<td>String</td>
+<td><code>240.240.0.0/16</code></td>
+<td>The CIDR range/prefix to use for auto-allocated IPv4 addresses. This should be a private range, and not conflict with any other IPs in the cluster.</td>
+</tr>
+<tr id='pilot-ip-autoallocate-ipv6-prefix'>
+<td><a href='#pilot-ip-autoallocate-ipv6-prefix'><code>PILOT_IP_AUTOALLOCATE_IPV6_PREFIX</code></a></td>
+<td>String</td>
+<td><code>2001:2::/48</code></td>
+<td>The CIDR range/prefix to use for auto-allocated IPv6 addresses. This should be a private range, and not conflict with any other IPs in the cluster.</td>
 </tr>
 <tr id='pilot-jwt-enable-remote-jwks'>
 <td><a href='#pilot-jwt-enable-remote-jwks'><code>PILOT_JWT_ENABLE_REMOTE_JWKS</code></a></td>
@@ -1894,6 +1906,12 @@ Only applies when traffic from all groups (i.e. &#34;*&#34;) is being redirected
 <td>String</td>
 <td><code></code></td>
 <td>Additional config map to load for shared MeshConfig settings. The standard mesh config will take precedence.</td>
+</tr>
+<tr id='support-gateway-api-inference-extension'>
+<td><a href='#support-gateway-api-inference-extension'><code>SUPPORT_GATEWAY_API_INFERENCE_EXTENSION</code></a></td>
+<td>Boolean</td>
+<td><code>false</code></td>
+<td>If true, support gateway inference extension routing apis</td>
 </tr>
 <tr id='token-audiences'>
 <td><a href='#token-audiences'><code>TOKEN_AUDIENCES</code></a></td>
