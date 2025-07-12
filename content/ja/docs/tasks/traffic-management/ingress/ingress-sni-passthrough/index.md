@@ -82,51 +82,51 @@ test: yes
 1.  NGINX サービスをデプロイします：
 
     {{< text bash >}}
-     $ cat <<EOF | istioctl kube-inject -f - | kubectl apply -f -
-     apiVersion: v1
-     kind: Service
-     metadata:
-     name: my-nginx
-     labels:
-     run: my-nginx
-     spec:
-     ports:
+    $ cat <<EOF | istioctl kube-inject -f - | kubectl apply -f -
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: my-nginx
+    labels:
+    run: my-nginx
+    spec:
+    ports:
  
-     - port: 443
-       protocol: TCP
-       selector:
-       run: my-nginx
+    - port: 443
+      protocol: TCP
+      selector:
+      run: my-nginx
  
-     ***
+    ***
  
-     apiVersion: apps/v1
-     kind: Deployment
-     metadata:
-     name: my-nginx
-     spec:
-     selector:
-     matchLabels:
-     run: my-nginx
-     replicas: 1
-     template:
-     metadata:
-     labels:
-     run: my-nginx
-     spec:
-     containers: - name: my-nginx
-     image: nginx
-     ports: - containerPort: 443
-     volumeMounts: - name: nginx-config
-     mountPath: /etc/nginx
-     readOnly: true - name: nginx-server-certs
-     mountPath: /etc/nginx-server-certs
-     readOnly: true
-     volumes: - name: nginx-config
-     configMap:
-     name: nginx-configmap - name: nginx-server-certs
-     secret:
-     secretName: nginx-server-certs
-     EOF
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: my-nginx
+    spec:
+    selector:
+    matchLabels:
+    run: my-nginx
+    replicas: 1
+    template:
+    metadata:
+    labels:
+    run: my-nginx
+    spec:
+    containers: - name: my-nginx
+    image: nginx
+    ports: - containerPort: 443
+    volumeMounts: - name: nginx-config
+    mountPath: /etc/nginx
+    readOnly: true - name: nginx-server-certs
+    mountPath: /etc/nginx-server-certs
+    readOnly: true
+    volumes: - name: nginx-config
+    configMap:
+    name: nginx-configmap - name: nginx-server-certs
+    secret:
+    secretName: nginx-server-certs
+    EOF
     {{< /text >}}
 
 1.  NGINX サービスが正しくデプロイされたかをテストするには、Sidecar プロキシからリクエストを送り、サーバ証明書の検証をスキップします（`curl` の `-k` オプションを使用）。サーバ証明書の `common name (CN)` が `nginx.example.com` であることを確認してください。

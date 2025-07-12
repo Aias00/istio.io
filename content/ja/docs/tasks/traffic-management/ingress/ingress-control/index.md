@@ -35,7 +35,7 @@ Istio では [Istio Gateway](/ja/docs/concepts/traffic-management/#gateways) や
 - [httpbin]({{< github_tree >}}/samples/httpbin) サンプルを起動し、Ingress トラフィックのターゲットサービスとします：
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/httpbin/httpbin.yaml@
+    $ kubectl apply -f @samples/httpbin/httpbin.yaml@
   {{< /text >}}
 
   ここでは「Kubernetes クラスタ」への Ingress トラフィック制御の例を示します。
@@ -190,7 +190,7 @@ parentRefs:
 - `minikube` - 別のターミナルで以下のコマンドを実行して外部負荷分散器を起動します：
 
   {{< text syntax=bash snip_id=minikube_tunnel >}}
-  $ minikube tunnel
+    $ minikube tunnel
   {{< /text >}}
 
 - `kind` - `LoadBalancer` タイプの Service を[ガイド](https://kind.sigs.k8s.io/docs/user/loadbalancer/)に従って正常に動作させます。
@@ -278,12 +278,12 @@ $ export SECURE_INGRESS_PORT=$(kubectl get gtw my-gateway -o jsonpath='{.spec.li
 1. **curl** を使用して **httpbin** サービスにアクセスします：
 
    {{< text bash >}}
-   $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
-   ...
-   HTTP/1.1 200 OK
-   ...
-   server: istio-envoy
-   ...
+    $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/status/200"
+    ...
+    HTTP/1.1 200 OK
+    ...
+    server: istio-envoy
+    ...
    {{< /text >}}
 
    このコマンドは `-H` フラグを使用して HTTP ヘッダーパラメータ **Host** を "httpbin.example.com" に設定します。
@@ -292,9 +292,9 @@ $ export SECURE_INGRESS_PORT=$(kubectl get gtw my-gateway -o jsonpath='{.spec.li
 1. 明示的に公開されていない URL にアクセスすると、HTTP 404 エラーが表示されます：
 
    {{< text bash >}}
-   $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/headers"
-   HTTP/1.1 404 Not Found
-   ...
+    $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST:$INGRESS_PORT/headers"
+    HTTP/1.1 404 Not Found
+    ...
    {{< /text >}}
 
 ## Ingress サービスへのブラウザアクセス {#accessing-ingress-services-using-a-browser}
@@ -463,20 +463,20 @@ $ export TCP_INGRESS_PORT=$(kubectl -n "${INGRESS_NS}" get service "${INGRESS_NA
 1. 環境変数 `INGRESS_HOST` と `INGRESS_PORT` の値を確認してください。これらが正当な値であることを確認するには、以下のコマンドを実行します：
 
    {{< text bash >}}
-   $ kubectl get svc -n istio-system
-   $ echo "INGRESS_HOST=$INGRESS_HOST, INGRESS_PORT=$INGRESS_PORT"
+    $ kubectl get svc -n istio-system
+    $ echo "INGRESS_HOST=$INGRESS_HOST, INGRESS_PORT=$INGRESS_PORT"
    {{< /text >}}
 
 1. 同じポートで別の Istio Ingress Gateway が定義されていないか確認してください：
 
    {{< text bash >}}
-   $ kubectl get gateway --all-namespaces
+    $ kubectl get gateway --all-namespaces
    {{< /text >}}
 
 1. 同じ IP とポートで Kubernetes Ingress リソースが定義されていないか確認してください：
 
    {{< text bash >}}
-   $ kubectl get ingress --all-namespaces
+    $ kubectl get ingress --all-namespaces
    {{< /text >}}
 
 1. 外部負荷分散器を使用したが正常に動作しない場合は、[その Node Port を使用して Gateway にアクセス](/ja/docs/tasks/traffic-management/ingress/ingress-control/#using-node-ports-of-the-ingress-gateway-service)を試みてください。
