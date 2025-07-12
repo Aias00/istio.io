@@ -101,39 +101,39 @@ SPIRE コントローラーマネージャーを使わずに手動で登録す�
 1. `spire-server` Pod を取得：
 
    {{< text syntax=bash snip_id=set_spire_server_pod_name_var >}}
-   $ SPIRE_SERVER_POD=$(kubectl get pod -l statefulset.kubernetes.io/pod-name=spire-server-0 -n spire-server -o jsonpath="{.items[0].metadata.name}")
+    $ SPIRE_SERVER_POD=$(kubectl get pod -l statefulset.kubernetes.io/pod-name=spire-server-0 -n spire-server -o jsonpath="{.items[0].metadata.name}")
    {{< /text >}}
 
 1. Istio Ingress Gateway Pod の Entry を登録：
 
    {{< text bash >}}
-   $ kubectl exec -n spire "$SPIRE_SERVER_POD" -- \
-   /opt/spire/bin/spire-server entry create \
-    -spiffeID spiffe://example.org/ns/istio-system/sa/istio-ingressgateway-service-account \
-    -parentID spiffe://example.org/ns/spire/sa/spire-agent \
-    -selector k8s:sa:istio-ingressgateway-service-account \
-    -selector k8s:ns:istio-system \
-    -socketPath /run/spire/sockets/server.sock
+    $ kubectl exec -n spire "$SPIRE_SERVER_POD" -- \
+    /opt/spire/bin/spire-server entry create \
+     -spiffeID spiffe://example.org/ns/istio-system/sa/istio-ingressgateway-service-account \
+     -parentID spiffe://example.org/ns/spire/sa/spire-agent \
+     -selector k8s:sa:istio-ingressgateway-service-account \
+     -selector k8s:ns:istio-system \
+     -socketPath /run/spire/sockets/server.sock
 
-   Entry ID : 6f2fe370-5261-4361-ac36-10aae8d91ff7
-   SPIFFE ID : spiffe://example.org/ns/istio-system/sa/istio-ingressgateway-service-account
-   Parent ID : spiffe://example.org/ns/spire/sa/spire-agent
-   Revision : 0
-   TTL : default
-   Selector : k8s:ns:istio-system
-   Selector : k8s:sa:istio-ingressgateway-service-account
+    Entry ID : 6f2fe370-5261-4361-ac36-10aae8d91ff7
+    SPIFFE ID : spiffe://example.org/ns/istio-system/sa/istio-ingressgateway-service-account
+    Parent ID : spiffe://example.org/ns/spire/sa/spire-agent
+    Revision : 0
+    TTL : default
+    Selector : k8s:ns:istio-system
+    Selector : k8s:sa:istio-ingressgateway-service-account
    {{< /text >}}
 
 1. Istio Sidecar 注入ワークロードの Entry を登録：
 
    {{< text bash >}}
-   $ kubectl exec -n spire "$SPIRE_SERVER_POD" -- \
-   /opt/spire/bin/spire-server entry create \
-    -spiffeID spiffe://example.org/ns/default/sa/curl \
-    -parentID spiffe://example.org/ns/spire/sa/spire-agent \
-    -selector k8s:ns:default \
-    -selector k8s:pod-label:spiffe.io/spire-managed-identity:true \
-    -socketPath /run/spire/sockets/server.sock
+    $ kubectl exec -n spire "$SPIRE_SERVER_POD" -- \
+    /opt/spire/bin/spire-server entry create \
+     -spiffeID spiffe://example.org/ns/default/sa/curl \
+     -parentID spiffe://example.org/ns/spire/sa/spire-agent \
+     -selector k8s:ns:default \
+     -selector k8s:pod-label:spiffe.io/spire-managed-identity:true \
+     -socketPath /run/spire/sockets/server.sock
    {{< /text >}}
 
 ## Istio のインストール {#install-istio}
@@ -143,79 +143,79 @@ SPIRE コントローラーマネージャーを使わずに手動で登録す�
 1. Ingress Gateway と `istio-proxy` 用にカスタムパッチで Istio 設定を作成します。Ingress Gateway には `spiffe.io/spire-managed-identity: "true"` ラベルを付与します。
 
    {{< text syntax=bash snip_id=define_istio_operator_for_auto_registration >}}
-   $ cat <<EOF > ./istio.yaml
-   apiVersion: install.istio.io/v1alpha1
-   kind: IstioOperator
-   metadata:
-   namespace: istio-system
-   spec:
-   profile: default
-   meshConfig:
-   trustDomain: example.org
-   values: # これは Sidecar テンプレートのカスタマイズ用です。 # SPIRE でこの Pod の ID を管理することを示すラベルと、CSI ドライバーのマウントを追加します。
-   sidecarInjectorWebhook:
-   templates:
-   spire: |
-   labels:
-   spiffe.io/spire-managed-identity: "true"
-   spec:
-   containers: - name: istio-proxy
-   volumeMounts: - name: workload-socket
-   mountPath: /run/secrets/workload-spiffe-uds
-   readOnly: true
-   volumes: - name: workload-socket
-   csi:
-   driver: "csi.spiffe.io"
-   readOnly: true
-   components:
-   ingressGateways: - name: istio-ingressgateway
-   enabled: true
-   label:
-   istio: ingressgateway
-   k8s:
-   overlays: # これは Ingress Gateway テンプレートのカスタマイズ用です。 # CSI ドライバーのマウントと、CSI ソケットができるまで起動を待つ init コンテナを追加します。 - apiVersion: apps/v1
-   kind: Deployment
-   name: istio-ingressgateway
-   patches: - path: spec.template.spec.volumes.[name:workload-socket]
-   value:
-   name: workload-socket
-   csi:
-   driver: "csi.spiffe.io"
-   readOnly: true - path: spec.template.spec.containers.[name:istio-proxy].volumeMounts.[name:workload-socket]
-   value:
-   name: workload-socket
-   mountPath: "/run/secrets/workload-spiffe-uds"
-   readOnly: true - path: spec.template.spec.initContainers
-   value: - name: wait-for-spire-socket
-   image: busybox:1.36
-   volumeMounts: - name: workload-socket
-   mountPath: /run/secrets/workload-spiffe-uds
-   readOnly: true
-   env: - name: CHECK_FILE
-   value: /run/secrets/workload-spiffe-uds/socket
-   command: - sh - "-c" - |-
-   echo "$(date -Iseconds)" Waiting for: ${CHECK_FILE}
+    $ cat <<EOF > ./istio.yaml
+    apiVersion: install.istio.io/v1alpha1
+    kind: IstioOperator
+    metadata:
+    namespace: istio-system
+    spec:
+    profile: default
+    meshConfig:
+    trustDomain: example.org
+    values: # これは Sidecar テンプレートのカスタマイズ用です。 # SPIRE でこの Pod の ID を管理することを示すラベルと、CSI ドライバーのマウントを追加します。
+    sidecarInjectorWebhook:
+    templates:
+    spire: |
+    labels:
+    spiffe.io/spire-managed-identity: "true"
+    spec:
+    containers: - name: istio-proxy
+    volumeMounts: - name: workload-socket
+    mountPath: /run/secrets/workload-spiffe-uds
+    readOnly: true
+    volumes: - name: workload-socket
+    csi:
+    driver: "csi.spiffe.io"
+    readOnly: true
+    components:
+    ingressGateways: - name: istio-ingressgateway
+    enabled: true
+    label:
+    istio: ingressgateway
+    k8s:
+    overlays: # これは Ingress Gateway テンプレートのカスタマイズ用です。 # CSI ドライバーのマウントと、CSI ソケットができるまで起動を待つ init コンテナを追加します。 -  apiVersion: apps/v1
+    kind: Deployment
+    name: istio-ingressgateway
+    patches: - path: spec.template.spec.volumes.[name:workload-socket]
+    value:
+    name: workload-socket
+    csi:
+    driver: "csi.spiffe.io"
+    readOnly: true - path: spec.template.spec.containers.[name:istio-proxy].volumeMounts.[name:workload-socket]
+    value:
+    name: workload-socket
+    mountPath: "/run/secrets/workload-spiffe-uds"
+    readOnly: true - path: spec.template.spec.initContainers
+    value: - name: wait-for-spire-socket
+    image: busybox:1.36
+    volumeMounts: - name: workload-socket
+    mountPath: /run/secrets/workload-spiffe-uds
+    readOnly: true
+    env: - name: CHECK_FILE
+    value: /run/secrets/workload-spiffe-uds/socket
+    command: - sh - "-c" - |-
+    echo "$(date -Iseconds)" Waiting for: ${CHECK_FILE}
                               while [[ ! -e ${CHECK_FILE} ]] ; do
                                 echo "$(date -Iseconds)" File does not exist: ${CHECK_FILE}
-   sleep 15
-   done
-   ls -l ${CHECK_FILE}
-   EOF
+    sleep 15
+    done
+    ls -l ${CHECK_FILE}
+    EOF
    {{< /text >}}
 
 1. 設定を適用：
 
    {{< text syntax=bash snip_id=apply_istio_operator_configuration >}}
-   $ istioctl install --skip-confirmation -f ./istio.yaml
+    $ istioctl install --skip-confirmation -f ./istio.yaml
    {{< /text >}}
 
 1. Ingress Gateway Pod の状態を確認：
 
    {{< text syntax=bash snip_id=none >}}
-   $ kubectl get pods -n istio-system
-   NAME READY STATUS RESTARTS AGE
-   istio-ingressgateway-5b45864fd4-lgrxs 1/1 Running 0 17s
-   istiod-989f54d9c-sg7sn 1/1 Running 0 23s
+    $ kubectl get pods -n istio-system
+    NAME READY STATUS RESTARTS AGE
+    istio-ingressgateway-5b45864fd4-lgrxs 1/1 Running 0 17s
+    istiod-989f54d9c-sg7sn 1/1 Running 0 23s
    {{< /text >}}
 
    Ingress Gateway Pod は `Ready` となり、SPIRE サーバーで自動的に登録エントリが作成されます。Envoy は SPIRE から暗号化 ID を取得できます。
@@ -225,43 +225,43 @@ SPIRE コントローラーマネージャーを使わずに手動で登録す�
 1. サンプルワークロードをデプロイ：
 
    {{< text syntax=bash snip_id=apply_curl >}}
-   $ istioctl kube-inject --filename @samples/security/spire/curl-spire.yaml@ | kubectl apply -f -
+    $ istioctl kube-inject --filename @samples/security/spire/curl-spire.yaml@ | kubectl apply -f -
    {{< /text >}}
 
    `spiffe.io/spire-managed-identity` ラベルの付与に加え、SPIFFE CSI ドライバーのボリュームで SPIRE エージェントソケットにアクセスできる必要があります。これには[Istio のインストール](#install-istio)セクションの `spire` Pod アノテーションテンプレートを使うか、ワークロードの Deployment 仕様に CSI ボリュームを追加します。以下の例で両方の方法を示します：
 
    {{< text syntax=yaml snip_id=none >}}
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-   name: curl
-   spec:
-   replicas: 1
-   selector:
-   matchLabels:
-   app: curl
-   template:
-   metadata:
-   labels:
-   app: curl # カスタム Sidecar テンプレートを注入
-   annotations:
-   inject.istio.io/templates: "sidecar,spire"
-   spec:
-   terminationGracePeriodSeconds: 0
-   serviceAccountName: curl
-   containers: - name: curl
-   image: curlimages/curl
-   command: ["/bin/sleep", "3650d"]
-   imagePullPolicy: IfNotPresent
-   volumeMounts: - name: tmp
-   mountPath: /tmp
-   securityContext:
-   runAsUser: 1000
-   volumes: - name: tmp
-   emptyDir: {} # CSI ボリューム - name: workload-socket
-   csi:
-   driver: "csi.spiffe.io"
-   readOnly: true
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: curl
+    spec:
+    replicas: 1
+    selector:
+    matchLabels:
+    app: curl
+    template:
+    metadata:
+    labels:
+    app: curl # カスタム Sidecar テンプレートを注入
+    annotations:
+    inject.istio.io/templates: "sidecar,spire"
+    spec:
+    terminationGracePeriodSeconds: 0
+    serviceAccountName: curl
+    containers: - name: curl
+    image: curlimages/curl
+    command: ["/bin/sleep", "3650d"]
+    imagePullPolicy: IfNotPresent
+    volumeMounts: - name: tmp
+    mountPath: /tmp
+    securityContext:
+    runAsUser: 1000
+    volumes: - name: tmp
+    emptyDir: {} # CSI ボリューム - name: workload-socket
+    csi:
+    driver: "csi.spiffe.io"
+    readOnly: true
    {{< /text >}}
 
 Istio の設定は Ingress Gateway と Sidecar 注入ワークロードの両方で `spiffe-csi-driver` を共有し、SPIRE エージェントの UNIX ドメインソケットへのアクセス権を付与します。
@@ -308,21 +308,21 @@ Ingress Gateway Pod の登録後、Envoy は SPIRE から発行された ID を�
 1. Pod 情報を取得：
 
    {{< text syntax=bash snip_id=set_curl_pod_var >}}
-   $ CURL_POD=$(kubectl get pod -l app=curl -o jsonpath="{.items[0].metadata.name}")
+    $ CURL_POD=$(kubectl get pod -l app=curl -o jsonpath="{.items[0].metadata.name}")
    {{< /text >}}
 
 1. `istioctl proxy-config secret` コマンドで curl の SVID ID ドキュメントを取得：
 
    {{< text syntax=bash snip_id=get_curl_svid >}}
-   $ istioctl proxy-config secret "$CURL_POD" -o json | jq -r \
-   '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 --decode > chain.pem
+    $ istioctl proxy-config secret "$CURL_POD" -o json | jq -r \
+    '.dynamicActiveSecrets[0].secret.tlsCertificate.certificateChain.inlineBytes' | base64 --decode > chain.pem
    {{< /text >}}
 
 1. 証明書を確認し、SPIRE が発行者であることを確認：
 
    {{< text syntax=bash snip_id=get_svid_subject >}}
-   $ openssl x509 -in chain.pem -text | grep SPIRE
-   Subject: C = US, O = SPIRE, CN = curl-5f4d47c948-njvpk
+    $ openssl x509 -in chain.pem -text | grep SPIRE
+    Subject: C = US, O = SPIRE, CN = curl-5f4d47c948-njvpk
    {{< /text >}}
 
 ## SPIFFE フェデレーション {#spiffe-federation}
@@ -344,16 +344,16 @@ SPIRE エージェントを Envoy SDS API 経由で Envoy に連携させるこ�
 - SPIRE コントローラーマネージャーを使う場合は、[ClusterSPIFFEID CR](https://github.com/spiffe/spire-controller-manager/blob/main/docs/clusterspiffeid-crd.md) の `federatesWith` フィールドに連携したい信頼ドメインを指定してください：
 
   {{< text syntax=yaml snip_id=none >}}
-  apiVersion: spire.spiffe.io/v1alpha1
-  kind: ClusterSPIFFEID
-  metadata:
-  name: federation
-  spec:
-  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
-  podSelector:
-  matchLabels:
-  spiffe.io/spire-managed-identity: "true"
-  federatesWith: ["example.io", "example.ai"]
+   apiVersion: spire.spiffe.io/v1alpha1
+   kind: ClusterSPIFFEID
+   metadata:
+   name: federation
+   spec:
+   spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+   podSelector:
+   matchLabels:
+   spiffe.io/spire-managed-identity: "true"
+   federatesWith: ["example.io", "example.ai"]
   {{< /text >}}
 
 - 手動登録の場合は、[フェデレーション用登録エントリの作成](https://spiffe.io/docs/latest/architecture/federation/readme/#create-registration-entries-for-federation)を参照してください。

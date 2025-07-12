@@ -33,13 +33,13 @@ Kubernetes クラスターが必要です。クラスターをお持ちでない
 1. [Istio リリース]({{< istio_release_url >}})ページにアクセスし、ご利用の OS に合ったインストーラをダウンロードするか、[最新バージョンを自動ダウンロード](/ja/docs/setup/additional-setup/download-istio-release)（Linux または macOS）：
 
    {{< text bash >}}
-   $ curl -L https://istio.io/downloadIstio | sh -
+    $ curl -L https://istio.io/downloadIstio | sh -
    {{< /text >}}
 
 1. Istio パッケージディレクトリに移動します。たとえば、パッケージが `istio-{{< istio_full_version >}}` の場合：
 
    {{< text syntax=bash snip_id=none >}}
-   $ cd istio-{{< istio_full_version >}}
+    $ cd istio-{{< istio_full_version >}}
    {{< /text >}}
 
    インストールディレクトリには以下が含まれます：
@@ -50,7 +50,7 @@ Kubernetes クラスターが必要です。クラスターをお持ちでない
 1. `istioctl` クライアントをパスに追加します（Linux または macOS）：
 
    {{< text bash >}}
-   $ export PATH=$PWD/bin:$PATH
+    $ export PATH=$PWD/bin:$PATH
    {{< /text >}}
 
 ## Istio のインストール {#install}
@@ -62,18 +62,18 @@ Kubernetes クラスターが必要です。クラスターをお持ちでない
 1. `demo` プロファイルで Istio をインストールし、Gateway を無効化：
 
    {{< text bash >}}
-   $ istioctl install -f @samples/bookinfo/demo-profile-no-gateways.yaml@ -y
-   ✔ Istio core installed
-   ✔ Istiod installed
-   ✔ Installation complete
-   Made this installation the default for injection and validation.
+    $ istioctl install -f @samples/bookinfo/demo-profile-no-gateways.yaml@ -y
+    ✔ Istio core installed
+    ✔ Istiod installed
+    ✔ Installation complete
+    Made this installation the default for injection and validation.
    {{< /text >}}
 
 1. 名前空間にラベルを付与し、アプリケーションデプロイ時に自動で Envoy Sidecar プロキシが注入されるようにします：
 
    {{< text bash >}}
-   $ kubectl label namespace default istio-injection=enabled
-   namespace/default labeled
+    $ kubectl label namespace default istio-injection=enabled
+    namespace/default labeled
    {{< /text >}}
 
 ## Kubernetes Gateway API CRD のインストール {#gateway-api}
@@ -83,8 +83,8 @@ Kubernetes Gateway API CRD は多くの Kubernetes クラスターでデフォ�
 1. Gateway API CRD がまだなければ、インストールします：
 
    {{< text bash >}}
-   $ kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-   { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl apply -f -; }
+    $ kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+    { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl apply -f -; }
    {{< /text >}}
 
 ## サンプルアプリケーションのデプロイ {#bookinfo}
@@ -94,46 +94,46 @@ Istio を設定したので、`default` 名前空間にデプロイするアプ�
 1. [`Bookinfo` サンプルアプリ](/ja/docs/examples/bookinfo/)をデプロイ：
 
    {{< text bash >}}
-   $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo.yaml@
-   service/details created
-   serviceaccount/bookinfo-details created
-   deployment.apps/details-v1 created
-   service/ratings created
-   serviceaccount/bookinfo-ratings created
-   deployment.apps/ratings-v1 created
-   service/reviews created
-   serviceaccount/bookinfo-reviews created
-   deployment.apps/reviews-v1 created
-   deployment.apps/reviews-v2 created
-   deployment.apps/reviews-v3 created
-   service/productpage created
-   serviceaccount/bookinfo-productpage created
-   deployment.apps/productpage-v1 created
+    $ kubectl apply -f @samples/bookinfo/platform/kube/bookinfo.yaml@
+    service/details created
+    serviceaccount/bookinfo-details created
+    deployment.apps/details-v1 created
+    service/ratings created
+    serviceaccount/bookinfo-ratings created
+    deployment.apps/ratings-v1 created
+    service/reviews created
+    serviceaccount/bookinfo-reviews created
+    deployment.apps/reviews-v1 created
+    deployment.apps/reviews-v2 created
+    deployment.apps/reviews-v3 created
+    service/productpage created
+    serviceaccount/bookinfo-productpage created
+    deployment.apps/productpage-v1 created
    {{< /text >}}
 
    アプリケーションはすぐに起動します。各 Pod が Ready になると、Istio Sidecar も一緒にデプロイされます。
 
    {{< text bash >}}
-   $ kubectl get services
-   NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
-   details ClusterIP 10.0.0.212 <none> 9080/TCP 29s
-   kubernetes ClusterIP 10.0.0.1 <none> 443/TCP 25m
-   productpage ClusterIP 10.0.0.57 <none> 9080/TCP 28s
-   ratings ClusterIP 10.0.0.33 <none> 9080/TCP 29s
-   reviews ClusterIP 10.0.0.28 <none> 9080/TCP 29s
+    $ kubectl get services
+    NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+    details ClusterIP 10.0.0.212 <none> 9080/TCP 29s
+    kubernetes ClusterIP 10.0.0.1 <none> 443/TCP 25m
+    productpage ClusterIP 10.0.0.57 <none> 9080/TCP 28s
+    ratings ClusterIP 10.0.0.33 <none> 9080/TCP 29s
+    reviews ClusterIP 10.0.0.28 <none> 9080/TCP 29s
    {{< /text >}}
 
    および
 
    {{< text bash >}}
-   $ kubectl get pods
-   NAME READY STATUS RESTARTS AGE
-   details-v1-558b8b4b76-2llld 2/2 Running 0 2m41s
-   productpage-v1-6987489c74-lpkgl 2/2 Running 0 2m40s
-   ratings-v1-7dc98c7588-vzftc 2/2 Running 0 2m41s
-   reviews-v1-7f99cc4496-gdxfn 2/2 Running 0 2m41s
-   reviews-v2-7d79d5bd5d-8zzqd 2/2 Running 0 2m41s
-   reviews-v3-7dbcdcbc56-m8dph 2/2 Running 0 2m41s
+    $ kubectl get pods
+    NAME READY STATUS RESTARTS AGE
+    details-v1-558b8b4b76-2llld 2/2 Running 0 2m41s
+    productpage-v1-6987489c74-lpkgl 2/2 Running 0 2m40s
+    ratings-v1-7dc98c7588-vzftc 2/2 Running 0 2m41s
+    reviews-v1-7f99cc4496-gdxfn 2/2 Running 0 2m41s
+    reviews-v2-7d79d5bd5d-8zzqd 2/2 Running 0 2m41s
+    reviews-v3-7dbcdcbc56-m8dph 2/2 Running 0 2m41s
    {{< /text >}}
 
    Pod の `READY 2/2` 表示で、アプリケーションコンテナと Istio Sidecar コンテナが両方稼働していることが確認できます。
@@ -141,8 +141,8 @@ Istio を設定したので、`default` 名前空間にデプロイするアプ�
 1. レスポンスのページタイトルを確認して、アプリケーションがクラスタ内で動作していることを検証します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}')" -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.\*</title>"
-   <title>Simple Bookstore App</title>
+    $ kubectl exec "$(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}')" -c ratings -- curl -sS productpage:9080/productpage | grep -o "<title>.\*</title>"
+    <title>Simple Bookstore App</title>
    {{< /text >}}
 
 ## アプリケーションの外部公開 {#ip}
@@ -152,9 +152,9 @@ Bookinfo アプリケーションはデプロイされましたが、外部か�
 1. Bookinfo アプリ用の [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/api-types/gateway/) を作成：
 
    {{< text syntax=bash snip_id=deploy_bookinfo_gateway >}}
-   $ kubectl apply -f @samples/bookinfo/gateway-api/bookinfo-gateway.yaml@
-   gateway.gateway.networking.k8s.io/bookinfo-gateway created
-   httproute.gateway.networking.k8s.io/bookinfo created
+    $ kubectl apply -f @samples/bookinfo/gateway-api/bookinfo-gateway.yaml@
+    gateway.gateway.networking.k8s.io/bookinfo-gateway created
+    httproute.gateway.networking.k8s.io/bookinfo created
    {{< /text >}}
 
    デフォルトで、Istio は Gateway 用に `LoadBalancer` サービスを作成します。
@@ -164,15 +164,15 @@ Bookinfo アプリケーションはデプロイされましたが、外部か�
 1. アノテーションで Gateway のサービス種別を `ClusterIP` に変更：
 
    {{< text syntax=bash snip_id=annotate_bookinfo_gateway >}}
-   $ kubectl annotate gateway bookinfo-gateway networking.istio.io/service-type=ClusterIP --namespace=default
+    $ kubectl annotate gateway bookinfo-gateway networking.istio.io/service-type=ClusterIP --namespace=default
    {{< /text >}}
 
 1. Gateway の状態を確認するには：
 
    {{< text bash >}}
-   $ kubectl get gateway
-   NAME CLASS ADDRESS PROGRAMMED AGE
-   bookinfo-gateway istio bookinfo-gateway-istio.default.svc.cluster.local True 42s
+    $ kubectl get gateway
+    NAME CLASS ADDRESS PROGRAMMED AGE
+    bookinfo-gateway istio bookinfo-gateway-istio.default.svc.cluster.local True 42s
    {{< /text >}}
 
 ## アプリケーションへのアクセス {#access-the-application}
@@ -287,11 +287,11 @@ $ kubectl label namespace default istio-injection-
 - 如果您运行的任何任务需要**实验版本**的 CRD：
 
   {{< text bash >}}
-  $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
+    $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
   {{< /text >}}
 
 - 否则：
 
   {{< text bash >}}
-  $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
+    $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
   {{< /text >}}

@@ -25,50 +25,50 @@ cert-manager は Kubernetes に Secret キーを書き込み、Gateway からそ
 1. まず、[cert-manager の Issuer ドキュメント](https://cert-manager.io/docs/configuration/)に従って `Issuer` リソースを設定します。`Issuer` は証明書認証局（CA）を表す Kubernetes リソースで、証明書署名リクエストに応じて署名証明書を発行できます。例：
 
    {{< text yaml >}}
-   apiVersion: cert-manager.io/v1
-   kind: Issuer
-   metadata:
-   name: ca-issuer
-   namespace: istio-system
-   spec:
-   ca:
-   secretName: ca-key-pair
+    apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+    name: ca-issuer
+    namespace: istio-system
+    spec:
+    ca:
+    secretName: ca-key-pair
    {{< /text >}}
 
    {{< tip >}}
-   一般的な発行者タイプである ACME では、Pod とサービスを作成してチャレンジリクエストに応答し、クライアントがドメインを所有していることを検証します。これらのチャレンジに対応するには、`http://<YOUR_DOMAIN>/.well-known/acme-challenge/<TOKEN>` にアクセスできる必要があります。設定は実装ごとに異なる場合があります。
+    一般的な発行者タイプである ACME では、Pod とサービスを作成してチャレンジリクエストに応答し、クライアントがドメインを所有していることを検証します。これらのチャレンジに対応するには、`http://<YOUR_DOMAIN>/.well-known/acme-challenge/<TOKEN>` にアクセスできる必要があります。設定は実装ごとに異なる場合があります。
    {{< /tip >}}
 
 1. 次に、[cert-manager ドキュメント](https://cert-manager.io/docs/usage/certificate/)に従って `Certificate` リソースを設定します。`Certificate` は `istio-ingressgateway` デプロイと同じ名前空間で作成する必要があります。例：
 
    {{< text yaml >}}
-   apiVersion: cert-manager.io/v1
-   kind: Certificate
-   metadata:
-   name: ingress-cert
-   namespace: istio-system
-   spec:
-   secretName: ingress-cert
-   commonName: my.example.com
-   dnsNames:
+    apiVersion: cert-manager.io/v1
+    kind: Certificate
+    metadata:
+    name: ingress-cert
+    namespace: istio-system
+    spec:
+    secretName: ingress-cert
+    commonName: my.example.com
+    dnsNames:
 
-   - my.example.com
-     ...
+    - my.example.com
+    ...
      {{< /text >}}
 
 1. `Certificate` リソースを作成すると、`istio-system` 名前空間に Secret が作成されます。これを Gateway の `tls` 設定の `credentialName` フィールドで参照できます：
 
    {{< text yaml >}}
-   apiVersion: networking.istio.io/v1
-   kind: Gateway
-   metadata:
-   name: gateway
-   spec:
-   selector:
-   istio: ingressgateway
-   servers:
+    apiVersion: networking.istio.io/v1
+    kind: Gateway
+    metadata:
+    name: gateway
+    spec:
+    selector:
+    istio: ingressgateway
+    servers:
 
-   - port:
+    - port:
      number: 443
      name: https
      protocol: HTTPS

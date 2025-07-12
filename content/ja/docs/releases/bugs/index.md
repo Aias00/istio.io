@@ -49,25 +49,25 @@ $ istioctl bug-report
 - `istioctl analyze` の出力：
 
   {{< text bash >}}
-  $ istioctl analyze --all-namespaces
+    $ istioctl analyze --all-namespaces
   {{< /text >}}
 
 - すべての名前空間の `pods`、`services`、`deployments`、`endpoints` リソース：
 
   {{< text bash >}}
-  $ kubectl get pods,services,deployments,endpoints --all-namespaces -o yaml > k8s_resources.yaml
+    $ kubectl get pods,services,deployments,endpoints --all-namespaces -o yaml > k8s_resources.yaml
   {{< /text >}}
 
 - `istio-system` 名前空間の Secret：
 
   {{< text bash >}}
-  $ kubectl --namespace istio-system get secrets
+    $ kubectl --namespace istio-system get secrets
   {{< /text >}}
 
 - `istio-system` 名前空間の ConfigMap：
 
   {{< text bash >}}
-  $ kubectl --namespace istio-system get cm -o yaml
+    $ kubectl --namespace istio-system get cm -o yaml
   {{< /text >}}
 
 - すべての Istio コンポーネントおよびサイドカーの現在と過去のログ。以下はログ取得例です。環境に合わせて調整してください：
@@ -99,7 +99,7 @@ $ istioctl bug-report
 - すべての Istio 関連の設定ファイル：
 
   {{< text bash >}}
-  $ kubectl get istio-io --all-namespaces -o yaml
+    $ kubectl get istio-io --all-namespaces -o yaml
   {{< /text >}}
 
 ## ドキュメントのバグ {#documentation-bugs}
