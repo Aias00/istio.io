@@ -1,6 +1,6 @@
 ---
 title: Ingress Sidecar TLS 終端
- description: Ingress Gateway を使用せず、Sidecar 上で TLS トラフィックを終端する方法を説明します。
+description: Ingress Gateway を使用せず、Sidecar 上で TLS トラフィックを終端する方法を説明します。
 weight: 30
 keywords: [traffic-management,ingress,https]
 owner: istio/wg-networking-maintainers

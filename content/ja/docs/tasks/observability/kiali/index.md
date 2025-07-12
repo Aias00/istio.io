@@ -110,10 +110,9 @@ Bookinfo アプリケーションは `bookinfo` 名前空間にインストー�
    - **Service** グラフタイプは、メッシュ内のサービス間の高レベルなトラフィックを表示します。
 
      {{< image width="70%"
-     link="./kiali-service-graph.png"
-     caption="サービスグラフの例"
-
-     > }}
+         link="./kiali-service-graph.png"
+         caption="サービスグラフの例"
+         >}}
 
 ## Istio 設定の確認 {#examining-Istio-configuration}
 

@@ -680,10 +680,10 @@ rules:
 
 - Ingress ゲートウェイへのリクエストが拒否されることを確認します：
 
-  {{< text bash >}}
+{{< text bash >}}
   $ curl "$INGRESS_HOST:$INGRESS_PORT"/headers -s -o /dev/null -w "%{http_code}\n"
   403
-  {{< /text >}}
+{{< /text >}}
 
 - オンラインプロキシサービスを使って、異なるクライアント IP で Ingress ゲートウェイにアクセスし、リクエストが許可されるかどうかを検証できます。
 

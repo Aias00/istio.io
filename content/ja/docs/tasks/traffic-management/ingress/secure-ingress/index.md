@@ -21,14 +21,14 @@ test: yes
 - [httpbin]({{< github_tree >}}/samples/httpbin) サンプルをデプロイします：
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/httpbin/httpbin.yaml@
+    $ kubectl apply -f @samples/httpbin/httpbin.yaml@
   {{< /text >}}
 
 - macOS ユーザーは、[LibreSSL](http://www.libressl.org) ライブラリでビルドされた `curl` を使用しているか確認してください：
 
   {{< text bash >}}
-  $ curl --version | grep LibreSSL
-  curl 7.54.0 (x86_64-apple-darwin17.0) libcurl/7.54.0 LibreSSL/2.0.20 zlib/1.2.11 nghttp2/1.24.0
+    $ curl --version | grep LibreSSL
+    curl 7.54.0 (x86_64-apple-darwin17.0) libcurl/7.54.0 LibreSSL/2.0.20 zlib/1.2.11 nghttp2/1.24.0
   {{< /text >}}
 
   上記のような LibreSSL バージョンが表示されれば、このタスクの手順通りに `curl` コマンドが動作します。
@@ -41,38 +41,38 @@ test: yes
 1. サービス署名用のルート証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ mkdir example_certs1
-   $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example_certs1/example.com.key -out example_certs1/example.com.crt
+    $ mkdir example_certs1
+    $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example_certs1/example.com.key -out example_certs1/example.com.crt
    {{< /text >}}
 
 1. `httpbin.example.com` 用の証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -out example_certs1/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 0 -in example_certs1/httpbin.example.com.csr -out example_certs1/httpbin.example.com.crt
+    $ openssl req -out example_certs1/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 0 -in example_certs1/httpbin.example.com.csr -out example_certs1/httpbin.example.com.crt
    {{< /text >}}
 
 1. 2 組目の同様の証明書と鍵を作成します：
 
    {{< text bash >}}
-   $ mkdir example_certs2
-   $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example_certs2/example.com.key -out example_certs2/example.com.crt
-   $ openssl req -out example_certs2/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs2/httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example_certs2/example.com.crt -CAkey example_certs2/example.com.key -set_serial 0 -in example_certs2/httpbin.example.com.csr -out example_certs2/httpbin.example.com.crt
+    $ mkdir example_certs2
+    $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example_certs2/example.com.key -out example_certs2/example.com.crt
+    $ openssl req -out example_certs2/httpbin.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs2/httpbin.example.com.key -subj "/CN=httpbin.example.com/O=httpbin organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example_certs2/example.com.crt -CAkey example_certs2/example.com.key -set_serial 0 -in example_certs2/httpbin.example.com.csr -out example_certs2/httpbin.example.com.crt
    {{< /text >}}
 
 1. `helloworld.example.com` 用の証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -out example_certs1/helloworld.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/helloworld.example.com.key -subj "/CN=helloworld.example.com/O=helloworld organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 1 -in example_certs1/helloworld.example.com.csr -out example_certs1/helloworld.example.com.crt
+    $ openssl req -out example_certs1/helloworld.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/helloworld.example.com.key -subj "/CN=helloworld.example.com/O=helloworld organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 1 -in example_certs1/helloworld.example.com.csr -out example_certs1/helloworld.example.com.crt
    {{< /text >}}
 
 1. クライアント証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -out example_certs1/client.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/client.example.com.key -subj "/CN=client.example.com/O=client organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 1 -in example_certs1/client.example.com.csr -out example_certs1/client.example.com.crt
+    $ openssl req -out example_certs1/client.example.com.csr -newkey rsa:2048 -nodes -keyout example_certs1/client.example.com.key -subj "/CN=client.example.com/O=client organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example_certs1/example.com.crt -CAkey example_certs1/example.com.key -set_serial 1 -in example_certs1/client.example.com.csr -out example_certs1/client.example.com.crt
    {{< /text >}}
 
 {{< tip >}}
@@ -98,9 +98,9 @@ example.com.key httpbin.example.com.csr
 1. エントリーゲートウェイの Secret を作成します：
 
    {{< text bash >}}
-   $ kubectl create -n istio-system secret tls httpbin-credential \
-    --key=example_certs1/httpbin.example.com.key \
-    --cert=example_certs1/httpbin.example.com.crt
+    $ kubectl create -n istio-system secret tls httpbin-credential \
+     --key=example_certs1/httpbin.example.com.key \
+     --cert=example_certs1/httpbin.example.com.crt
    {{< /text >}}
 
 1. エントリーゲートウェイを構成します：
@@ -224,9 +224,9 @@ parentRefs:
 最後に、ゲートウェイのアドレスとポートを `Gateway` リソースから取得します：
 
 {{< text bash >}}
-$ kubectl wait --for=condition=programmed gtw mygateway -n istio-system
-$ export INGRESS_HOST=$(kubectl get gtw mygateway -n istio-system -o jsonpath='{.status.addresses[0].value}')
-$ export SECURE_INGRESS_PORT=$(kubectl get gtw mygateway -n istio-system -o jsonpath='{.spec.listeners[?(@.name=="https")].port}')
+ $ kubectl wait --for=condition=programmed gtw mygateway -n istio-system
+ $ export INGRESS_HOST=$(kubectl get gtw mygateway -n istio-system -o jsonpath='{.status.addresses[0].value}')
+ $ export SECURE_INGRESS_PORT=$(kubectl get gtw mygateway -n istio-system -o jsonpath='{.spec.listeners[?(@.name=="https")].port}')
 {{< /text >}}
 
 {{< /tab >}}
@@ -289,8 +289,8 @@ $ export SECURE_INGRESS_PORT=$(kubectl get gtw mygateway -n istio-system -o json
 1. 以前の例で `httpbin` の資格情報を復元するために、Secret を再作成します：
 
    {{< text bash >}}
-   $ kubectl -n istio-system delete secret httpbin-credential
-   $ kubectl create -n istio-system secret tls httpbin-credential \
+    $ kubectl -n istio-system delete secret httpbin-credential
+    $ kubectl create -n istio-system secret tls httpbin-credential \
     --key=example_certs1/httpbin.example.com.key \
     --cert=example_certs1/httpbin.example.com.crt
    {{< /text >}}
@@ -298,16 +298,16 @@ $ export SECURE_INGRESS_PORT=$(kubectl get gtw mygateway -n istio-system -o json
 1. `helloworld-v1` サンプルを起動します：
 
    {{< text bash >}}
-   $ kubectl apply -f @samples/helloworld/helloworld.yaml@ -l service=helloworld
-   $ kubectl apply -f @samples/helloworld/helloworld.yaml@ -l version=v1
+    $ kubectl apply -f @samples/helloworld/helloworld.yaml@ -l service=helloworld
+    $ kubectl apply -f @samples/helloworld/helloworld.yaml@ -l version=v1
    {{< /text >}}
 
 1. `helloworld-credential` Secret を作成します：
 
    {{< text bash >}}
-   $ kubectl create -n istio-system secret tls helloworld-credential \
-    --key=example_certs1/helloworld.example.com.key \
-    --cert=example_certs1/helloworld.example.com.crt
+    $ kubectl create -n istio-system secret tls helloworld-credential \
+     --key=example_certs1/helloworld.example.com.key \
+     --cert=example_certs1/helloworld.example.com.crt
    {{< /text >}}
 
 1. `httpbin.example.com` と `helloworld.example.com` ホストを使用してエントリーゲートウェイを構成します：
@@ -452,23 +452,23 @@ parentRefs:
 5. HTTPS リクエストを `helloworld.example.com` に送信します：
 
    {{< text bash >}}
-   $ curl -v -HHost:helloworld.example.com --resolve "helloworld.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
-    --cacert example_certs1/example.com.crt "https://helloworld.example.com:$SECURE_INGRESS_PORT/hello"
-   ...
-   HTTP/2 200
-   ...
+    $ curl -v -HHost:helloworld.example.com --resolve "helloworld.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
+     --cacert example_certs1/example.com.crt "https://helloworld.example.com:$SECURE_INGRESS_PORT/hello"
+    ...
+    HTTP/2 200
+    ...
    {{< /text >}}
 
 1. HTTPS リクエストを `httpbin.example.com` に送信し、まだ [HTTP 418](https://datatracker.ietf.org/doc/html/rfc2324) を返します：
 
    {{< text bash >}}
-   $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
-    --cacert example_certs1/example.com.crt "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
-   ...
-   HTTP/2 418
-   ...
-   server: istio-envoy
-   ...
+    $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
+     --cacert example_certs1/example.com.crt "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
+    ...
+    HTTP/2 418
+    ...
+    server: istio-envoy
+    ...
    {{< /text >}}
 
 ### 双方向 TLS エントリーゲートウェイの構成 {#configure-a-mutual-tls-ingress-gateway}
@@ -478,18 +478,18 @@ parentRefs:
 1. その Secret を削除して新しいものを作成することでエントリーゲートウェイの資格情報を変更します。サーバーは CA 証明書を使用してクライアントを検証し、CA 証明書を保持するために名前 `ca.crt` を使用する必要があります。
 
    {{< text bash >}}
-   $ kubectl -n istio-system delete secret httpbin-credential
-   $ kubectl create -n istio-system secret generic httpbin-credential \
-    --from-file=tls.key=example_certs1/httpbin.example.com.key \
-    --from-file=tls.crt=example_certs1/httpbin.example.com.crt \
-    --from-file=ca.crt=example_certs1/example.com.crt
+    $ kubectl -n istio-system delete secret httpbin-credential
+    $ kubectl create -n istio-system secret generic httpbin-credential \
+     --from-file=tls.key=example_certs1/httpbin.example.com.key \
+     --from-file=tls.crt=example_certs1/httpbin.example.com.crt \
+     --from-file=ca.crt=example_certs1/example.com.crt
    {{< /text >}}
 
    {{< tip >}}
 
    {{< boilerplate crl-tip >}}
 
-   資格情報には [OCSP Staple](https://datatracker.ietf.org/doc/html/rfc6961) も含めることができ、パラメータ `--from-file=tls.ocsp-staple=/some/path/to/your-ocsp-staple.pem` で指定された `tls.ocsp-staple` をキーとして使用できます。
+    資格情報には [OCSP Staple](https://datatracker.ietf.org/doc/html/rfc6961) も含めることができ、パラメータ `--from-file=tls.ocsp-staple=/some/path/to/your-ocsp-staple.pem` で指定された `tls.ocsp-staple` をキーとして使用できます。
 
    {{< /tip >}}
 
@@ -566,36 +566,36 @@ listeners:
 3. 以前の方法で HTTPS リクエストを送信してみて、どのように失敗するかを確認します：
 
    {{< text bash >}}
-   $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
-    --cacert example_certs1/example.com.crt "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
+    $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
+     --cacert example_certs1/example.com.crt "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
 
-   - TLSv1.3 (OUT), TLS handshake, Client hello (1):
-   - TLSv1.3 (IN), TLS handshake, Server hello (2):
-   - TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
-   - TLSv1.3 (IN), TLS handshake, Request CERT (13):
-   - TLSv1.3 (IN), TLS handshake, Certificate (11):
-   - TLSv1.3 (IN), TLS handshake, CERT verify (15):
-   - TLSv1.3 (IN), TLS handshake, Finished (20):
-   - TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
-   - TLSv1.3 (OUT), TLS handshake, Certificate (11):
-   - TLSv1.3 (OUT), TLS handshake, Finished (20):
-   - TLSv1.3 (IN), TLS alert, unknown (628):
-   - OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
+    - TLSv1.3 (OUT), TLS handshake, Client hello (1):
+    - TLSv1.3 (IN), TLS handshake, Server hello (2):
+    - TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+    - TLSv1.3 (IN), TLS handshake, Request CERT (13):
+    - TLSv1.3 (IN), TLS handshake, Certificate (11):
+    - TLSv1.3 (IN), TLS handshake, CERT verify (15):
+    - TLSv1.3 (IN), TLS handshake, Finished (20):
+    - TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+    - TLSv1.3 (OUT), TLS handshake, Certificate (11):
+    - TLSv1.3 (OUT), TLS handshake, Finished (20):
+    - TLSv1.3 (IN), TLS alert, unknown (628):
+    - OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
      {{< /text >}}
 
 1. クライアント証明書と秘密鍵を `curl` に渡して再送信します。クライアント証明書を `--cert` フラグで、秘密鍵を `--key` フラグで `curl` に渡します：
 
    {{< text bash >}}
-   $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
-    --cacert example_certs1/example.com.crt --cert example_certs1/client.example.com.crt --key example_certs1/client.example.com.key \
-    "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
-   ...
-   HTTP/2 418
-   ...
-   server: istio-envoy
-   ...
-   I'm a teapot!
-   ...
+    $ curl -v -HHost:httpbin.example.com --resolve "httpbin.example.com:$SECURE_INGRESS_PORT:$INGRESS_HOST" \
+     --cacert example_certs1/example.com.crt --cert example_certs1/client.example.com.crt --key example_certs1/client.example.com.key \
+     "https://httpbin.example.com:$SECURE_INGRESS_PORT/status/418"
+    ...
+    HTTP/2 418
+    ...
+    server: istio-envoy
+    ...
+    I'm a teapot!
+    ...
    {{< /text >}}
 
 ## より詳しい情報 {#more-info}
@@ -624,22 +624,22 @@ HTTPS `Gateway` は、リクエストを転送する前に構成されたホス�
 - `INGRESS_HOST` と `SECURE_INGRESS_PORT` 環境変数の値を確認してください。以下のコマンドの出力により、有効な値であることを確認してください：
 
   {{< text bash >}}
-  $ kubectl get svc -n istio-system
-  $ echo "INGRESS_HOST=$INGRESS_HOST, SECURE_INGRESS_PORT=$SECURE_INGRESS_PORT"
+    $ kubectl get svc -n istio-system
+    $ echo "INGRESS_HOST=$INGRESS_HOST, SECURE_INGRESS_PORT=$SECURE_INGRESS_PORT"
   {{< /text >}}
 
 - `INGRESS_HOST` の値が IP アドレスであることを確認してください。一部のクラウドプラットフォーム（例：AWS）では、ドメイン名ではなく IP アドレスが得られる可能性があります。
   このタスクでは IP アドレスが必要なため、以下のようなコマンドを使用して変換する必要があります：
 
   {{< text bash >}}
-  $ nslookup ab52747ba608744d8afd530ffd975cbf-330887905.us-east-1.elb.amazonaws.com
-  $ export INGRESS_HOST=3.225.207.109
+    $ nslookup ab52747ba608744d8afd530ffd975cbf-330887905.us-east-1.elb.amazonaws.com
+    $ export INGRESS_HOST=3.225.207.109
   {{< /text >}}
 
 - ゲートウェイコントローラーのログを確認してエラーメッセージを取得してください：
 
   {{< text syntax=bash snip_id=none >}}
-  $ kubectl logs -n istio-system <gateway-service-pod>
+    $ kubectl logs -n istio-system <gateway-service-pod>
   {{< /text >}}
 
 - macOS を使用している場合は、[準備](#before-you-begin) セクションで説明したように、[LibreSSL](http://www.libressl.org/) `curl`
@@ -648,7 +648,7 @@ HTTPS `Gateway` は、リクエストを転送する前に構成されたホス�
 - `istio-system` 名前空間に成功して Secret が作成されたことを確認してください：
 
   {{< text bash >}}
-  $ kubectl -n istio-system get secrets
+    $ kubectl -n istio-system get secrets
   {{< /text >}}
 
   `httpbin-credential` と `helloworld-credential` が Secret リストに表示されるはずです。
@@ -656,7 +656,7 @@ HTTPS `Gateway` は、リクエストを転送する前に構成されたホス�
 - エントリーゲートウェイプロキシーがゲートウェイに鍵/証明書ペアをプッシュしたことを確認するために、ログを確認してください：
 
   {{< text syntax=bash snip_id=none >}}
-  $ kubectl logs -n istio-system <gateway-service-pod>
+    $ kubectl logs -n istio-system <gateway-service-pod>
   {{< /text >}}
 
   ログには `httpbin-credential` Secret が追加されているはずです。双方向 TLS を使用している場合は、`httpbin-credential-cacert` Secret も表示されるはずです。
@@ -671,8 +671,8 @@ HTTPS `Gateway` は、リクエストを転送する前に構成されたホス�
 {{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text bash >}}
-$ kubectl delete gateway mygateway
-$ kubectl delete virtualservice httpbin helloworld
+ $ kubectl delete gateway mygateway
+ $ kubectl delete virtualservice httpbin helloworld
 {{< /text >}}
 
 {{< /tab >}}
@@ -680,8 +680,8 @@ $ kubectl delete virtualservice httpbin helloworld
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
 {{< text bash >}}
-$ kubectl delete -n istio-system gtw mygateway
-$ kubectl delete httproute httpbin helloworld
+ $ kubectl delete -n istio-system gtw mygateway
+ $ kubectl delete httproute httpbin helloworld
 {{< /text >}}
 
 {{< /tab >}}
@@ -691,14 +691,14 @@ $ kubectl delete httproute httpbin helloworld
 2. Secret、証明書、および鍵を削除します：
 
    {{< text bash >}}
-   $ kubectl delete -n istio-system secret httpbin-credential helloworld-credential
-   $ rm -rf ./example_certs1 ./example_certs2
+    $ kubectl delete -n istio-system secret httpbin-credential helloworld-credential
+    $ rm -rf ./example_certs1 ./example_certs2
    {{< /text >}}
 
 1. `httpbin` と `helloworld` サービスを停止します：
 
    {{< text bash >}}
-   $ kubectl delete -f samples/httpbin/httpbin.yaml
-   $ kubectl delete deployment helloworld-v1
-   $ kubectl delete service helloworld
+    $ kubectl delete -f samples/httpbin/httpbin.yaml
+    $ kubectl delete deployment helloworld-v1
+    $ kubectl delete service helloworld
    {{< /text >}}

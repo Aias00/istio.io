@@ -31,13 +31,13 @@ test: yes
   [Sidecar の自動注入](/ja/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection)が有効な場合は、次のコマンドで `curl` アプリをデプロイします：
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/curl/curl.yaml@
+    $ kubectl apply -f @samples/curl/curl.yaml@
   {{< /text >}}
 
   そうでない場合は、`curl` アプリをデプロイする前に手動で Sidecar を注入してください：
 
   {{< text bash >}}
-  $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
+    $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
   {{< /text >}}
 
   実際には、`exec` や `curl` が実行できる任意の Pod でこのタスクを行えます。
@@ -46,7 +46,7 @@ test: yes
   [curl]({{< github_tree >}}/samples/curl) サンプルを使う場合は：
 
   {{< text bash >}}
-  $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
+    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
   {{< /text >}}
 
 ## 外部サービスへのアクセスを構成する {#configuring-access-to-an-external-service}
@@ -57,37 +57,37 @@ test: yes
 1. `edition.cnn.com` へのアクセスを有効にする `ServiceEntry` を作成します：
 
    {{< text syntax=bash snip_id=apply_simple >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: networking.istio.io/v1
-   kind: ServiceEntry
-   metadata:
-   name: edition-cnn-com
-   spec:
-   hosts:
+     $ kubectl apply -f - <<EOF
+     apiVersion: networking.istio.io/v1
+     kind: ServiceEntry
+     metadata:
+     name: edition-cnn-com
+     spec:
+     hosts:
 
-   - edition.cnn.com
-     ports:
-   - number: 80
-     name: http-port
-     protocol: HTTP
-   - number: 443
-     name: https-port
-     protocol: HTTPS
-     resolution: DNS
-     EOF
+     - edition.cnn.com
+       ports:
+     - number: 80
+       name: http-port
+       protocol: HTTP
+     - number: 443
+       name: https-port
+       protocol: HTTPS
+       resolution: DNS
+       EOF
      {{< /text >}}
 
 1. 外部 HTTP サービスにリクエストを送信します：
 
    {{< text syntax=bash snip_id=curl_simple >}}
-   $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
-   HTTP/1.1 301 Moved Permanently
-   ...
-   location: https://edition.cnn.com/politics
-   ...
-
-   HTTP/2 200
-   ...
+     $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
+     HTTP/1.1 301 Moved Permanently
+     ...
+     location: https://edition.cnn.com/politics
+     ...
+  
+     HTTP/2 200
+     ...
    {{< /text >}}
 
    出力は上記のようになります（一部省略）。
@@ -110,39 +110,39 @@ Istio で `TLS` オリジネーションを構成すれば、これらの問題�
 1. 前節の `ServiceEntry` と `VirtualService` を再定義し、HTTP リクエストのポートを書き換え、TLS オリジネーションを行う `DestinationRule` を追加します。
 
    {{< text syntax=bash snip_id=apply_origination >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: networking.istio.io/v1
-   kind: ServiceEntry
-   metadata:
-   name: edition-cnn-com
-   spec:
-   hosts:
-
-   - edition.cnn.com
-     ports:
-   - number: 80
-     name: http-port
-     protocol: HTTP
-     targetPort: 443
-   - number: 443
-     name: https-port
-     protocol: HTTPS
-     resolution: DNS
-
-   ***
-
-   apiVersion: networking.istio.io/v1
-   kind: DestinationRule
-   metadata:
-   name: edition-cnn-com
-   spec:
-   host: edition.cnn.com
-   trafficPolicy:
-   portLevelSettings: - port:
-   number: 80
-   tls:
-   mode: SIMPLE # edition.cnn.com へのアクセス時に HTTPS を発行
-   EOF
+     $ kubectl apply -f - <<EOF
+     apiVersion: networking.istio.io/v1
+     kind: ServiceEntry
+     metadata:
+     name: edition-cnn-com
+     spec:
+     hosts:
+  
+     - edition.cnn.com
+       ports:
+     - number: 80
+       name: http-port
+       protocol: HTTP
+       targetPort: 443
+     - number: 443
+       name: https-port
+       protocol: HTTPS
+       resolution: DNS
+  
+     ***
+  
+     apiVersion: networking.istio.io/v1
+     kind: DestinationRule
+     metadata:
+     name: edition-cnn-com
+     spec:
+     host: edition.cnn.com
+     trafficPolicy:
+     portLevelSettings: - port:
+     number: 80
+     tls:
+     mode: SIMPLE # edition.cnn.com へのアクセス時に HTTPS を発行
+     EOF
    {{< /text >}}
 
    上記の `DestinationRule` は、ポート 80 および `ServiceEntry` 上の HTTP リクエストに対して TLS オリジネーションを行います。
@@ -151,9 +151,9 @@ Istio で `TLS` オリジネーションを構成すれば、これらの問題�
 1. 前節と同様に `http://edition.cnn.com/politics` へ HTTP リクエストを送信します：
 
    {{< text syntax=bash snip_id=curl_origination_http >}}
-   $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
-   HTTP/1.1 200 OK
-   ...
+     $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
+     HTTP/1.1 200 OK
+     ...
    {{< /text >}}
 
    今回は **200 OK** のみが返ります。
@@ -166,9 +166,9 @@ Istio で `TLS` オリジネーションを構成すれば、これらの問題�
 1. アプリケーションが HTTPS で外部サービスにアクセスしている場合も、従来通り動作します：
 
    {{< text syntax=bash snip_id=curl_origination_https >}}
-   $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - https://edition.cnn.com/politics
-   HTTP/2 200
-   ...
+     $ kubectl exec "${SOURCE_POD}" -c curl -- curl -sSL -o /dev/null -D - https://edition.cnn.com/politics
+     HTTP/2 200
+     ...
    {{< /text >}}
 
 ## その他のセキュリティ考慮事項 {#additional-security-considerations}
@@ -210,45 +210,45 @@ $ kubectl delete destinationrule edition-cnn-com
 1. サービス用の署名証明書を作成するためのルート証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
+     $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
    {{< /text >}}
 
 1. `my-nginx.mesh-external.svc.cluster.local` の証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:2048 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt
+     $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:2048 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization"
+     $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt
    {{< /text >}}
 
    または、SAN 検証を有効にしたい場合は、証明書に `SubjectAltNames` を追加できます。例：
 
    {{< text syntax=bash snip_id=none >}}
-   $ cat > san.conf <<EOF
-   [req]
-   distinguished_name = req_distinguished_name
-   req_extensions = v3_req
-   x509_extensions = v3_req
-   prompt = no
-   [req_distinguished_name]
-   countryName = US
-   [v3_req]
-   keyUsage = critical, digitalSignature, keyEncipherment
-   extendedKeyUsage = serverAuth, clientAuth
-   basicConstraints = critical, CA:FALSE
-   subjectAltName = critical, @alt_names
-   [alt_names]
-   DNS = my-nginx.mesh-external.svc.cluster.local
-   EOF
-   $
-    $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:4096 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization" -config san.conf
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt -extfile san.conf -extensions v3_req
+     $ cat > san.conf <<EOF
+     [req]
+     distinguished_name = req_distinguished_name
+     req_extensions = v3_req
+     x509_extensions = v3_req
+     prompt = no
+     [req_distinguished_name]
+     countryName = US
+     [v3_req]
+     keyUsage = critical, digitalSignature, keyEncipherment
+     extendedKeyUsage = serverAuth, clientAuth
+     basicConstraints = critical, CA:FALSE
+     subjectAltName = critical, @alt_names
+     [alt_names]
+     DNS = my-nginx.mesh-external.svc.cluster.local
+     EOF
+     $
+     $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:4096 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization" -config san.conf
+     $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt -extfile san.conf -extensions v3_req
    {{< /text >}}
 
 1. クライアント証明書と秘密鍵を生成します：
 
    {{< text bash >}}
-   $ openssl req -out client.example.com.csr -newkey rsa:2048 -nodes -keyout client.example.com.key -subj "/CN=client.example.com/O=client organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 1 -in client.example.com.csr -out client.example.com.crt
+     $ openssl req -out client.example.com.csr -newkey rsa:2048 -nodes -keyout client.example.com.key -subj "/CN=client.example.com/O=client organization"
+     $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 1 -in client.example.com.csr -out client.example.com.crt
    {{< /text >}}
 
 ### 双方向 TLS サーバーのデプロイ {#deploy-a-mutual-tls-server}
@@ -260,45 +260,45 @@ $ kubectl delete destinationrule edition-cnn-com
     この名前空間では Sidecar 自動注入は有効になっていません。
 
     {{< text bash >}}
-    $ kubectl create namespace mesh-external
+     $ kubectl create namespace mesh-external
     {{< /text >}}
 
 1.  Kubernetes [Secret](https://kubernetes.io/ja/docs/concepts/configuration/secret/) を作成し、サーバー証明書と CA 証明書を保存します。
 
     {{< text bash >}}
-    $ kubectl create -n mesh-external secret tls nginx-server-certs --key my-nginx.mesh-external.svc.cluster.local.key --cert my-nginx.mesh-external.svc.cluster.local.crt
-    $ kubectl create -n mesh-external secret generic nginx-ca-certs --from-file=example.com.crt
+     $ kubectl create -n mesh-external secret tls nginx-server-certs --key my-nginx.mesh-external.svc.cluster.local.key --cert my-nginx.mesh-external.svc.cluster.local.crt
+     $ kubectl create -n mesh-external secret generic nginx-ca-certs --from-file=example.com.crt
     {{< /text >}}
 
 1.  NGINX サーバーの設定ファイルを作成します：
 
     {{< text bash >}}
-    $ cat <<\EOF > ./nginx.conf
-    events {
-    }
+     $ cat <<\EOF > ./nginx.conf
+     events {
+     }
 
-    http {
-    log_format main '$remote_addr - $remote_user [$time_local] $status '
-      '"$request" $body_bytes_sent "$http_referer" '
-    '"$http_user_agent" "$http_x_forwarded_for"';
-    access_log /var/log/nginx/access.log main;
-    error_log /var/log/nginx/error.log;
+     http {
+     log_format main '$remote_addr - $remote_user [$time_local] $status '
+       '"$request" $body_bytes_sent "$http_referer" '
+     '"$http_user_agent" "$http_x_forwarded_for"';
+     access_log /var/log/nginx/access.log main;
+     error_log /var/log/nginx/error.log;
 
-    server {
-    listen 443 ssl;
+     server {
+     listen 443 ssl;
 
-        root /usr/share/nginx/html;
-        index index.html;
+      root /usr/share/nginx/html;
+      index index.html;
 
-        server_name my-nginx.mesh-external.svc.cluster.local;
-        ssl_certificate /etc/nginx-server-certs/tls.crt;
-        ssl_certificate_key /etc/nginx-server-certs/tls.key;
-        ssl_client_certificate /etc/nginx-ca-certs/example.com.crt;
-        ssl_verify_client on;
+      server_name my-nginx.mesh-external.svc.cluster.local;
+      ssl_certificate /etc/nginx-server-certs/tls.crt;
+      ssl_certificate_key /etc/nginx-server-certs/tls.key;
+      ssl_client_certificate /etc/nginx-ca-certs/example.com.crt;
+      ssl_verify_client on;
 
-    }
-    }
-    EOF
+     }
+     }
+     EOF
     {{< /text >}}
 
 1.  Kubernetes [ConfigMap](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-pod-configmap/) を作成し、NGINX サーバーの設定ファイルを保存します：
@@ -323,46 +323,46 @@ $ kubectl delete destinationrule edition-cnn-com
     spec:
     ports:
 
-    - port: 443
-      protocol: TCP
-      selector:
-      run: my-nginx
+   - port: 443
+     protocol: TCP
+     selector:
+     run: my-nginx
 
-    ***
+   ***
 
-    apiVersion: apps/v1
-    kind: Deployment
-    metadata:
-    name: my-nginx
-    namespace: mesh-external
-    spec:
-    selector:
-    matchLabels:
-    run: my-nginx
-    replicas: 1
-    template:
-    metadata:
-    labels:
-    run: my-nginx
-    spec:
-    containers: - name: my-nginx
-    image: nginx
-    ports: - containerPort: 443
-    volumeMounts: - name: nginx-config
-    mountPath: /etc/nginx
-    readOnly: true - name: nginx-server-certs
-    mountPath: /etc/nginx-server-certs
-    readOnly: true - name: nginx-ca-certs
-    mountPath: /etc/nginx-ca-certs
-    readOnly: true
-    volumes: - name: nginx-config
-    configMap:
-    name: nginx-configmap - name: nginx-server-certs
-    secret:
-    secretName: nginx-server-certs - name: nginx-ca-certs
-    secret:
-    secretName: nginx-ca-certs
-    EOF
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+   name: my-nginx
+   namespace: mesh-external
+   spec:
+   selector:
+   matchLabels:
+   run: my-nginx
+   replicas: 1
+   template:
+   metadata:
+   labels:
+   run: my-nginx
+   spec:
+   containers: - name: my-nginx
+   image: nginx
+   ports: - containerPort: 443
+   volumeMounts: - name: nginx-config
+   mountPath: /etc/nginx
+   readOnly: true - name: nginx-server-certs
+   mountPath: /etc/nginx-server-certs
+   readOnly: true - name: nginx-ca-certs
+   mountPath: /etc/nginx-ca-certs
+   readOnly: true
+   volumes: - name: nginx-config
+   configMap:
+   name: nginx-configmap - name: nginx-server-certs
+   secret:
+   secretName: nginx-server-certs - name: nginx-ca-certs
+   secret:
+   secretName: nginx-ca-certs
+   EOF
     {{< /text >}}
 
 ### クライアント（curl Pod）の構成 {#configure-the-client-curl-pod}

@@ -28,10 +28,10 @@ Istio を初めて使用する場合や、試してみたいだけの場合は�
 
 1. Helm リポジトリを設定します：
 
-   {{< text syntax=bash snip_id=configure_helm >}}
-   $ helm repo add istio https://istio-release.storage.googleapis.com/charts
-   $ helm repo update
-   {{< /text >}}
+{{< text syntax=bash snip_id=configure_helm >}}
+$ helm repo add istio https://istio-release.storage.googleapis.com/charts
+$ helm repo update
+{{< /text >}}
 
 ### Kubernetes Gateway API CRD のインストールまたはアップグレード {#install-or-upgrade-the-kubernetes-gateway-api-crds}
 
@@ -155,63 +155,63 @@ Helm で Ambient モードをインストールした後、[サンプルアプ�
 1. `istio-system` 名前空間にインストールされているすべての Istio チャートを一覧表示：
 
    {{< text syntax=bash >}}
-   $ helm ls -n istio-system
-   NAME NAMESPACE REVISION UPDATED STATUS CHART APP VERSION
-   istio-base istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed base-{{< istio_full_version >}} {{< istio_full_version >}}
-   istio-cni istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed cni-{{< istio_full_version >}} {{< istio_full_version >}}
-   istiod istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed istiod-{{< istio_full_version >}} {{< istio_full_version >}}
-   ztunnel istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed ztunnel-{{< istio_full_version >}} {{< istio_full_version >}}
+    $ helm ls -n istio-system
+    NAME NAMESPACE REVISION UPDATED STATUS CHART APP VERSION
+    istio-base istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed base-{{<  istio_full_version >}} {{< istio_full_version >}}
+    istio-cni istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed cni-{{<  istio_full_version >}} {{< istio_full_version >}}
+    istiod istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed istiod-{{<  istio_full_version >}} {{< istio_full_version >}}
+    ztunnel istio-system 1 2024-04-17 22:14:45.964722028 +0000 UTC deployed ztunnel-{{<  istio_full_version >}} {{< istio_full_version >}}
    {{< /text >}}
 
 1.（オプション）すべての Istio ゲートウェイチャートのインストールを削除：
 
     {{< text syntax=bash snip_id=delete_ingress >}}
-    $ helm delete istio-ingress -n istio-ingress
-    $ kubectl delete namespace istio-ingress
+     $ helm delete istio-ingress -n istio-ingress
+     $ kubectl delete namespace istio-ingress
     {{< /text >}}
 
 1. ztunnel チャートを削除：
 
    {{< text syntax=bash snip_id=delete_ztunnel >}}
-   $ helm delete ztunnel -n istio-system
+    $ helm delete ztunnel -n istio-system
    {{< /text >}}
 
 1. Istio CNI チャートを削除：
 
    {{< text syntax=bash snip_id=delete_cni >}}
-   $ helm delete istio-cni -n istio-system
+    $ helm delete istio-cni -n istio-system
    {{< /text >}}
 
 1. istiod コントロールプレーンチャートを削除：
 
    {{< text syntax=bash snip_id=delete_istiod >}}
-   $ helm delete istiod -n istio-system
+    $ helm delete istiod -n istio-system
    {{< /text >}}
 
 1. Istio base チャートを削除：
 
    {{< tip >}}
-   設計上、Helm でチャートを削除しても、そのチャートでインストールされたカスタムリソース定義（CRD）は削除されません。
+    設計上、Helm でチャートを削除しても、そのチャートでインストールされたカスタムリソース定義（CRD）は削除されません。
    {{< /tip >}}
 
    {{< text syntax=bash snip_id=delete_base >}}
-   $ helm delete istio-base -n istio-system
+    $ helm delete istio-base -n istio-system
    {{< /text >}}
 
 1. Istio でインストールされた CRD を削除（オプション）
 
    {{< warning >}}
-   これにより、作成されたすべての Istio リソースが削除されます。
+    これにより、作成されたすべての Istio リソースが削除されます。
    {{< /warning >}}
 
    {{< text syntax=bash snip_id=delete_crds >}}
-   $ kubectl get crd -oname | grep --color=never 'istio.io' | xargs kubectl delete
+    $ kubectl get crd -oname | grep --color=never 'istio.io' | xargs kubectl delete
    {{< /text >}}
 
 1. `istio-system` 名前空間を削除：
 
    {{< text syntax=bash snip_id=delete_system_namespace >}}
-   $ kubectl delete namespace istio-system
+    $ kubectl delete namespace istio-system
    {{< /text >}}
 
 ## インストール前のマニフェスト生成 {#generate-a-manifest-before-installation}
