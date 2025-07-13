@@ -52,23 +52,23 @@ $ istioctl install --set profile=minimal -y \
   [Sidecar の自動注入](/ja/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection)が有効な場合は、次のコマンドでサンプルアプリをデプロイします：
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/curl/curl.yaml@
+    $ kubectl apply -f @samples/curl/curl.yaml@
   {{< /text >}}
 
   そうでない場合は、`curl` アプリをデプロイする前に手動で Sidecar を注入してください：
 
   {{< text bash >}}
-  $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
+    $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
   {{< /text >}}
 
   {{< tip >}}
-  任意の Pod で `curl` をテストソースとして利用できます。
+    任意の Pod で `curl` をテストソースとして利用できます。
   {{< /tip >}}
 
 - `SOURCE_POD` 環境変数にテスト用 Pod 名を設定します：
 
   {{< text bash >}}
-  $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
+    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
   {{< /text >}}
 
 ## ワイルドカードホストへのトラフィックを直接誘導する {#configure-direct-traffic-to-a-wildcard-host}
@@ -86,28 +86,28 @@ $ istioctl install --set profile=minimal -y \
 1. `*.wikipedia.org` 用の `ServiceEntry` を定義します：
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: networking.istio.io/v1
-   kind: ServiceEntry
-   metadata:
-   name: wikipedia
-   spec:
-   hosts:
+    $ kubectl apply -f - <<EOF
+    apiVersion: networking.istio.io/v1
+    kind: ServiceEntry
+    metadata:
+    name: wikipedia
+    spec:
+    hosts:
 
-   - "\*.wikipedia.org"
-     ports:
-   - number: 443
-     name: https
-     protocol: HTTPS
-     EOF
-     {{< /text >}}
+    - "\*.wikipedia.org"
+      ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+      EOF
+      {{< /text >}}
 
 1. [https://en.wikipedia.org](https://en.wikipedia.org) および [https://de.wikipedia.org](https://de.wikipedia.org) へ HTTPS リクエストを送信します：
 
    {{< text bash >}}
-   $ kubectl exec -it $SOURCE_POD -c curl -- sh -c 'curl -s https://en.wikipedia.org/wiki/Main_Page | grep -o "<title>._</title>"; curl -s https://de.wikipedia.org/wiki/Wikipedia:Hauptseite | grep -o "<title>._</title>"'
-   <title>Wikipedia, the free encyclopedia</title>
-   <title>Wikipedia – Die freie Enzyklopädie</title>
+    $ kubectl exec -it $SOURCE_POD -c curl -- sh -c 'curl -s https://en.wikipedia.org/wiki/Main_Page | grep -o "<title>._</title>"; curl -s https://de.wikipedia.org/wiki/Wikipedia:Hauptseite | grep -o "<title>._</title>"'
+    <title>Wikipedia, the free encyclopedia</title>
+    <title>Wikipedia – Die freie Enzyklopädie</title>
    {{< /text >}}
 
 ### ワイルドカードホストへの直接トラフィックルールのクリーンアップ {#cleanup-direct-traffic-to-a-wildcard-host}
@@ -371,11 +371,11 @@ $ kubectl delete tlsroute forward-wikipedia-from-egress-gateway
 - [curl]({{< github_tree >}}/samples/curl) サービスを削除します：
 
   {{< text bash >}}
-  $ kubectl delete -f @samples/curl/curl.yaml@
+    $ kubectl delete -f @samples/curl/curl.yaml@
   {{< /text >}}
 
 - クラスタから Istio をアンインストールします：
 
   {{< text bash >}}
-  $ istioctl uninstall --purge -y
+    $ istioctl uninstall --purge -y
   {{< /text >}}
