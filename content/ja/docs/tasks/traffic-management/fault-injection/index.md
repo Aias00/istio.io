@@ -22,8 +22,8 @@ test: yes
 - [リクエストルーティングの構成](/ja/docs/tasks/traffic-management/request-routing/)タスクを実行するか、以下のコマンドでアプリケーションのバージョンルーティングを初期化してください：
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/bookinfo/networking/virtual-service-all-v1.yaml@
-  $ kubectl apply -f @samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml@
+    $ kubectl apply -f @samples/bookinfo/networking/virtual-service-all-v1.yaml@
+    $ kubectl apply -f @samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml@
   {{< /text >}}
 
 - 上記の設定後、リクエストの流れは次の通りです：
@@ -41,39 +41,39 @@ test: yes
 1. テストユーザー `jason` のトラフィックに遅延を注入するフォールトインジェクションルールを作成します：
 
    {{< text bash >}}
-   $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml@
+    $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml@
    {{< /text >}}
 
 1. ルールが作成されたことを確認します：
 
    {{< text bash yaml >}}
-   $ kubectl get virtualservice ratings -o yaml
-   apiVersion: networking.istio.io/v1
-   kind: VirtualService
-   spec:
-   hosts:
+    $ kubectl get virtualservice ratings -o yaml
+    apiVersion: networking.istio.io/v1
+    kind: VirtualService
+    spec:
+    hosts:
 
-   - ratings
-     http:
-   - fault:
-     delay:
-     fixedDelay: 7s
-     percentage:
-     value: 100
-     match:
-     - headers:
-       end-user:
-       exact: jason
-       route:
-     - destination:
-       host: ratings
-       subset: v1
-   - route: - destination:
-     host: ratings
-     subset: v1
-     {{< /text >}}
+    - ratings
+      http:
+    - fault:
+      delay:
+      fixedDelay: 7s
+      percentage:
+      value: 100
+      match:
+      - headers:
+        end-user:
+        exact: jason
+        route:
+      - destination:
+        host: ratings
+        subset: v1
+    - route: - destination:
+      host: ratings
+      subset: v1
+      {{< /text >}}
 
-   新しいルールが全 Pod に伝播するまで数秒かかる場合があります。
+    新しいルールが全 Pod に伝播するまで数秒かかる場合があります。
 
 ## 遅延設定のテスト {#testing-the-delay-configuration}
 
@@ -85,7 +85,7 @@ test: yes
    しかし、Reviews セクションにエラーメッセージが表示されます：
 
    {{< text plain >}}
-   Sorry, product reviews are currently unavailable for this book.
+    Sorry, product reviews are currently unavailable for this book.
    {{< /text >}}
 
 1. ページの応答時間を確認します：
@@ -131,36 +131,36 @@ Istio のフォールトインジェクションルールは、最終ユーザ�
 1. ユーザー `jason` に HTTP abort を送信するフォールトインジェクションルールを作成します：
 
    {{< text bash >}}
-   $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml@
+    $ kubectl apply -f @samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml@
    {{< /text >}}
 
 1. ルールが作成されたことを確認します：
 
    {{< text bash yaml >}}
-   $ kubectl get virtualservice ratings -o yaml
-   apiVersion: networking.istio.io/v1
-   kind: VirtualService
-   spec:
-   hosts:
+    $ kubectl get virtualservice ratings -o yaml
+    apiVersion: networking.istio.io/v1
+    kind: VirtualService
+    spec:
+    hosts:
 
-   - ratings
-     http:
-   - fault:
-     abort:
-     httpStatus: 500
-     percentage:
-     value: 100
-     match:
-     - headers:
-       end-user:
-       exact: jason
-       route:
-     - destination:
-       host: ratings
-       subset: v1
-   - route: - destination:
-     host: ratings
-     subset: v1
+    - ratings
+      http:
+    - fault:
+      abort:
+      httpStatus: 500
+      percentage:
+      value: 100
+      match:
+      - headers:
+        end-user:
+        exact: jason
+        route:
+      - destination:
+        host: ratings
+        subset: v1
+    - route: - destination:
+      host: ratings
+      subset: v1
      {{< /text >}}
 
 ## abort 設定のテスト {#testing-the-abort-configuration}
@@ -178,7 +178,7 @@ Istio のフォールトインジェクションルールは、最終ユーザ�
 1. アプリケーションのルーティングルールを削除します：
 
    {{< text bash >}}
-   $ kubectl delete -f @samples/bookinfo/networking/virtual-service-all-v1.yaml@
+    $ kubectl delete -f @samples/bookinfo/networking/virtual-service-all-v1.yaml@
    {{< /text >}}
 
 1. 追加のタスクを行わない場合は、[Bookinfo のクリーンアップ](/ja/docs/examples/bookinfo/#cleanup)の手順でアプリケーションを削除してください。

@@ -36,28 +36,28 @@ Istio では [Ingress ゲートウェイと Egress ゲートウェイ](/ja/docs/
 - [curl]({{< github_tree >}}/samples/curl) サンプルアプリをデプロイし、リクエスト送信のテストソースとします。
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/curl/curl.yaml@
+    $ kubectl apply -f @samples/curl/curl.yaml@
   {{< /text >}}
 
   {{< tip >}}
-  `curl` がインストールされている任意の Pod をテストソースとして利用できます。
+    `curl` がインストールされている任意の Pod をテストソースとして利用できます。
   {{< /tip >}}
 
 - 環境変数 `SOURCE_POD` を、テストソース Pod の名前で設定します：
 
   {{< text bash >}}
-  $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
+    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
   {{< /text >}}
 
   {{< warning >}}
-  このタスクのコマンドは `default` 名前空間で Egress ゲートウェイの DestinationRule を作成します。
-  クライアント `SOURCE_POD` も `default` 名前空間で動作していることを前提としています。そうでない場合、[DestinationRule の探索パス](/ja/docs/ops/best-practices/traffic-management/#cross-namespace-configuration)でルールが見つからず、クライアントリクエストが失敗します。
+    このタスクのコマンドは `default` 名前空間で Egress ゲートウェイの DestinationRule を作成します。
+    クライアント `SOURCE_POD` も `default` 名前空間で動作していることを前提としています。そうでない場合、[DestinationRule の探索パス](/ja/docs/ops/best-practices/traffic-management/#cross-namespace-configuration)でルールが見つからず、クライアントリクエストが失敗します。
   {{< /warning >}}
 
 - アクセスログが有効でない場合は、[Envoy のアクセスログを有効化](/ja/docs/tasks/observability/logs/access-log/#enable-envoy-s-access-logging)してください。例：
 
   {{< text bask >}}
-  $ istioctl install <Istio インストール時のパラメータ> --set meshConfig.accessLogFile=/dev/stdout
+    $ istioctl install <Istio インストール時のパラメータ> --set meshConfig.accessLogFile=/dev/stdout
   {{< /text >}}
 
 ## Istio Egress ゲートウェイのデプロイ {#deploy-Istio-egress-gateway}
@@ -71,7 +71,7 @@ Gateway API で Egress ゲートウェイを構成する場合、
 1. Istio Egress ゲートウェイがデプロイ済みか確認します：
 
    {{< text bash >}}
-   $ kubectl get pod -l istio=egressgateway -n istio-system
+    $ kubectl get pod -l istio=egressgateway -n istio-system
    {{< /text >}}
 
    Pod が返らない場合は、次の手順で Istio Egress ゲートウェイをデプロイします。
@@ -79,16 +79,16 @@ Gateway API で Egress ゲートウェイを構成する場合、
 1. `IstioOperator` 設定でインストールしている場合は、次のフィールドを追加します：
 
    {{< text yaml >}}
-   spec:
-   components:
-   egressGateways: - name: istio-egressgateway
-   enabled: true
+    spec:
+    components:
+    egressGateways: - name: istio-egressgateway
+    enabled: true
    {{< /text >}}
 
    それ以外の場合は、`istioctl install` コマンドに次のオプションを追加します：
 
    {{< text syntax=bash snip_id=none >}}
-   $ istioctl install <flags-you-used-to-install-Istio> \
+    $ istioctl install <flags-you-used-to-install-Istio> \
     --set "components.egressGateways[0].name=istio-egressgateway" \
     --set "components.egressGateways[0].enabled=true"
    {{< /text >}}
@@ -100,45 +100,45 @@ Gateway API で Egress ゲートウェイを構成する場合、
 1. `edition.cnn.com` 用の `ServiceEntry` を定義します：
 
    {{< warning >}}
-   下記のサービスエントリでは `DNS` 解決を使う必要があります。`NONE` にすると、ゲートウェイが自身にトラフィックをループさせてしまいます。これは、ゲートウェイが受け取るリクエストの宛先 IP がゲートウェイのサービス IP になるためです（このリクエストは Sidecar プロキシからゲートウェイに誘導されます）。
+    下記のサービスエントリでは `DNS` 解決を使う必要があります。`NONE` にすると、ゲートウェイが自身にトラフィックをループさせてしまいます。これは、ゲートウェイが受け取るリクエストの宛先 IP がゲートウェイのサービス IP になるためです（このリクエストは Sidecar プロキシからゲートウェイに誘導されます）。
 
-   `DNS` 解決を使うことで、ゲートウェイは外部サービスの IP を DNS で取得し、その IP にトラフィックを転送します。
+    `DNS` 解決を使うことで、ゲートウェイは外部サービスの IP を DNS で取得し、その IP にトラフィックを転送します。
    {{< /warning >}}
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: networking.istio.io/v1
-   kind: ServiceEntry
-   metadata:
-   name: cnn
-   spec:
-   hosts:
+    $ kubectl apply -f - <<EOF
+    apiVersion: networking.istio.io/v1
+    kind: ServiceEntry
+    metadata:
+    name: cnn
+    spec:
+    hosts:
 
-   - edition.cnn.com
-     ports:
-   - number: 80
-     name: http-port
-     protocol: HTTP
-   - number: 443
-     name: https
-     protocol: HTTPS
-     resolution: DNS
-     EOF
+    - edition.cnn.com
+      ports:
+    - number: 80
+      name: http-port
+      protocol: HTTP
+    - number: 443
+      name: https
+      protocol: HTTPS
+      resolution: DNS
+      EOF
      {{< /text >}}
 
 1. [https://edition.cnn.com/politics](https://edition.cnn.com/politics) へ HTTPS リクエストを送り、`ServiceEntry` が正しく機能しているか確認します。
 
    {{< text bash >}}
-   $ kubectl exec "$SOURCE_POD" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
-   ...
-   HTTP/1.1 301 Moved Permanently
-   ...
-   location: https://edition.cnn.com/politics
-   ...
+    $ kubectl exec "$SOURCE_POD" -c curl -- curl -sSL -o /dev/null -D - http://edition.cnn.com/politics
+    ...
+    HTTP/1.1 301 Moved Permanently
+    ...
+    location: https://edition.cnn.com/politics
+    ...
 
-   HTTP/2 200
-   Content-Type: text/html; charset=utf-8
-   ...
+    HTTP/2 200
+    Content-Type: text/html; charset=utf-8
+    ...
    {{< /text >}}
 
    出力は[外部トラフィックの TLS 発行](/ja/docs/tasks/traffic-management/egress/egress-tls-origination/)の例と同じで、まだ TLS は発行されていません。

@@ -26,13 +26,13 @@ test: yes
   [Sidecar の自動注入](/ja/docs/setup/additional-setup/sidecar-injection/#automatic-sidecar-injection)が有効な場合は、
 
   {{< text bash >}}
-  $ kubectl apply -f @samples/curl/curl.yaml@
+    $ kubectl apply -f @samples/curl/curl.yaml@
   {{< /text >}}
 
   そうでない場合は、`curl` アプリをデプロイする前に手動で Sidecar を注入してください：
 
   {{< text bash >}}
-  $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
+    $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@)
   {{< /text >}}
 
   `exec` や `curl` 操作を行う Pod にはすべて Sidecar を注入する必要があります。
@@ -41,14 +41,14 @@ test: yes
   [curl]({{< github_tree >}}/samples/curl) サンプルを使う場合は、次のコマンドを実行します：
 
   {{< text bash >}}
-  $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
+    $ export SOURCE_POD=$(kubectl get pod -l app=curl -o jsonpath={.items..metadata.name})
   {{< /text >}}
 
 - macOS ユーザーは `openssl` のバージョンが 1.1 以上であることを確認してください：
 
   {{< text bash >}}
-  $ openssl version -a | grep OpenSSL
-  OpenSSL 1.1.1g 21 Apr 2020
+    $ openssl version -a | grep OpenSSL
+    OpenSSL 1.1.1g 21 Apr 2020
   {{< /text >}}
 
   上記コマンドの出力が `1.1` 以上であれば、このタスクの指示通りに `openssl` コマンドが動作します。そうでない場合は、`openssl` をアップグレードするか、Linux マシンなど他の実装を試してください。
@@ -56,7 +56,7 @@ test: yes
 - [Envoy のアクセスログを有効化](/ja/docs/tasks/observability/logs/access-log/#enable-envoy-s-access-logging)してください。未有効の場合は、例：
 
   {{< text bask >}}
-  $ istioctl install <flags-you-used-to-install-Istio> --set meshConfig.accessLogFile=/dev/stdout
+    $ istioctl install <flags-you-used-to-install-Istio> --set meshConfig.accessLogFile=/dev/stdout
   {{< /text >}}
 
 - `Gateway API` の手順を使わない場合は、[Istio Egress ゲートウェイのデプロイ](/ja/docs/tasks/traffic-management/egress/egress-gateway/#deploy-istio-egress-gateway)が済んでいることを確認してください。
@@ -407,45 +407,45 @@ $ kubectl delete destinationrule originate-tls-for-edition-cnn-com
 1. サービスの署名証明書を作成するためのルート証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
+    $ openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=example Inc./CN=example.com' -keyout example.com.key -out example.com.crt
    {{< /text >}}
 
 1. `my-nginx.mesh-external.svc.cluster.local` の証明書と秘密鍵を作成します：
 
    {{< text bash >}}
-   $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:2048 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt
+    $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:2048 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt
    {{< /text >}}
 
    または、SAN 検証を有効にしたい場合は、証明書に `SubjectAltNames` を追加できます。例：
 
    {{< text syntax=bash snip_id=none >}}
-   $ cat > san.conf <<EOF
-   [req]
-   distinguished_name = req_distinguished_name
-   req_extensions = v3_req
-   x509_extensions = v3_req
-   prompt = no
-   [req_distinguished_name]
-   countryName = US
-   [v3_req]
-   keyUsage = critical, digitalSignature, keyEncipherment
-   extendedKeyUsage = serverAuth, clientAuth
-   basicConstraints = critical, CA:FALSE
-   subjectAltName = critical, @alt_names
-   [alt_names]
-   DNS = my-nginx.mesh-external.svc.cluster.local
-   EOF
-   $
+    $ cat > san.conf <<EOF
+    [req]
+    distinguished_name = req_distinguished_name
+    req_extensions = v3_req
+    x509_extensions = v3_req
+    prompt = no
+    [req_distinguished_name]
+    countryName = US
+    [v3_req]
+    keyUsage = critical, digitalSignature, keyEncipherment
+    extendedKeyUsage = serverAuth, clientAuth
+    basicConstraints = critical, CA:FALSE
+    subjectAltName = critical, @alt_names
+    [alt_names]
+    DNS = my-nginx.mesh-external.svc.cluster.local
+    EOF
+    $
     $ openssl req -out my-nginx.mesh-external.svc.cluster.local.csr -newkey rsa:4096 -nodes -keyout my-nginx.mesh-external.svc.cluster.local.key -subj "/CN=my-nginx.mesh-external.svc.cluster.local/O=some organization" -config san.conf
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt -extfile san.conf -extensions v3_req
+    $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 0 -in my-nginx.mesh-external.svc.cluster.local.csr -out my-nginx.mesh-external.svc.cluster.local.crt -extfile san.conf -extensions v3_req
    {{< /text >}}
 
 1. クライアント証明書と秘密鍵を生成します：
 
    {{< text bash >}}
-   $ openssl req -out client.example.com.csr -newkey rsa:2048 -nodes -keyout client.example.com.key -subj "/CN=client.example.com/O=client organization"
-   $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 1 -in client.example.com.csr -out client.example.com.crt
+    $ openssl req -out client.example.com.csr -newkey rsa:2048 -nodes -keyout client.example.com.key -subj "/CN=client.example.com/O=client organization"
+    $ openssl x509 -req -sha256 -days 365 -CA example.com.crt -CAkey example.com.key -set_serial 1 -in client.example.com.csr -out client.example.com.crt
    {{< /text >}}
 
 ### 双方向 TLS サーバーをデプロイ {#deploy-a-mutual-TLS-server}

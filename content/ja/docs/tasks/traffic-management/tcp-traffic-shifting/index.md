@@ -97,21 +97,21 @@ $ export TCP_INGRESS_PORT=$(kubectl get gtw tcp-echo-gateway -n istio-io-tcp-tra
 3. いくつかの TCP トラフィックを送信して `tcp-echo` サービスが起動していることを確認します。
 
    {{< text bash >}}
-   $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
+    $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
     $ for i in {1..20}; do \
     kubectl exec "$CURL" -c curl -n istio-io-tcp-traffic-shifting -- sh -c "(date; curl 1) | nc $INGRESS_HOST $TCP_INGRESS_PORT"; \
     done
-   one Mon Nov 12 23:24:57 UTC 2022
-   one Mon Nov 12 23:25:00 UTC 2022
-   one Mon Nov 12 23:25:02 UTC 2022
-   one Mon Nov 12 23:25:05 UTC 2022
-   one Mon Nov 12 23:25:07 UTC 2022
-   one Mon Nov 12 23:25:10 UTC 2022
-   one Mon Nov 12 23:25:12 UTC 2022
-   one Mon Nov 12 23:25:15 UTC 2022
-   one Mon Nov 12 23:25:17 UTC 2022
-   one Mon Nov 12 23:25:19 UTC 2022
-   ...
+    one Mon Nov 12 23:24:57 UTC 2022
+    one Mon Nov 12 23:25:00 UTC 2022
+    one Mon Nov 12 23:25:02 UTC 2022
+    one Mon Nov 12 23:25:05 UTC 2022
+    one Mon Nov 12 23:25:07 UTC 2022
+    one Mon Nov 12 23:25:10 UTC 2022
+    one Mon Nov 12 23:25:12 UTC 2022
+    one Mon Nov 12 23:25:15 UTC 2022
+    one Mon Nov 12 23:25:17 UTC 2022
+    one Mon Nov 12 23:25:19 UTC 2022
+    ...
    {{< /text >}}
 
    すべてのタイムスタンプに「**one**」というプレフィックスが付いていることに注目してください。これは、すべてのトラフィックが `tcp-echo` サービスの `v1` バージョンにルーティングされていることを示しています。
@@ -203,21 +203,21 @@ parentRefs:
 6. さらに TCP トラフィックを `tcp-echo` マイクロサービスに送信します。
 
    {{< text bash >}}
-   $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
+    $ export CURL=$(kubectl get pod -l app=curl -n istio-io-tcp-traffic-shifting -o jsonpath={.items..metadata.name})
     $ for i in {1..20}; do \
     kubectl exec "$CURL" -c curl -n istio-io-tcp-traffic-shifting -- sh -c "(date; curl 1) | nc $INGRESS_HOST $TCP_INGRESS_PORT"; \
     done
-   one Mon Nov 12 23:38:45 UTC 2022
-   two Mon Nov 12 23:38:47 UTC 2022
-   one Mon Nov 12 23:38:50 UTC 2022
-   one Mon Nov 12 23:38:52 UTC 2022
-   one Mon Nov 12 23:38:55 UTC 2022
-   two Mon Nov 12 23:38:57 UTC 2022
-   one Mon Nov 12 23:39:00 UTC 2022
-   one Mon Nov 12 23:39:02 UTC 2022
-   one Mon Nov 12 23:39:05 UTC 2022
-   one Mon Nov 12 23:39:07 UTC 2022
-   ...
+    one Mon Nov 12 23:38:45 UTC 2022
+    two Mon Nov 12 23:38:47 UTC 2022
+    one Mon Nov 12 23:38:50 UTC 2022
+    one Mon Nov 12 23:38:52 UTC 2022
+    one Mon Nov 12 23:38:55 UTC 2022
+    two Mon Nov 12 23:38:57 UTC 2022
+    one Mon Nov 12 23:39:00 UTC 2022
+    one Mon Nov 12 23:39:02 UTC 2022
+    one Mon Nov 12 23:39:05 UTC 2022
+    one Mon Nov 12 23:39:07 UTC 2022
+    ...
    {{< /text >}}
 
    約 20% のタイムスタンプに「**two**」というプレフィックスが付いていることに注目してください。これは、TCP トラフィックの 80% が `tcp-echo` サービスの `v1` バージョンに、20% が `v2` バージョンにルーティングされていることを示しています。
@@ -257,7 +257,7 @@ $ kubectl delete -f @samples/tcp-echo/gateway-api/tcp-echo-all-v1.yaml@ -n istio
 2. `curl` サンプル、`tcp-echo` アプリケーション、テスト用名前空間を削除します：
 
    {{< text bash >}}
-   $ kubectl delete -f @samples/curl/curl.yaml@ -n istio-io-tcp-traffic-shifting
-   $ kubectl delete -f @samples/tcp-echo/tcp-echo-services.yaml@ -n istio-io-tcp-traffic-shifting
-   $ kubectl delete namespace istio-io-tcp-traffic-shifting
+    $ kubectl delete -f @samples/curl/curl.yaml@ -n istio-io-tcp-traffic-shifting
+    $ kubectl delete -f @samples/tcp-echo/tcp-echo-services.yaml@ -n istio-io-tcp-traffic-shifting
+    $ kubectl delete namespace istio-io-tcp-traffic-shifting
    {{< /text >}}
