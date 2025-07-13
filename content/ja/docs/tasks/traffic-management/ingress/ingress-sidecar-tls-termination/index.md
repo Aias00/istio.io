@@ -21,14 +21,14 @@ test: yes
 - [インストールガイド](/ja/docs/setup/) の手順に従い、実験的機能 `ENABLE_TLS_ON_SIDECAR_INGRESS` を有効にして Istio をセットアップします。
 
   {{< text bash >}}
-  $ istioctl install --set profile=default --set values.pilot.env.ENABLE_TLS_ON_SIDECAR_INGRESS=true
+    $ istioctl install --set profile=default --set values.pilot.env.ENABLE_TLS_ON_SIDECAR_INGRESS=true
   {{< /text >}}
 
 - test 名前空間を作成し、ターゲットとなる `httpbin` サービスをデプロイします。この名前空間で Sidecar インジェクションを有効にしてください。
 
   {{< text bash >}}
-  $ kubectl create ns test
-  $ kubectl label namespace test istio-injection=enabled
+    $ kubectl create ns test
+    $ kubectl label namespace test istio-injection=enabled
   {{< /text >}}
 
 ## グローバル mTLS の有効化 {#enable-global-mtls}

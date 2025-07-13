@@ -27,16 +27,16 @@ Istio 認可ポリシーは、JWT クレームの文字列型とリスト型の�
   どちらのワークロードも前段に Envoy プロキシを持ちます。以下のコマンドでデプロイできます：
 
   {{< text bash >}}
-  $ kubectl create ns foo
-  $ kubectl apply -f <(istioctl kube-inject -f @samples/httpbin/httpbin.yaml@) -n foo
-  $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@) -n foo
+   $ kubectl create ns foo
+   $ kubectl apply -f <(istioctl kube-inject -f @samples/httpbin/httpbin.yaml@) -n foo
+   $ kubectl apply -f <(istioctl kube-inject -f @samples/curl/curl.yaml@) -n foo
   {{< /text >}}
 
 - 次のコマンドで `curl` から `httpbin` サービスへのアクセスが正常であることを確認します：
 
   {{< text bash >}}
-  $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -sS -o /dev/null -w "%{http_code}\n"
-  200
+   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl http://httpbin.foo:8000/ip -sS -o /dev/null -w "%{http_code}\n"
+   200
   {{< /text >}}
 
 {{< warning >}}
@@ -49,19 +49,19 @@ Istio 認可ポリシーは、JWT クレームの文字列型とリスト型の�
    このポリシーにより、`httpbin` ワークロードは Issuer が `testing@secure.istio.io` の JWT トークンを受け入れます：
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: RequestAuthentication
-   metadata:
-   name: "jwt-example"
-   namespace: foo
-   spec:
-   selector:
-   matchLabels:
-   app: httpbin
-   jwtRules:
-
-   - issuer: "testing@secure.istio.io"
+    $ kubectl apply -f - <<EOF
+    apiVersion: security.istio.io/v1
+    kind: RequestAuthentication
+    metadata:
+    name: "jwt-example"
+    namespace: foo
+    spec:
+    selector:
+    matchLabels:
+    app: httpbin
+    jwtRules:
+ 
+    - issuer: "testing@secure.istio.io"
      jwksUri: "{{< github_file >}}/security/tools/jwt/samples/jwks.json"
      EOF
      {{< /text >}}
@@ -69,35 +69,35 @@ Istio 認可ポリシーは、JWT クレームの文字列型とリスト型の�
 1. 無効な JWT を使ったリクエストが拒否されることを確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer invalidToken" -w "%{http_code}\n"
-   401
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer invalidToken" -w "%{http_code}\n"
+    401
    {{< /text >}}
 
 1. JWT トークンがないリクエストが許可されることを確認します（上記のポリシーには認可ポリシーが含まれていません）：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -w "%{http_code}\n"
-   200
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -w "%{http_code}\n"
+    200
    {{< /text >}}
 
 1. 次のコマンドで、`foo` 名前空間の `httpbin` ワークロードに `require-jwt` という認可ポリシーを作成します。
    このポリシーは、`httpbin` サービスへのすべてのリクエストに対して、`requestPrincipal` が `testing@secure.istio.io/testing@secure.istio.io` である有効な JWT を要求します。Istio は JWT トークンの `iss` と `sub` を `/` で連結して `requestPrincipal` フィールドを生成します。
 
    {{< text syntax="bash" expandlinks="false" >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: AuthorizationPolicy
-   metadata:
-   name: require-jwt
-   namespace: foo
-   spec:
-   selector:
-   matchLabels:
-   app: httpbin
-   action: ALLOW
-   rules:
-
-   - from: - source:
+    $ kubectl apply -f - <<EOF
+    apiVersion: security.istio.io/v1
+    kind: AuthorizationPolicy
+    metadata:
+    name: require-jwt
+    namespace: foo
+    spec:
+    selector:
+    matchLabels:
+    app: httpbin
+    action: ALLOW
+    rules:
+ 
+    - from: - source:
      requestPrincipals: ["testing@secure.istio.io/testing@secure.istio.io"]
      EOF
      {{< /text >}}
@@ -106,41 +106,41 @@ Istio 認可ポリシーは、JWT クレームの文字列型とリスト型の�
    `requestPrincipal` の値は `testing@secure.istio.io/testing@secure.istio.io` となります：
 
    {{< text syntax="bash" expandlinks="false" >}}
-   $ TOKEN=$(curl {{< github_file >}}/security/tools/jwt/samples/demo.jwt -s) && echo "$TOKEN" | cut -d '.' -f2 - | base64 --decode
-   {"exp":4685989700,"foo":"bar","iat":1532389700,"iss":"testing@secure.istio.io","sub":"testing@secure.istio.io"}
+    $ TOKEN=$(curl {{< github_file >}}/security/tools/jwt/samples/demo.jwt -s) && echo "$TOKEN" | cut -d '.' -f2 - | base64 --decode
+    {"exp":4685989700,"foo":"bar","iat":1532389700,"iss":"testing@secure.istio.io","sub":"testing@secure.istio.io"}
    {{< /text >}}
 
 1. 有効な JWT を使ったリクエストが許可されることを確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
-   200
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
+    200
    {{< /text >}}
 
 1. JWT なしのリクエストが拒否されることを確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -w "%{http_code}\n"
-   403
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -w "%{http_code}\n"
+    403
    {{< /text >}}
 
 1. 次のコマンドで `require-jwt` 認可ポリシーを更新し、JWT に `groups` という名前で値が `group1` のクレームが含まれていることも要求します：
 
    {{< text syntax="bash" expandlinks="false" >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: AuthorizationPolicy
-   metadata:
-   name: require-jwt
-   namespace: foo
-   spec:
-   selector:
-   matchLabels:
-   app: httpbin
-   action: ALLOW
-   rules:
-
-   - from: - source:
+    $ kubectl apply -f - <<EOF
+    apiVersion: security.istio.io/v1
+    kind: AuthorizationPolicy
+    metadata:
+    name: require-jwt
+    namespace: foo
+    spec:
+    selector:
+    matchLabels:
+    app: httpbin
+    action: ALLOW
+    rules:
+ 
+    - from: - source:
      requestPrincipals: ["testing@secure.istio.io/testing@secure.istio.io"]
      when: - key: request.auth.claims[groups]
      values: ["group1"]
@@ -154,22 +154,22 @@ Istio 認可ポリシーは、JWT クレームの文字列型とリスト型の�
 1. `groups` クレームリストが `group1` と `group2` である JWT を取得します：
 
    {{< text syntax="bash" expandlinks="false" >}}
-   $ TOKEN_GROUP=$(curl {{< github_file >}}/security/tools/jwt/samples/groups-scope.jwt -s) && echo "$TOKEN_GROUP" | cut -d '.' -f2 - | base64 --decode -
-   {"exp":3537391104,"groups":["group1","group2"],"iat":1537391104,"iss":"testing@secure.istio.io","scope":["scope1","scope2"],"sub":"testing@secure.istio.io"}
+    $ TOKEN_GROUP=$(curl {{< github_file >}}/security/tools/jwt/samples/groups-scope.jwt -s) && echo "$TOKEN_GROUP" | cut -d '.' -f2 - | base64 --decode -
+    {"exp":3537391104,"groups":["group1","group2"],"iat":1537391104,"iss":"testing@secure.istio.io","scope":["scope1","scope2"],"sub":"testing@secure.istio.io"}
    {{< /text >}}
 
 1. JWT を含み、かつ JWT に `groups` クレームで値が `group1` のものが含まれるリクエストが許可されることを確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN_GROUP" -w "%{http_code}\n"
-   200
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN_GROUP" -w "%{http_code}\n"
+    200
    {{< /text >}}
 
 1. JWT を含むが `groups` クレームが含まれないリクエストが拒否されることを確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
-   403
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" -c curl -n foo -- curl "http://httpbin.foo:8000/headers" -sS -o /dev/null -H "Authorization: Bearer $TOKEN" -w "%{http_code}\n"
+    403
    {{< /text >}}
 
 ## クリーンアップ {#cleanup}

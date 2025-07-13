@@ -76,7 +76,7 @@ test: yes
 1.  NGINX サービスの設定を保存する Kubernetes の [ConfigMap](https://kubernetes.io/ja/docs/tasks/configure-pod-container/configure-pod-configmap/) リソースを作成します：
 
     {{< text bash >}}
-     $ kubectl create configmap nginx-configmap --from-file=nginx.conf=./nginx.conf
+    $ kubectl create configmap nginx-configmap --from-file=nginx.conf=./nginx.conf
     {{< /text >}}
 
 1.  NGINX サービスをデプロイします：
@@ -127,35 +127,35 @@ test: yes
     secret:
     secretName: nginx-server-certs
     EOF
-    {{< /text >}}
+    {{< /text >}} 
 
 1.  NGINX サービスが正しくデプロイされたかをテストするには、Sidecar プロキシからリクエストを送り、サーバ証明書の検証をスキップします（`curl` の `-k` オプションを使用）。サーバ証明書の `common name (CN)` が `nginx.example.com` であることを確認してください。
 
     {{< text bash >}}
-     $ kubectl exec "$(kubectl get pod -l run=my-nginx -o jsonpath={.items..metadata.name})" -c istio-proxy -- curl -sS -v -k --resolve nginx.example. com:443:127.0.0.1 https://nginx.example.com
-     ...
-     SSL connection using TLSv1.2 / ECDHE-RSA-AES256-GCM-SHA384
-     ALPN, server accepted to use http/1.1
-     Server certificate:
-     subject: CN=nginx.example.com; O=some organization
-     start date: May 27 14:18:47 2020 GMT
-     expire date: May 27 14:18:47 2021 GMT
-     issuer: O=example Inc.; CN=example.com
-     SSL certificate verify result: unable to get local issuer certificate (20), continuing anyway.
+    $ kubectl exec "$(kubectl get pod -l run=my-nginx -o jsonpath={.items..metadata.name})" -c istio-proxy -- curl -sS -v -k --resolve nginx.example. com:443:127.0.0.1 https://nginx.example.com
+    ...
+    SSL connection using TLSv1.2 / ECDHE-RSA-AES256-GCM-SHA384
+    ALPN, server accepted to use http/1.1
+    Server certificate:
+    subject: CN=nginx.example.com; O=some organization
+    start date: May 27 14:18:47 2020 GMT
+    expire date: May 27 14:18:47 2021 GMT
+    issuer: O=example Inc.; CN=example.com
+    SSL certificate verify result: unable to get local issuer certificate (20), continuing anyway.
  
-     > GET / HTTP/1.1
-     > User-Agent: curl/7.58.0
-     > Host: nginx.example.com
-     > ...
-     > < HTTP/1.1 200 OK
+    > GET / HTTP/1.1
+    > User-Agent: curl/7.58.0
+    > Host: nginx.example.com
+    > ...
+    > < HTTP/1.1 200 OK
  
-     < Server: nginx/1.17.10
-     ...
-     <!DOCTYPE html>
-     <html>
-     <head>
-     <title>Welcome to nginx!</title>
-     ...
+    < Server: nginx/1.17.10
+    ...
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Welcome to nginx!</title>
+    ...
     {{< /text >}}
 
 ## Ingress Gateway の構成 {#configure-an-ingress-gateway}

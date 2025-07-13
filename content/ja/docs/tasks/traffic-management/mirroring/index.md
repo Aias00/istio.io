@@ -52,75 +52,75 @@ test: yes
    1. `httpbin-v2` のデプロイ：
 
       {{< text bash >}}
-      $ kubectl create -f - <<EOF
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-      name: httpbin-v2
-      spec:
-      replicas: 1
-      selector:
-      matchLabels:
-      app: httpbin
-      version: v2
-      template:
-      metadata:
-      labels:
-      app: httpbin
-      version: v2
-      spec:
-      containers: - image: docker.io/kennethreitz/httpbin
-      imagePullPolicy: IfNotPresent
-      name: httpbin
-      command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:80", "httpbin:app"]
-      ports: - containerPort: 80
-      EOF
+        $ kubectl create -f - <<EOF
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+        name: httpbin-v2
+        spec:
+        replicas: 1
+        selector:
+        matchLabels:
+        app: httpbin
+        version: v2
+        template:
+        metadata:
+        labels:
+        app: httpbin
+        version: v2
+        spec:
+        containers: - image: docker.io/kennethreitz/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        command: ["gunicorn", "--access-logfile", "-", "-b", "0.0.0.0:80", "httpbin:app"]
+        ports: - containerPort: 80
+        EOF
       {{< /text >}}
 
    1. `httpbin` Kubernetes Service のデプロイ：
 
       {{< text bash >}}
-      $ kubectl create -f - <<EOF
-      apiVersion: v1
-      kind: Service
-      metadata:
-      name: httpbin
-      labels:
-      app: httpbin
-      spec:
-      ports:
-
-      - name: http
-        port: 8000
-        targetPort: 80
-        selector:
+        $ kubectl create -f - <<EOF
+        apiVersion: v1
+        kind: Service
+        metadata:
+        name: httpbin
+        labels:
         app: httpbin
-        EOF
+        spec:
+        ports:
+
+        - name: http
+          port: 8000
+          targetPort: 80
+          selector:
+          app: httpbin
+          EOF
         {{< /text >}}
 
 1. `httpbin` サービスにリクエストを送信するための `curl` ワークロードをデプロイします：
 
    {{< text bash >}}
-   $ cat <<EOF | kubectl create -f -
-   apiVersion: apps/v1
-   kind: Deployment
-   metadata:
-   name: curl
-   spec:
-   replicas: 1
-   selector:
-   matchLabels:
-   app: curl
-   template:
-   metadata:
-   labels:
-   app: curl
-   spec:
-   containers: - name: curl
-   image: curlimages/curl
-   command: ["/bin/sleep","3650d"]
-   imagePullPolicy: IfNotPresent
-   EOF
+    $ cat <<EOF | kubectl create -f -
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: curl
+    spec:
+    replicas: 1
+    selector:
+    matchLabels:
+    app: curl
+    template:
+    metadata:
+    labels:
+    app: curl
+    spec:
+    containers: - name: curl
+    image: curlimages/curl
+    command: ["/bin/sleep","3650d"]
+    imagePullPolicy: IfNotPresent
+    EOF
    {{< /text >}}
 
 ## デフォルトルーティングポリシーの作成 {#creating-a-default-routing-policy}
@@ -229,7 +229,7 @@ test: yes
 1. これで全トラフィックが `httpbin:v1` サービスに向かうようになり、リクエストを送信できます：
 
    {{< text bash json >}}
-   $ kubectl exec deploy/curl -c curl -- curl -sS http://httpbin:8000/headers
+    $ kubectl exec deploy/curl -c curl -- curl -sS http://httpbin:8000/headers
    {
    "headers": {
    "Accept": "_/_",
@@ -250,12 +250,12 @@ test: yes
    `v1` バージョンのアクセスログエントリが見え、`v2` にはログがないはずです：
 
    {{< text bash >}}
-   $ kubectl logs deploy/httpbin-v1 -c httpbin
+    $ kubectl logs deploy/httpbin-v1 -c httpbin
    127.0.0.1 - - [07/Mar/2018:19:02:43 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
    {{< /text >}}
 
    {{< text bash >}}
-   $ kubectl logs deploy/httpbin-v2 -c httpbin
+    $ kubectl logs deploy/httpbin-v2 -c httpbin
    <none>
    {{< /text >}}
 
@@ -341,20 +341,20 @@ test: yes
 1. トラフィックを送信します：
 
    {{< text bash >}}
-   $ kubectl exec deploy/curl -c curl -- curl -sS http://httpbin:8000/headers
+    $ kubectl exec deploy/curl -c curl -- curl -sS http://httpbin:8000/headers
    {{< /text >}}
 
    これで `v1` と `v2` の両方のバージョンでアクセスログが見えるはずです。
    `v2` のアクセスログはミラーリングトラフィックによるもので、実際のリクエストのターゲットは `v1` です。
 
    {{< text bash >}}
-   $ kubectl logs deploy/httpbin-v1 -c httpbin
-   127.0.0.1 - - [07/Mar/2018:19:02:43 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
-   127.0.0.1 - - [07/Mar/2018:19:26:44 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
+    $ kubectl logs deploy/httpbin-v1 -c httpbin
+    127.0.0.1 - - [07/Mar/2018:19:02:43 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
+    127.0.0.1 - - [07/Mar/2018:19:26:44 +0000] "GET /headers HTTP/1.1" 200 321 "-" "curl/7.35.0"
    {{< /text >}}
 
    {{< text bash >}}
-   $ kubectl logs deploy/httpbin-v2 -c httpbin
+    $ kubectl logs deploy/httpbin-v2 -c httpbin
    127.0.0.1 - - [07/Mar/2018:19:26:44 +0000] "GET /headers HTTP/1.1" 200 361 "-" "curl/7.35.0"
    {{< /text >}}
 
@@ -387,6 +387,6 @@ test: yes
 1. `httpbin` と `curl` の Deployment および `httpbin` サービスを削除します：
 
    {{< text bash >}}
-   $ kubectl delete deploy httpbin-v1 httpbin-v2 curl
-   $ kubectl delete svc httpbin
+    $ kubectl delete deploy httpbin-v1 httpbin-v2 curl
+    $ kubectl delete svc httpbin
    {{< /text >}}

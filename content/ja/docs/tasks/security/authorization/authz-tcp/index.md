@@ -148,19 +148,19 @@ test: no
    次のコマンドを実行し、出力を確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
-    -c curl -n foo -- sh -c \
-    'echo "port 9000" | nc tcp-echo 9000' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   connection rejected
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+     -c curl -n foo -- sh -c \
+     'echo "port 9000" | nc tcp-echo 9000' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
+    connection rejected
    {{< /text >}}
 
 1. 9001 ポートへのリクエストが拒否されることを確認します。これはリクエストがどの ALLOW ルールにも一致しないためです。次のコマンドを実行し、出力を確認します：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
     -c curl -n foo -- sh -c \
     'echo "port 9001" | nc tcp-echo 9001' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   connection rejected
+    connection rejected
    {{< /text >}}
 
 ## TCP ワークロードに DENY 認可ポリシーを設定する {#configure-deny-authorization-policy-for-a-tcp-workload}
@@ -168,20 +168,20 @@ test: no
 1. 次のコマンドで HTTP 専用フィールドを持つ DENY ポリシーを追加します：
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: AuthorizationPolicy
-   metadata:
-   name: tcp-policy
-   namespace: foo
-   spec:
-   selector:
-   matchLabels:
-   app: tcp-echo
-   action: DENY
-   rules:
-
-   - to: - operation:
+    $ kubectl apply -f - <<EOF
+    apiVersion: security.istio.io/v1
+    kind: AuthorizationPolicy
+    metadata:
+    name: tcp-policy
+    namespace: foo
+    spec:
+    selector:
+    matchLabels:
+    app: tcp-echo
+    action: DENY
+    rules:
+ 
+    - to: - operation:
      methods: ["GET"]
      EOF
      {{< /text >}}
@@ -190,60 +190,60 @@ test: no
    このルールが制限的な性質を持つため、tcp ポートへのすべてのトラフィックが拒否されるためです：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
     -c curl -n foo -- sh -c \
     'echo "port 9000" | nc tcp-echo 9000' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   connection rejected
+    connection rejected
    {{< /text >}}
 
 1. 9001 ポートへのリクエストが拒否されることを確認します。理由は上記と同じです。
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
     -c curl -n foo -- sh -c \
     'echo "port 9001" | nc tcp-echo 9001' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   connection rejected
+    connection rejected
    {{< /text >}}
 
 1. 次のコマンドで TCP と HTTP フィールドの両方を持つ DENY ポリシーを追加します：
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: AuthorizationPolicy
-   metadata:
-   name: tcp-policy
-   namespace: foo
-   spec:
-   selector:
-   matchLabels:
-   app: tcp-echo
-   action: DENY
-   rules:
+    $ kubectl apply -f - <<EOF
+    apiVersion: security.istio.io/v1
+    kind: AuthorizationPolicy
+    metadata:
+    name: tcp-policy
+    namespace: foo
+    spec:
+    selector:
+    matchLabels:
+    app: tcp-echo
+    action: DENY
+    rules:
 
-   - to: - operation:
-     methods: ["GET"]
-     ports: ["9000"]
-     EOF
+    - to: - operation:
+      methods: ["GET"]
+      ports: ["9000"]
+      EOF
      {{< /text >}}
 
 1. 9000 ポートへのリクエストが拒否されることを確認します。これはリクエストが上記の DENY ポリシーの `ports` に一致するためです：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
     -c curl -n foo -- sh -c \
     'echo "port 9000" | nc tcp-echo 9000' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   connection rejected
+    connection rejected
    {{< /text >}}
 
 1. 9001 ポートへのリクエストが許可されることを確認します。これはリクエストが DENY ポリシーの `ports` に一致しないためです：
 
    {{< text bash >}}
-   $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
+    $ kubectl exec "$(kubectl get pod -l app=curl -n foo -o jsonpath={.items..metadata.name})" \
     -c curl -n foo -- sh -c \
     'echo "port 9001" | nc tcp-echo 9001' | grep "hello" && echo 'connection succeeded' || echo 'connection rejected'
-   hello port 9001
-   connection succeeded
+    hello port 9001
+    connection succeeded
    {{< /text >}}
 
 ## クリーンアップ {#cleanup}

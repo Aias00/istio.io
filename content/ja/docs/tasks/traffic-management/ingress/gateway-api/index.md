@@ -25,14 +25,14 @@ Istio 独自のトラフィック管理 API 以外にも、
 1. 多くの Kubernetes クラスタでは Gateway API はデフォルトでインストールされていません。Gateway API CRD が存在しない場合は、次のコマンドでインストールします：
 
    {{< text bash >}}
-   $ kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-    { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl apply -f -; }
+    $ kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
+     { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl apply -f -; }
    {{< /text >}}
 
 1. `minimal` プロファイルで Istio をインストールします：
 
    {{< text bash >}}
-   $ istioctl install --set profile=minimal -y
+    $ istioctl install --set profile=minimal -y
    {{< /text >}}
 
 ## Istio API との違い {#differences-from-istio-apis}
@@ -56,69 +56,69 @@ API の詳細は [Gateway API](https://gateway-api.sigs.k8s.io/) ドキュメン
 1. まず `httpbin` テストアプリをデプロイします：
 
    {{< text bash >}}
-   $ kubectl apply -f @samples/httpbin/httpbin.yaml@
+    $ kubectl apply -f @samples/httpbin/httpbin.yaml@
    {{< /text >}}
 
 1. Gateway API 設定（`/get` のみ公開するルート）をデプロイします：
 
    {{< text bash >}}
-   $ kubectl create namespace istio-ingress
-   $ kubectl apply -f - <<EOF
-   apiVersion: gateway.networking.k8s.io/v1
-   kind: Gateway
-   metadata:
-   name: gateway
-   namespace: istio-ingress
-   spec:
-   gatewayClassName: istio
-   listeners:
+    $ kubectl create namespace istio-ingress
+    $ kubectl apply -f - <<EOF
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: Gateway
+    metadata:
+    name: gateway
+    namespace: istio-ingress
+    spec:
+    gatewayClassName: istio
+    listeners:
 
-   - name: default
-     hostname: "\*.example.com"
-     port: 80
-     protocol: HTTP
-     allowedRoutes:
-     namespaces:
-     from: All
+    - name: default
+      hostname: "\*.example.com"
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+      namespaces:
+      from: All
 
-   ***
+    ***
 
-   apiVersion: gateway.networking.k8s.io/v1
-   kind: HTTPRoute
-   metadata:
-   name: http
-   namespace: default
-   spec:
-   parentRefs:
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+    name: http
+    namespace: default
+    spec:
+    parentRefs:
 
-   - name: gateway
-     namespace: istio-ingress
-     hostnames: ["httpbin.example.com"]
-     rules:
-   - matches: - path:
-     type: PathPrefix
-     value: /get
-     backendRefs: - name: httpbin
-     port: 8000
-     EOF
-     {{< /text >}}
+    - name: gateway
+      namespace: istio-ingress
+      hostnames: ["httpbin.example.com"]
+      rules:
+    - matches: - path:
+      type: PathPrefix
+      value: /get
+      backendRefs: - name: httpbin
+      port: 8000
+      EOF
+      {{< /text >}}
 
 1. Ingress ホスト環境変数を設定します：
 
    {{< text bash >}}
-   $ kubectl wait -n istio-ingress --for=condition=programmed gateways.gateway.networking.k8s.io gateway
-   $ export INGRESS_HOST=$(kubectl get gateways.gateway.networking.k8s.io gateway -n istio-ingress -ojsonpath='{.status.addresses[0].value}')
+    $ kubectl wait -n istio-ingress --for=condition=programmed gateways.gateway.networking.k8s.io gateway
+    $ export INGRESS_HOST=$(kubectl get gateways.gateway.networking.k8s.io gateway -n istio-ingress -ojsonpath='{.status.addresses[0].value}')
    {{< /text >}}
 
 1. **curl** で `httpbin` サービスにアクセスします：
 
    {{< text bash >}}
-   $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST/get"
-   ...
-   HTTP/1.1 200 OK
-   ...
-   server: istio-envoy
-   ...
+    $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST/get"
+    ...
+    HTTP/1.1 200 OK
+    ...
+    server: istio-envoy
+    ...
    {{< /text >}}
 
    `-H` フラグで **Host** HTTP ヘッダーを "httpbin.example.com" に設定しています。
@@ -128,48 +128,48 @@ API の詳細は [Gateway API](https://gateway-api.sigs.k8s.io/) ドキュメン
 1. 明示的に公開していない URL にアクセスすると HTTP 404 エラーになります：
 
    {{< text bash >}}
-   $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST/headers"
-   HTTP/1.1 404 Not Found
-   ...
+    $ curl -s -I -HHost:httpbin.example.com "http://$INGRESS_HOST/headers"
+    HTTP/1.1 404 Not Found
+    ...
    {{< /text >}}
 
 1. ルートを更新して `/headers` も公開し、リクエストヘッダーを追加します：
 
    {{< text bash >}}
-   $ kubectl apply -f - <<EOF
-   apiVersion: gateway.networking.k8s.io/v1
-   kind: HTTPRoute
-   metadata:
-   name: http
-   namespace: default
-   spec:
-   parentRefs:
+    $ kubectl apply -f - <<EOF
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+    name: http
+    namespace: default
+    spec:
+    parentRefs:
 
-   - name: gateway
-     namespace: istio-ingress
-     hostnames: ["httpbin.example.com"]
-     rules:
-   - matches: - path:
-     type: PathPrefix
-     value: /get - path:
-     type: PathPrefix
-     value: /headers
-     filters: - type: RequestHeaderModifier
-     requestHeaderModifier:
-     add: - name: my-added-header
-     value: added-value
-     backendRefs: - name: httpbin
-     port: 8000
-     EOF
+    - name: gateway
+      namespace: istio-ingress
+      hostnames: ["httpbin.example.com"]
+      rules:
+    - matches: - path:
+      type: PathPrefix
+      value: /get - path:
+      type: PathPrefix
+      value: /headers
+      filters: - type: RequestHeaderModifier
+      requestHeaderModifier:
+      add: - name: my-added-header
+      value: added-value
+      backendRefs: - name: httpbin
+      port: 8000
+      EOF
      {{< /text >}}
 
 1. `/headers` に再度アクセスし、`My-Added-Header` ヘッダーが追加されていることを確認します：
 
    {{< text bash >}}
-   $ curl -s -HHost:httpbin.example.com "http://$INGRESS_HOST/headers" | jq '.headers["My-Added-Header"][0]'
-   ...
-   "added-value"
-   ...
+    $ curl -s -HHost:httpbin.example.com "http://$INGRESS_HOST/headers" | jq '.headers ["My-Added-Header"][0]'
+    ...
+    "added-value"
+    ...
    {{< /text >}}
 
 ## デプロイ方法 {#deployment-methods}
@@ -405,22 +405,22 @@ parentRefs:
 1. `httpbin` サンプルとゲートウェイを削除します：
 
    {{< text bash >}}
-   $ kubectl delete -f @samples/httpbin/httpbin.yaml@
-   $ kubectl delete httproute http
-   $ kubectl delete gateways.gateway.networking.k8s.io gateway -n istio-ingress
-   $ kubectl delete ns istio-ingress
+    $ kubectl delete -f @samples/httpbin/httpbin.yaml@
+    $ kubectl delete httproute http
+    $ kubectl delete gateways.gateway.networking.k8s.io gateway -n istio-ingress
+    $ kubectl delete ns istio-ingress
    {{< /text >}}
 
 1. Istio をアンインストールします：
 
    {{< text bash >}}
-   $ istioctl uninstall -y --purge
-   $ kubectl delete ns istio-system
-   $ kubectl delete ns istio-ingress
+    $ istioctl uninstall -y --purge
+    $ kubectl delete ns istio-system
+    $ kubectl delete ns istio-ingress
    {{< /text >}}
 
 1. Gateway API CRD リソースが不要な場合は削除します：
 
    {{< text bash >}}
-   $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
+    $ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
    {{< /text >}}
