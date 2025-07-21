@@ -357,13 +357,13 @@ $ kubectl delete httproute httpbin-ext --ignore-not-found=true
 1. `IBM Cloud Private` の設定ファイル `cluster/config.yaml` から `service_cluster_ip_range` を取得します：
 
    {{< text bash >}}
-   $ grep service_cluster_ip_range cluster/config.yaml
+    $ grep service_cluster_ip_range cluster/config.yaml
    {{< /text >}}
 
    出力例：
 
    {{< text plain >}}
-   service_cluster_ip_range: 10.0.0.1/24
+    service_cluster_ip_range: 10.0.0.1/24
    {{< /text >}}
 
 1. `--set global.proxy.includeIPRanges="10.0.0.1/24"` を使用します。
